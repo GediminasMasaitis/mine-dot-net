@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MineDotNet.Common", "MineDo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MineDotNet.AI", "MineDotNet.AI\MineDotNet.AI.csproj", "{F2DE75D9-62FD-49B1-9070-F8860322D8EA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestConsole", "TestConsole\TestConsole.csproj", "{A77A0F71-1264-4AA7-90B5-D4C096C36BA9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{F2DE75D9-62FD-49B1-9070-F8860322D8EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F2DE75D9-62FD-49B1-9070-F8860322D8EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F2DE75D9-62FD-49B1-9070-F8860322D8EA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A77A0F71-1264-4AA7-90B5-D4C096C36BA9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A77A0F71-1264-4AA7-90B5-D4C096C36BA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A77A0F71-1264-4AA7-90B5-D4C096C36BA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A77A0F71-1264-4AA7-90B5-D4C096C36BA9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

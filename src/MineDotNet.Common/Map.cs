@@ -22,7 +22,7 @@ namespace MineDotNet.Common
             }
         }
 
-        public Map(IList<Cell> cells) : this(cells.Max(c => c.X), cells.Max(c => c.Y))
+        public Map(IList<Cell> cells) : this(cells.Max(c => c.X)+1, cells.Max(c => c.Y)+1)
         {
             foreach (var cell in cells)
             {
