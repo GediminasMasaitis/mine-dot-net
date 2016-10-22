@@ -1,12 +1,11 @@
 using System;
 using System.Collections.Generic;
 
-namespace MineDotNet.Common
+namespace MineDotNet.AI
 {
-    public static class ExtensionMethods
+    internal static class ExtensionMethods
     {
-
-        internal static void AddRange<T>(this ICollection<T> target, IEnumerable<T> source)
+        public static void AddRange<T>(this ICollection<T> target, IEnumerable<T> source)
         {
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
