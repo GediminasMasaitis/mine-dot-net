@@ -10,12 +10,8 @@ namespace MineDotNet.AI
 {
     public class Analyzer
     {
-        public event Action<string> Output;
-        
         public event Action<string> Debug;
-        public virtual void OnOutput(string s) => Output?.Invoke(s);
         public virtual void OnDebug(string s) => Debug?.Invoke(s);
-        public virtual void OnOutputLine(string s) => OnOutput(s + Environment.NewLine);
         public virtual void OnDebugLine(string s) => OnDebug(s + Environment.NewLine);
 
         private Stopwatch sw { get; set; } = new Stopwatch();

@@ -22,11 +22,16 @@ namespace TestConsole
                 map = parser.Parse(file);
             }
             
+            var visualizer = new TextMapVisualizer();
+            using (var consoleOut = Console.OpenStandardOutput())
+            {
+                visualizer.Visualize(map, consoleOut);
+            }
+            Console.WriteLine();
             var ai = new Analyzer();
             ai.Debug += AiOnDebug;
-            ai.Output += AiOnOutput;
 
-            var verdicts = ai.Solve(map);
+            var verdicts = ai.SolveComplex(map);
             Console.WriteLine();
             foreach (var verdict in verdicts)
             {
@@ -34,13 +39,6 @@ namespace TestConsole
             }
             Console.WriteLine("Press any key to close...");
             Console.ReadKey();
-        }
-
-        private static void AiOnOutput(string s)
-        {
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.Write(s);
-            Console.ResetColor();
         }
 
         private static void AiOnDebug(string s)
