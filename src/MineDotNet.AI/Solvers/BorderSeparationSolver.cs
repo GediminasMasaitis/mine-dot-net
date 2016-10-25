@@ -25,7 +25,10 @@ namespace MineDotNet.AI.Solvers
                 OnDebugLine("Attempting " + (1 << splitBorder.Count) + " combinations");
                 var validCombinations = GetValidBorderCombinations(map, splitBorder);
                 OnDebugLine("Found " + validCombinations.Count + " valid combinations");
-
+                foreach (var validCombination in validCombinations)
+                {
+                    OnDebugLine(validCombination.Where(x => x.Value == Verdict.HasMine).Select(x => x.Key.ToString()).Aggregate((x,n) => x + ";" + n));
+                }
                 if (validCombinations.Count == 0)
                 {
                     // TODO Must be invalid map... Handle somehow
@@ -35,7 +38,7 @@ namespace MineDotNet.AI.Solvers
             }
 
             var commonBorderPredictions = GetCommonBorderPredictions(allProbabilities);
-            OnDebugLine("Complex solver found " + commonBorderPredictions.Count + " guaranteed moves.");
+            OnDebugLine("Found " + commonBorderPredictions.Count + " guaranteed moves.");
             if (commonBorderPredictions.Count == 0)
             {
                 var lastRiskyPrediction = allProbabilities.MinBy(x => x.Value);
@@ -177,13 +180,13 @@ namespace MineDotNet.AI.Solvers
             if (map.RemainingMineCount.HasValue)
             {
                 var minePredictionCount = predictions.Count(x => x.Value == Verdict.HasMine);
-                if (flaggedCount + minePredictionCount > map.RemainingMineCount)
+                if (/*flaggedCount + */minePredictionCount > map.RemainingMineCount)
                 {
                     return false;
                 }
                 if (filledCount == flaggedCount + predictions.Count)
                 {
-                    if (flaggedCount + minePredictionCount != map.RemainingMineCount)
+                    if (/*flaggedCount + */minePredictionCount != map.RemainingMineCount)
                     {
                         return false;
                     }

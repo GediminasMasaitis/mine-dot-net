@@ -22,13 +22,19 @@ namespace MineDotNet.Common
             {
                 lines.Add(reader.ReadLine());
             }
-
+            int? mineCount = null;
             for (var i = 0; i < lines.Count; i++)
             {
-                for (var j = 0; j < lines[i].Length; j++)
+                var line = lines[i];
+                if (line.StartsWith("m"))
+                {
+                    mineCount = Convert.ToInt32(line.Substring(1));
+                    continue;
+                }
+                for (var j = 0; j < line.Length; j++)
                 {
                     Cell cell = null;
-                    switch (lines[i][j])
+                    switch (line[j])
                     {
                         case '.':
                             cell = new Cell(i, j, CellState.Empty, CellFlag.None, 0);
@@ -48,7 +54,7 @@ namespace MineDotNet.Common
                             }
                             else
                             {
-                                throw new InvalidDataException("Char " + lines[i][j] + " not recognised at line " + i + ", char " + j);
+                                throw new InvalidDataException("Char " + line[j] + " not recognised at line " + i + ", char " + j);
                             }
                             break;
                     }
@@ -56,6 +62,7 @@ namespace MineDotNet.Common
                 }
             }
             var map = new Map(cells);
+            map.RemainingMineCount = mineCount;
             return map;
         }
     }
