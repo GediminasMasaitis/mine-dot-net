@@ -53,20 +53,15 @@ namespace MineDotNet.AI
         public IDictionary<Coordinate,Verdict> SolveSimple(Map map)
         {
             var verdicts = new Dictionary<Coordinate, Verdict>();
-            SolveSimpleInner(map, verdicts, true);
-            return verdicts;
-        }
-
-        private void SolveSimpleInner(Map map, IDictionary<Coordinate, Verdict> verdicts, bool recurseFurther)
-        {
-            while (true)
+            var initialVerdictCount = -1;
+            while (verdicts.Count != initialVerdictCount)
             {
-                var initialVerdictCount = verdicts.Count;
+                initialVerdictCount = verdicts.Count;
                 var hintedCells = map.AllCells.Where(x => x.Hint != 0);
                 foreach (var cell in hintedCells)
                 {
                     var cellNeighbours = map.GetNeighboursOf(cell);
-                    var filledNeighbours = cellNeighbours.Where(x => x.State == CellState.Filled).ToList();
+                    var filledNeighbours = cellNeighbours.Where(x => x.State == CellState.Filled && (!verdicts.ContainsKey(x.Coordinate) || verdicts[x.Coordinate] != Verdict.DoesntHaveMine)).ToList();
                     var markedNeighbours = filledNeighbours.Where(x => x.Flag == CellFlag.HasMine || (verdicts.ContainsKey(x.Coordinate) && verdicts[x.Coordinate] == Verdict.HasMine)).ToList();
                     if (filledNeighbours.Count == markedNeighbours.Count)
                     {
@@ -90,12 +85,8 @@ namespace MineDotNet.AI
                         }
                     }
                 }
-
-                if (!recurseFurther || verdicts.Count <= initialVerdictCount)
-                {
-                    return;
-                }
             }
+            return verdicts;
         }
 
         public IDictionary<Coordinate,Verdict> SolveComplex(Map map)
