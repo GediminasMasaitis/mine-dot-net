@@ -1,131 +1,51 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using MineDotNet.Common;
 
-namespace MineDotNet.AI
+namespace MineDotNet.AI.Solvers
 {
-    public class Analyzer
+    public class BorderSeparationSolver : SolverBase
     {
-        public event Action<string> Debug;
-        public virtual void OnDebug(string s) => Debug?.Invoke(s);
-        public virtual void OnDebugLine(string s) => OnDebug(s + Environment.NewLine);
-
-        private Stopwatch sw { get; set; } = new Stopwatch();
-
-        private void Tick()
-        {
-            sw.Start();
-        }
-
-        private double Tock()
-        {
-            sw.Stop();
-            return sw.Elapsed.TotalMilliseconds;
-        }
-
-        private string TockStr()
-        {
-            return Tock().ToString("#.##");
-        }
-
-        public IDictionary<Coordinate, Verdict> Solve(Map map)
-        {
-            OnDebugLine("Solving " + map.Width + "x" + map.Height + " map.");
-            OnDebugLine("Attempting simple solver");
-            Tick();
-            var simpleResults = SolveSimple(map);
-            var simpleTime = TockStr();
-            if (simpleResults.Count > 0)
-            {
-                OnDebugLine("Simple solver succeeded, found " + simpleResults.Count + " results in " + simpleTime + " ms.");
-                return simpleResults;
-            }
-            OnDebugLine("Simple solver failed in " + simpleTime + " ms.");
-            OnDebugLine("Attempting complex solver");
-            var complexResults = SolveComplex(map);
-            return complexResults;
-        }
-
-        public IDictionary<Coordinate,Verdict> SolveSimple(Map map)
-        {
-            var verdicts = new Dictionary<Coordinate, Verdict>();
-            var initialVerdictCount = -1;
-            while (verdicts.Count != initialVerdictCount)
-            {
-                initialVerdictCount = verdicts.Count;
-                var hintedCells = map.AllCells.Where(x => x.Hint != 0);
-                foreach (var cell in hintedCells)
-                {
-                    var cellNeighbours = map.GetNeighboursOf(cell);
-                    var filledNeighbours = cellNeighbours.Where(x => x.State == CellState.Filled && (!verdicts.ContainsKey(x.Coordinate) || verdicts[x.Coordinate] != Verdict.DoesntHaveMine)).ToList();
-                    var markedNeighbours = filledNeighbours.Where(x => x.Flag == CellFlag.HasMine || (verdicts.ContainsKey(x.Coordinate) && verdicts[x.Coordinate] == Verdict.HasMine)).ToList();
-                    if (filledNeighbours.Count == markedNeighbours.Count)
-                    {
-                        continue;
-                    }
-                    if (filledNeighbours.Count == cell.Hint)
-                    {
-                        var neighboursToFlag = filledNeighbours.Where(x => x.Flag != CellFlag.HasMine && !verdicts.ContainsKey(x.Coordinate));
-                        foreach (var neighbour in neighboursToFlag)
-                        {
-                            verdicts.Add(neighbour.Coordinate, Verdict.HasMine);
-                        }
-                    }
-                    if (markedNeighbours.Count == cell.Hint)
-                    {
-                        var unmarkedNeighbours = filledNeighbours.Where(x => x.Flag != CellFlag.HasMine);
-                        var neighboursToClick = unmarkedNeighbours.Where(x => !verdicts.ContainsKey(x.Coordinate));
-                        foreach (var neighbour in neighboursToClick)
-                        {
-                            verdicts.Add(neighbour.Coordinate, Verdict.DoesntHaveMine);
-                        }
-                    }
-                }
-            }
-            return verdicts;
-        }
-
-        public IDictionary<Coordinate,Verdict> SolveComplex(Map map)
+        public override IDictionary<Coordinate,Verdict> Solve(Map map)
         {
             map.BuildNeighbourCache();
             var allProbabilities = new Dictionary<Coordinate, decimal>();
 
-            var commonBoundry = GetBoundryCells(map);
-            OnDebugLine("Common boundary calculated, found " + commonBoundry.Count + " cells");
-            var splitBoundaries = SeggregateBoundries(commonBoundry);
-            var splitBoundariesStr = "(" + splitBoundaries.Select(x=>x.Count.ToString()).Aggregate((x, n) => x + ", " + n) + ")";
-            OnDebugLine("Common boundary split into " + splitBoundaries.Count + " separate boundaries " + splitBoundariesStr);
-            foreach (var splitBoundary in splitBoundaries)
+            var commonBorder = GetBorderCells(map);
+            OnDebugLine("Common border calculated, found " + commonBorder.Count + " cells");
+            var splitBorders = SeparateBorders(commonBorder);
+            var splitBordersStr = "(" + splitBorders.Select(x=>x.Count.ToString()).Aggregate((x, n) => x + ", " + n) + ")";
+            OnDebugLine("Common border split into " + splitBorders.Count + " separate borders " + splitBordersStr);
+            foreach (var splitBorder in splitBorders)
             {
-                OnDebugLine("Solving " + splitBoundary.Count + " cell boundary");
-                OnDebugLine("Attempting " + (1 << splitBoundary.Count) + " combinations");
-                var validCombinations = GetValidBoundaryCombinations(map, splitBoundary);
+                OnDebugLine("Solving " + splitBorder.Count + " cell border");
+                OnDebugLine("Attempting " + (1 << splitBorder.Count) + " combinations");
+                var validCombinations = GetValidBorderCombinations(map, splitBorder);
                 OnDebugLine("Found " + validCombinations.Count + " valid combinations");
 
                 if (validCombinations.Count == 0)
                 {
                     // TODO Must be invalid map... Handle somehow
                 }
-                var probabilities = GetBoundaryProbabilities(splitBoundary, validCombinations);
+                var probabilities = GetBorderProbabilities(splitBorder, validCombinations);
                 allProbabilities.AddRange(probabilities);
             }
 
-            var commonBoundaryPredictions = GetCommonBoundaryPredictions(allProbabilities);
-            OnDebugLine("Complex solver found " + commonBoundaryPredictions.Count + " guaranteed moves.");
-            if (commonBoundaryPredictions.Count == 0)
+            var commonBorderPredictions = GetCommonBorderPredictions(allProbabilities);
+            OnDebugLine("Complex solver found " + commonBorderPredictions.Count + " guaranteed moves.");
+            if (commonBorderPredictions.Count == 0)
             {
                 var lastRiskyPrediction = allProbabilities.MinBy(x => x.Value);
-                OnDebugLine("Guessing from a boundary with " + (1 - lastRiskyPrediction.Value) + " chance of success.");
+                OnDebugLine("Guessing from a border with " + (1 - lastRiskyPrediction.Value) + " chance of success.");
                 return new Dictionary<Coordinate, Verdict> { { lastRiskyPrediction.Key, Verdict.DoesntHaveMine } };
             }
-            return commonBoundaryPredictions;
+            return commonBorderPredictions;
         }
 
-        private bool IsCoordinateABoundry(Map map, Cell cell)
+        private bool IsCoordinateABorder(Map map, Cell cell)
         {
             if (cell.State == CellState.Empty || cell.Flag == CellFlag.HasMine)
             {
@@ -136,15 +56,15 @@ namespace MineDotNet.AI
             return hasOpenedNeighbour;
         }
 
-        private IList<Cell> GetBoundryCells(Map map)
+        private IList<Cell> GetBorderCells(Map map)
         {
-            var boundryCells = map.AllCells.Where(x => IsCoordinateABoundry(map, x)).ToList();
-            return boundryCells;
+            var borderCells = map.AllCells.Where(x => IsCoordinateABorder(map, x)).ToList();
+            return borderCells;
         }
 
-        private IList<IList<Cell>> SeggregateBoundries(IEnumerable<Cell> commonBoundry)
+        private IList<IList<Cell>> SeparateBorders(IEnumerable<Cell> commonBorder)
         {
-            var copy = new List<Cell>(commonBoundry);
+            var copy = new List<Cell>(commonBorder);
             var map = new Map(copy);
 
             var visited = new HashSet<Coordinate>();
@@ -175,9 +95,9 @@ namespace MineDotNet.AI
             return allCells;
         }
 
-        private IList<IDictionary<Coordinate, Verdict>> GetValidBoundaryCombinations(Map map, IList<Cell> splitBoundary)
+        private IList<IDictionary<Coordinate, Verdict>> GetValidBorderCombinations(Map map, IList<Cell> splitBorder)
         {
-            var totalCombinations = 1 << splitBoundary.Count;
+            var totalCombinations = 1 << splitBorder.Count;
             var validPredictions = new ConcurrentBag<IDictionary<Coordinate, Verdict>>();
             var emptyCells = map.AllCells.Where(x => x.State == CellState.Empty).ToList();
             var filledCount = map.AllCells.Count(x => x.State == CellState.Filled);
@@ -185,12 +105,12 @@ namespace MineDotNet.AI
             var combos = Enumerable.Range(0, totalCombinations);
             Parallel.ForEach(combos, combo =>
             {
-                var binaryStr = Convert.ToString(combo, 2).PadLeft(splitBoundary.Count, '0');
+                var binaryStr = Convert.ToString(combo, 2).PadLeft(splitBorder.Count, '0');
                 var binaries = binaryStr.Select(x => x == '1').ToList();
                 var predictions = new Dictionary<Coordinate, Verdict>();
-                for (var j = 0; j < splitBoundary.Count; j++)
+                for (var j = 0; j < splitBorder.Count; j++)
                 {
-                    var coord = splitBoundary[j].Coordinate;
+                    var coord = splitBorder[j].Coordinate;
                     var verd = binaries[j] ? Verdict.HasMine : Verdict.DoesntHaveMine;
                     predictions.Add(coord, verd);
                 }
@@ -205,7 +125,7 @@ namespace MineDotNet.AI
 
         public bool IsPredictionValid(Map map, IDictionary<Coordinate, Verdict> predictions, IList<Cell> emptyCells, int filledCount, int flaggedCount)
         {
-            if (!CheckBoundaryMineCount(map, predictions, filledCount, flaggedCount))
+            if (!CheckBorderMineCount(map, predictions, filledCount, flaggedCount))
             {
                 return false;
             }
@@ -251,7 +171,7 @@ namespace MineDotNet.AI
             return true;
         }
 
-        private static bool CheckBoundaryMineCount(Map map, IDictionary<Coordinate, Verdict> predictions, int filledCount, int flaggedCount)
+        private static bool CheckBorderMineCount(Map map, IDictionary<Coordinate, Verdict> predictions, int filledCount, int flaggedCount)
         {
             // TODO: Doesn't work fully. If the map contains multiple borders, it will check one border at a time and prediction counts will be wrong. For end-game cases there should be an additional check from all borders using a cartesian product from all borders...
             if (map.RemainingMineCount.HasValue)
@@ -272,10 +192,10 @@ namespace MineDotNet.AI
             return true;
         }
 
-        private static IDictionary<Coordinate, decimal> GetBoundaryProbabilities(IList<Cell> splitBoundary, IList<IDictionary<Coordinate, Verdict>> validCombinations)
+        private static IDictionary<Coordinate, decimal> GetBorderProbabilities(IList<Cell> splitBorder, IList<IDictionary<Coordinate, Verdict>> validCombinations)
         {
             var probabilities = new Dictionary<Coordinate, decimal>();
-            foreach (var cell in splitBoundary)
+            foreach (var cell in splitBorder)
             {
                 var mineInCount = validCombinations.Count(x => x[cell.Coordinate] == Verdict.HasMine);
                 var probability = (decimal)mineInCount / validCombinations.Count;
@@ -284,7 +204,7 @@ namespace MineDotNet.AI
             return probabilities;
         }
 
-        private static Dictionary<Coordinate, Verdict> GetCommonBoundaryPredictions(IDictionary<Coordinate, decimal> probabilities)
+        private static Dictionary<Coordinate, Verdict> GetCommonBorderPredictions(IDictionary<Coordinate, decimal> probabilities)
         {
             var commonVerdicts = new Dictionary<Coordinate, Verdict>();
             foreach (var probability in probabilities)
@@ -297,10 +217,10 @@ namespace MineDotNet.AI
             return commonVerdicts;
         }
 
-        private static Dictionary<Coordinate, Verdict> GetCommonBoundaryPredictions(IList<Cell> splitBoundary, IList<IDictionary<Coordinate, Verdict>> validCombinations)
+        private static Dictionary<Coordinate, Verdict> GetCommonBorderPredictions(IList<Cell> splitBorder, IList<IDictionary<Coordinate, Verdict>> validCombinations)
         {
             var commonVerdicts = new Dictionary<Coordinate, Verdict>();
-            foreach (var cell in splitBoundary)
+            foreach (var cell in splitBorder)
             {
                 var firstVerdict = validCombinations[0][cell.Coordinate];
                 if (validCombinations.All(x => x[cell.Coordinate] == firstVerdict))

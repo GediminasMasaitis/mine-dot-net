@@ -7,6 +7,7 @@ using System.Media;
 using System.Text;
 using System.Threading.Tasks;
 using MineDotNet.AI;
+using MineDotNet.AI.Solvers;
 using MineDotNet.Common;
 
 namespace TestConsole
@@ -28,10 +29,17 @@ namespace TestConsole
                 visualizer.Visualize(map, consoleOut);
             }
             Console.WriteLine();
-            var ai = new Analyzer();
-            ai.Debug += AiOnDebug;
 
-            var verdicts = ai.SolveComplex(map);
+            var simpleSolver = new SimpleSolver();
+            simpleSolver.Debug += AiOnDebug;
+
+            var borderSeparationSolver = new BorderSeparationSolver();
+            borderSeparationSolver.Debug += AiOnDebug;
+
+            var solver = new AggregateSolver(simpleSolver, borderSeparationSolver);
+            solver.Debug += AiOnDebug;
+
+            var verdicts = solver.Solve(map);
             Console.WriteLine();
             foreach (var verdict in verdicts)
             {
