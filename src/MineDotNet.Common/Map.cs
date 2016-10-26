@@ -38,7 +38,7 @@ namespace MineDotNet.Common
 
         public IEnumerable<Cell> AllCells => Cells.Cast<Cell>().Where(x => x != null);
 
-        public IDictionary<Coordinate, IList<Cell>> NeighbourCache { get; set; }
+        public IDictionary<Coordinate, NeighbourCacheEntry> NeighbourCache { get; set; }
 
         public bool CellExists(Coordinate coord) => coord.X >= 0 && coord.Y >= 0 && coord.X < Width && coord.Y < Height && Cells[coord.X, coord.Y] != null && Cells[coord.X, coord.Y].State != CellState.Wall;
 
@@ -61,11 +61,19 @@ namespace MineDotNet.Common
         public void BuildNeighbourCache()
         {
             NeighbourCache = null;
-            var cache = new Dictionary<Coordinate, IList<Cell>>();
+            var cache = new Dictionary<Coordinate, NeighbourCacheEntry>();
             foreach (var cell in AllCells)
             {
                 var neighbours = GetNeighboursOf(cell.Coordinate);
-                cache.Add(cell.Coordinate,neighbours);
+                var entry = new NeighbourCacheEntry();
+                entry.AllNeighbours = neighbours;
+                var states = Enum.GetValues(typeof(CellState)).Cast<CellState>().ToList();
+                entry.ByState = new Dictionary<CellState, IList<Cell>>(states.Count);
+                foreach (var cellState in states)
+                {
+                    entry.ByState[cellState] = neighbours.Where(x => x.State == cellState).ToList();
+                }
+                cache.Add(cell.Coordinate, entry);
             }
             NeighbourCache = cache;
         }
@@ -74,7 +82,7 @@ namespace MineDotNet.Common
         {
             if (NeighbourCache != null)
             {
-                return NeighbourCache[coord];
+                return NeighbourCache[coord].AllNeighbours;
             }
             var validOffsets = NeighbourOffsets.Select(x => coord + x).Where(CellExists).ToList();
             if (includeSelf && CellExists(coord))

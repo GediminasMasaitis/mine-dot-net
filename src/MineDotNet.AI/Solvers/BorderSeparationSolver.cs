@@ -212,21 +212,33 @@ namespace MineDotNet.AI.Solvers
 
         private IList<IDictionary<Coordinate,Verdict>> FindValidBorderCellCombinations(Map map, Border border, int undecidedCellsRemaining)
         {
+            var allRemainingCellsInBorder = undecidedCellsRemaining == border.Cells.Count;
             var totalCombinations = 1 << border.Cells.Count;
             var validPredictions = new ConcurrentBag<IDictionary<Coordinate, Verdict>>();
             var emptyCells = map.AllCells.Where(x => x.State == CellState.Empty).ToList();
             var combos = Enumerable.Range(0, totalCombinations);
             Parallel.ForEach(combos, combo =>
             {
-                // TODO: optimize to not involve weird binary strings
-                var binaryStr = Convert.ToString(combo, 2).PadLeft(border.Cells.Count, '0');
-                var binaries = binaryStr.Select(x => x == '1').ToList();
-                var predictions = new Dictionary<Coordinate, Verdict>();
+                var bitsSet = SWAR(combo);
+                if (map.RemainingMineCount.HasValue)
+                {
+                    if (bitsSet > map.RemainingMineCount.Value)
+                    {
+                        return;
+                    }
+                    
+                    if (allRemainingCellsInBorder && bitsSet != map.RemainingMineCount)
+                    {
+                        return;
+                    }
+                }
+                var predictions = new Dictionary<Coordinate, Verdict>(border.Cells.Count);
                 for (var j = 0; j < border.Cells.Count; j++)
                 {
                     var coord = border.Cells[j].Coordinate;
-                    var verd = binaries[j] ? Verdict.HasMine : Verdict.DoesntHaveMine;
-                    predictions.Add(coord, verd);
+                    var hasMine = (combo & (1 << j)) > 0;
+                    var verd = hasMine ? Verdict.HasMine : Verdict.DoesntHaveMine;
+                    predictions[coord] = verd;
                 }
                 var valid = IsPredictionValid(map, predictions, emptyCells, undecidedCellsRemaining);
                 if (valid)
@@ -237,20 +249,20 @@ namespace MineDotNet.AI.Solvers
             return validPredictions.ToList();
         }
 
+        private int SWAR(int i)
+        {
+            i = i - ((i >> 1) & 0x55555555);
+            i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
+            return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
+        }
+
         public bool IsPredictionValid(Map map, IDictionary<Coordinate, Verdict> predictions, IList<Cell> emptyCells, int undecidedCellsRemaining)
         {
-            if (!CheckBorderMineCount(map, predictions, undecidedCellsRemaining))
-            {
-                // TODO: Is this still needed? Benchmark whether it helps or hurts
-                return false;
-            }
-            
             foreach (var cell in emptyCells)
             {
                 var neighboursWithMine = 0;
                 var neighboursWithoutMine = 0;
-                var neighbours = map.GetNeighboursOf(cell);
-                var filledNeighbours = neighbours.Where(x => x.State == CellState.Filled).ToList();
+                var filledNeighbours = map.NeighbourCache[cell.Coordinate].ByState[CellState.Filled];
                 bool foundUnknownCell = false;
                 foreach (var neighbour in filledNeighbours)
                 {
@@ -258,20 +270,25 @@ namespace MineDotNet.AI.Solvers
                     {
                         neighboursWithMine++;
                     }
-                    else if (predictions.ContainsKey(neighbour.Coordinate))
+                    else
                     {
-                        if (predictions[neighbour.Coordinate] == Verdict.HasMine)
+                        Verdict verdict;
+                        var success = predictions.TryGetValue(neighbour.Coordinate, out verdict);
+                        if (success)
                         {
-                            neighboursWithMine++;
+                            if (verdict == Verdict.HasMine)
+                            {
+                                neighboursWithMine++;
+                            }
+                            else
+                            {
+                                neighboursWithoutMine++;
+                            }
                         }
                         else
                         {
-                            neighboursWithoutMine++;
+                            foundUnknownCell = true;
                         }
-                    }
-                    else
-                    {
-                        foundUnknownCell = true;
                     }
                 }
                 if (neighboursWithMine > cell.Hint)
@@ -282,26 +299,6 @@ namespace MineDotNet.AI.Solvers
                     continue;
                 if (cell.Hint != neighboursWithMine)
                     return false;
-            }
-            return true;
-        }
-
-        private static bool CheckBorderMineCount(Map map, IDictionary<Coordinate, Verdict> predictions, int undecidedCellsRemaining)
-        {
-            if (map.RemainingMineCount.HasValue)
-            {
-                var minePredictionCount = predictions.Count(x => x.Value == Verdict.HasMine);
-                if (minePredictionCount > map.RemainingMineCount)
-                {
-                    return false;
-                }
-                if (undecidedCellsRemaining == predictions.Count)
-                {
-                    if (minePredictionCount != map.RemainingMineCount)
-                    {
-                        return false;
-                    }
-                }
             }
             return true;
         }
