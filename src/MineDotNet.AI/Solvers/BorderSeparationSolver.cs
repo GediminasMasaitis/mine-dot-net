@@ -1,4 +1,5 @@
 ﻿using System;
+using System.CodeDom;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,32 +10,61 @@ namespace MineDotNet.AI.Solvers
 {
     public class BorderSeparationSolver : SolverBase
     {
+        private class Border
+        {
+            public Border(IList<Cell> cells)
+            {
+                Cells = cells;
+            }
+            public IList<Cell> Cells { get; set; }
+            public IList<IDictionary<Coordinate, Verdict>> ValidCombinations { get; set; }
+            public int SmallestPossibleMineCount { get; set; }
+            public IDictionary<Coordinate, decimal> Probabilities { get; set; }
+        }
+
         public override IDictionary<Coordinate,Verdict> Solve(Map map)
         {
             map.BuildNeighbourCache();
-            var allProbabilities = new Dictionary<Coordinate, decimal>();
+            
 
             var commonBorder = GetBorderCells(map);
             OnDebugLine("Common border calculated, found " + commonBorder.Count + " cells");
-            var splitBorders = SeparateBorders(commonBorder);
-            var splitBordersStr = "(" + splitBorders.Select(x=>x.Count.ToString()).Aggregate((x, n) => x + ", " + n) + ")";
-            OnDebugLine("Common border split into " + splitBorders.Count + " separate borders " + splitBordersStr);
-            foreach (var splitBorder in splitBorders)
+            var borders = SeparateBorders(commonBorder).ToList();
+
+            var splitBordersStr = "(" + borders.Select(x=>x.Cells.Count.ToString()).Aggregate((x, n) => x + ", " + n) + ")";
+            OnDebugLine("Common border split into " + borders.Count + " separate borders " + splitBordersStr);
+
+            foreach (var border in borders)
             {
-                OnDebugLine("Solving " + splitBorder.Count + " cell border");
-                OnDebugLine("Attempting " + (1 << splitBorder.Count) + " combinations");
-                var validCombinations = GetValidBorderCombinations(map, splitBorder);
-                OnDebugLine("Found " + validCombinations.Count + " valid combinations");
-                foreach (var validCombination in validCombinations)
+                OnDebugLine("Solving " + border.Cells.Count + " cell border");
+                OnDebugLine("Attempting " + (1 << border.Cells.Count) + " combinations");
+
+                border.ValidCombinations = FindValidBorderCellCombinations(map, border);
+
+                OnDebugLine("Found " + border.ValidCombinations.Count + " valid combinations");
+                foreach (var validCombination in border.ValidCombinations)
                 {
                     OnDebugLine(validCombination.Where(x => x.Value == Verdict.HasMine).Select(x => x.Key.ToString()).Aggregate((x,n) => x + ";" + n));
                 }
-                if (validCombinations.Count == 0)
+                if (border.ValidCombinations.Count == 0)
                 {
                     // TODO Must be invalid map... Handle somehow
                 }
-                var probabilities = GetBorderProbabilities(splitBorder, validCombinations);
-                allProbabilities.AddRange(probabilities);
+
+                border.SmallestPossibleMineCount = border.ValidCombinations.Min(x => x.Count(y => y.Value == Verdict.HasMine));
+            }
+
+            if (map.RemainingMineCount.HasValue)
+            {
+                TrimValidCombinationsByMineCount(borders, map.RemainingMineCount.Value);
+            }
+
+            var allProbabilities = new Dictionary<Coordinate, decimal>();
+
+            foreach (var border in borders)
+            {
+                border.Probabilities = GetBorderProbabilities(border);
+                allProbabilities.AddRange(border.Probabilities);
             }
 
             var commonBorderPredictions = GetCommonBorderPredictions(allProbabilities);
@@ -46,6 +76,23 @@ namespace MineDotNet.AI.Solvers
                 return new Dictionary<Coordinate, Verdict> { { lastRiskyPrediction.Key, Verdict.DoesntHaveMine } };
             }
             return commonBorderPredictions;
+        }
+
+        private void TrimValidCombinationsByMineCount(IList<Border> borders, int minesRemaining)
+        {
+            foreach (var border in borders)
+            {
+                var guaranteedOtherCombinations = borders.Where(x => x != border).Sum(x => x.SmallestPossibleMineCount);
+                for (int i = 0; i < border.ValidCombinations.Count; i++)
+                {
+                    var combination = border.ValidCombinations[i];
+                    if (combination.Count(x => x.Value == Verdict.HasMine) + guaranteedOtherCombinations > minesRemaining)
+                    {
+                        border.ValidCombinations.RemoveAt(i);
+                        i--;
+                    }
+                }
+            }
         }
 
         private bool IsCoordinateABorder(Map map, Cell cell)
@@ -65,13 +112,13 @@ namespace MineDotNet.AI.Solvers
             return borderCells;
         }
 
-        private IList<IList<Cell>> SeparateBorders(IEnumerable<Cell> commonBorder)
+        private IEnumerable<Border> SeparateBorders(IEnumerable<Cell> commonBorder)
         {
             var copy = new List<Cell>(commonBorder);
             var map = new Map(copy);
 
             var visited = new HashSet<Coordinate>();
-            var allCells = new List<IList<Cell>>();
+            //var allCells = new List<IList<Cell>>();
             while (copy.Count > 0)
             {
                 var initialCoord = copy[0];
@@ -93,14 +140,14 @@ namespace MineDotNet.AI.Solvers
                         }
                     }
                 }
-                allCells.Add(currentCells);
+                var border = new Border(currentCells);
+                yield return border;
             }
-            return allCells;
         }
 
-        private IList<IDictionary<Coordinate, Verdict>> GetValidBorderCombinations(Map map, IList<Cell> splitBorder)
+        private IList<IDictionary<Coordinate,Verdict>> FindValidBorderCellCombinations(Map map, Border border)
         {
-            var totalCombinations = 1 << splitBorder.Count;
+            var totalCombinations = 1 << border.Cells.Count;
             var validPredictions = new ConcurrentBag<IDictionary<Coordinate, Verdict>>();
             var emptyCells = map.AllCells.Where(x => x.State == CellState.Empty).ToList();
             var filledCount = map.AllCells.Count(x => x.State == CellState.Filled);
@@ -108,12 +155,13 @@ namespace MineDotNet.AI.Solvers
             var combos = Enumerable.Range(0, totalCombinations);
             Parallel.ForEach(combos, combo =>
             {
-                var binaryStr = Convert.ToString(combo, 2).PadLeft(splitBorder.Count, '0');
+                // TODO: optimize to not involve weird binary strings
+                var binaryStr = Convert.ToString(combo, 2).PadLeft(border.Cells.Count, '0');
                 var binaries = binaryStr.Select(x => x == '1').ToList();
                 var predictions = new Dictionary<Coordinate, Verdict>();
-                for (var j = 0; j < splitBorder.Count; j++)
+                for (var j = 0; j < border.Cells.Count; j++)
                 {
-                    var coord = splitBorder[j].Coordinate;
+                    var coord = border.Cells[j].Coordinate;
                     var verd = binaries[j] ? Verdict.HasMine : Verdict.DoesntHaveMine;
                     predictions.Add(coord, verd);
                 }
@@ -195,13 +243,13 @@ namespace MineDotNet.AI.Solvers
             return true;
         }
 
-        private static IDictionary<Coordinate, decimal> GetBorderProbabilities(IList<Cell> splitBorder, IList<IDictionary<Coordinate, Verdict>> validCombinations)
+        private static IDictionary<Coordinate, decimal> GetBorderProbabilities(Border border)
         {
             var probabilities = new Dictionary<Coordinate, decimal>();
-            foreach (var cell in splitBorder)
+            foreach (var cell in border.Cells)
             {
-                var mineInCount = validCombinations.Count(x => x[cell.Coordinate] == Verdict.HasMine);
-                var probability = (decimal)mineInCount / validCombinations.Count;
+                var mineInCount = border.ValidCombinations.Count(x => x[cell.Coordinate] == Verdict.HasMine);
+                var probability = (decimal)mineInCount / border.ValidCombinations.Count;
                 probabilities.Add(cell.Coordinate, probability);
             }
             return probabilities;
