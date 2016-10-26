@@ -75,7 +75,11 @@ namespace MineDotNet.AI.Solvers
 
             commonBorder.Probabilities = GetBorderProbabilities(commonBorder);
 
-            var commonBorderPredictions = GetBorderPredictions(commonBorder);
+            var nonBorderProbabilities = GetNonBorderProbabilitiesByMineCount(map, commonBorder);
+
+            var allProbabilities = commonBorder.Probabilities.Concat(nonBorderProbabilities).ToDictionary(x => x.Key, x => x.Value);
+
+            var commonBorderPredictions = GetBorderPredictions(allProbabilities);
             OnDebugLine("Found " + commonBorderPredictions.Count + " guaranteed moves.");
             if (commonBorderPredictions.Count == 0)
             {
@@ -84,6 +88,45 @@ namespace MineDotNet.AI.Solvers
                 return new Dictionary<Coordinate, Verdict> { { lastRiskyPrediction.Key, Verdict.DoesntHaveMine } };
             }
             return commonBorderPredictions;
+        }
+
+        private IDictionary<Coordinate, decimal> GetNonBorderProbabilitiesByMineCount(Map map, Border commonBorder)
+        {
+            var probabilities = new Dictionary<Coordinate, decimal>();
+            if (!map.RemainingMineCount.HasValue)
+            {
+                return probabilities;
+            }
+
+            var combinationsMineCount = commonBorder.ValidCombinations[0].Count(x => x.Value == Verdict.HasMine);
+            if (combinationsMineCount == 0)
+            {
+                return probabilities;
+            }
+            var sameMineCountForAllCombinations = commonBorder.ValidCombinations.All(x => x.Count(y => y.Value == Verdict.HasMine) == combinationsMineCount);
+            if (!sameMineCountForAllCombinations)
+            {
+                return probabilities;
+            }
+            var commonBorderCoordinateSet = new HashSet<Coordinate>(commonBorder.Cells.Select(x => x.Coordinate));
+            var nonBorderFilledCells = map.AllCells.Where(x => !commonBorderCoordinateSet.Contains(x.Coordinate) && x.State == CellState.Filled && x.Flag == CellFlag.None).ToList();
+            if (combinationsMineCount == map.RemainingMineCount.Value)
+            {
+                foreach (var nonBorderFilledCell in nonBorderFilledCells)
+                {
+                    probabilities[nonBorderFilledCell.Coordinate] = 0;
+                }
+                return probabilities;
+            }
+            if (nonBorderFilledCells.Count == map.RemainingMineCount.Value - combinationsMineCount)
+            {
+                foreach (var nonBorderFilledCell in nonBorderFilledCells)
+                {
+                    probabilities[nonBorderFilledCell.Coordinate] = 1;
+                }
+                return probabilities;
+            }
+            return probabilities;
         }
 
         private IEnumerable<IDictionary<Coordinate, Verdict>> GetCommonBorderValidCombinations(IEnumerable<Border> borders)
@@ -132,32 +175,33 @@ namespace MineDotNet.AI.Solvers
 
         private IEnumerable<Border> SeparateBorders(Border commonBorder, Map map)
         {
-            var copy = new List<Cell>(commonBorder.Cells);
+            var commonCoords = new HashSet<Coordinate>(commonBorder.Cells.Select(x => x.Coordinate));
             //var map = new Map(copy);
 
             var visited = new HashSet<Coordinate>();
             //var allCells = new List<IList<Cell>>();
-            while (copy.Count > 0)
+            while (commonCoords.Count > 0)
             {
-                var initialCoord = copy[0];
-                var cells = new Queue<Cell>();
+                var initialCoord = commonCoords.First();
+                var coordQueue = new Queue<Coordinate>();
                 var currentCells = new List<Cell>();
-                cells.Enqueue(initialCoord);
-                while (cells.Count > 0)
+                coordQueue.Enqueue(initialCoord);
+                while (coordQueue.Count > 0)
                 {
-                    var cell = cells.Dequeue();
+                    var coord = coordQueue.Dequeue();
+                    var cell = map.Cells[coord.X, coord.Y];
                     var neighbors = map.GetNeighboursOf(cell).Where(x => x.Flag != CellFlag.HasMine && (cell.State == CellState.Filled || x.State == CellState.Filled));
-                    if (cell.State == CellState.Filled)
+                    if (commonCoords.Contains(coord))
                     {
                         currentCells.Add(cell);
-                        copy.Remove(cell);
+                        commonCoords.Remove(coord);
                     }
                     visited.Add(cell.Coordinate);
                     foreach (var neighbor in neighbors)
                     {
                         if (visited.Add(neighbor.Coordinate))
                         {
-                            cells.Enqueue(neighbor);
+                            coordQueue.Enqueue(neighbor.Coordinate);
                         }
                     }
                 }
@@ -274,15 +318,18 @@ namespace MineDotNet.AI.Solvers
             return probabilities;
         }
 
-        private static Dictionary<Coordinate, Verdict> GetBorderPredictions(Border border)
+        private static IDictionary<Coordinate, Verdict> GetBorderPredictions(IDictionary<Coordinate, decimal> probabilities)
         {
             var commonVerdicts = new Dictionary<Coordinate, Verdict>();
-            foreach (var cell in border.Cells)
+            foreach (var probability in probabilities)
             {
-                var firstVerdict = border.ValidCombinations[0][cell.Coordinate];
-                if (border.ValidCombinations.All(x => x[cell.Coordinate] == firstVerdict))
+                if (probability.Value == 0)
                 {
-                    commonVerdicts.Add(cell.Coordinate, firstVerdict);
+                    commonVerdicts[probability.Key] = Verdict.DoesntHaveMine;
+                }
+                else if(probability.Value == 1)
+                {
+                    commonVerdicts[probability.Key] = Verdict.HasMine;
                 }
             }
             return commonVerdicts;
