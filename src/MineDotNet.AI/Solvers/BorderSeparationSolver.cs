@@ -78,6 +78,8 @@ namespace MineDotNet.AI.Solvers
             return commonBorderPredictions;
         }
 
+        //private IList<IDictionary<Coordinate, Verdict>> GetCommonValidCombinations()
+
         private void TrimValidCombinationsByMineCount(IList<Border> borders, int minesRemaining)
         {
             foreach (var border in borders)
@@ -97,7 +99,7 @@ namespace MineDotNet.AI.Solvers
 
         private bool IsCoordinateABorder(Map map, Cell cell)
         {
-            if (cell.State == CellState.Empty || cell.Flag == CellFlag.HasMine)
+            if (cell.State != CellState.Filled || cell.Flag == CellFlag.HasMine)
             {
                 return false;
             }

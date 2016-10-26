@@ -42,6 +42,7 @@
     <Compile Include="Solvers\AggregateSolver.cs" />
     <Compile Include="Solvers\BorderSeparationSolver.cs" />
     <Compile Include="Solvers\ISolver.cs" />
+    <Compile Include="MultiCartesianExtension.cs" />
     <Compile Include="Solvers\SimpleSolver.cs" />
     <Compile Include="Solvers\SolverAggregationBehavior.cs" />
     <Compile Include="Solvers\SolverBase.cs" />

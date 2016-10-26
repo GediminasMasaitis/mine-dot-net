@@ -47,6 +47,9 @@ namespace MineDotNet.Common
                                     throw new ArgumentOutOfRangeException();
                             }
                             break;
+                        case CellState.Wall:
+                            writer.Write("X");
+                            break;
                         default:
                             throw new ArgumentOutOfRangeException();
                     }

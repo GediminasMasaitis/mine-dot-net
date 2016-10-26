@@ -4,5 +4,6 @@ namespace MineDotNet.Common
     {
         Empty,
         Filled,
+        Wall
     }
 }

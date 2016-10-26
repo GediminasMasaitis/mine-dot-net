@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -23,7 +24,12 @@ namespace MineDotNet.AI.Solvers
 
         public override IDictionary<Coordinate, Verdict> Solve(Map map)
         {
-            OnDebugLine("Solving " + map.Width + "x" + map.Height + " map.");
+            OnDebug($"Solving {map.Width}x{map.Height} map");
+            if (map.RemainingMineCount.HasValue)
+            {
+                OnDebug($" with {map.RemainingMineCount.Value} mines remaining");
+            }
+            OnDebugLine(string.Empty);
             var stopwatch = new Stopwatch();
             var allResults = new Dictionary<Coordinate, Verdict>();
             foreach (var solver in Solvers)

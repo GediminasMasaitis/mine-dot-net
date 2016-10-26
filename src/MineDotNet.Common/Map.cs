@@ -40,7 +40,7 @@ namespace MineDotNet.Common
 
         public IDictionary<Coordinate, IList<Cell>> NeighbourCache { get; set; }
 
-        public bool CellExists(Coordinate coord) => coord.X >= 0 && coord.Y >= 0 && coord.X < Width && coord.Y < Height && Cells[coord.X, coord.Y] != null;
+        public bool CellExists(Coordinate coord) => coord.X >= 0 && coord.Y >= 0 && coord.X < Width && coord.Y < Height && Cells[coord.X, coord.Y] != null && Cells[coord.X, coord.Y].State != CellState.Wall;
 
         private static readonly Coordinate[] NeighbourOffsets = {
             new Coordinate(-1,-1),
