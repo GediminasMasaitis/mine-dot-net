@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using MineDotNet.AI;
+using MineDotNet.AI.Solvers;
 using MineDotNet.Common;
 
 namespace MineDotNet.GUI
@@ -22,26 +24,26 @@ namespace MineDotNet.GUI
         {
             InitializeComponent();
             var allMaps = maps.ToList();
-            MapCount = 2;
+            MapCount = 3;
             MapTextBoxes = new TextBox[MapCount];
             MapTextBoxes[0] = Map0TextBox;
 
             var colors = new List<Color>
             {
                 Color.FromArgb(0, 0, 0),
-                Color.FromArgb(100, 0, 0),
-                Color.FromArgb(0, 100, 0),
-                Color.FromArgb(40, 70, 170),
-                Color.FromArgb(100, 100, 0),
-                Color.FromArgb(100, 0, 100),
-                Color.FromArgb(0, 100, 100),
-                Color.FromArgb(170, 70, 0),
-                Color.FromArgb(0, 170, 100),
-                Color.FromArgb(70, 30, 0),
-                Color.FromArgb(180, 0, 100),
-                Color.FromArgb(180, 150, 50),
-                Color.FromArgb(120, 120, 120),
-                Color.FromArgb(170, 170, 170),
+                Color.FromArgb(100, 0, 150, 0),
+                Color.FromArgb(100, 150, 0, 0),
+                Color.FromArgb(100, 40, 70, 220),
+                //Color.FromArgb(100, 100, 0),
+                //Color.FromArgb(100, 0, 100),
+                //Color.FromArgb(0, 100, 100),
+                //Color.FromArgb(170, 70, 0),
+                //Color.FromArgb(0, 170, 100),
+                //Color.FromArgb(70, 30, 0),
+                //Color.FromArgb(180, 0, 100),
+                //Color.FromArgb(180, 150, 50),
+                //Color.FromArgb(120, 120, 120),
+                //Color.FromArgb(170, 170, 170),
             };
 
             var rng = new Random(0);
@@ -55,23 +57,23 @@ namespace MineDotNet.GUI
             }
 
             Brushes = colors.Select(x => new SolidBrush(x)).ToList();
-            EmptyBrush = new SolidBrush(Color.FromArgb(80, 80, 80));
+            EmptyBrush = new SolidBrush(Color.FromArgb(100, 100, 100));
 
-
-            var offset = 240;
+            var offsetX = 170;
+            var offsetY = 0;
 
             for (var i = 1; i < MapCount; i++)
             {
                 var newTextBox = new TextBox();
                 newTextBox.Parent = this;
-                newTextBox.Location = new Point(Map0TextBox.Location.X, Map0TextBox.Location.Y + offset * i);
+                newTextBox.Location = new Point(Map0TextBox.Location.X + offsetX*i, Map0TextBox.Location.Y + offsetY*i);
                 newTextBox.Multiline = Map0TextBox.Multiline;
                 newTextBox.Size = Map0TextBox.Size;
                 newTextBox.Anchor = Map0TextBox.Anchor;
 
                 var newLabel = new Label();
                 newLabel.Parent = this;
-                newLabel.Location = new Point(Map0Label.Location.X, Map0Label.Location.Y + offset * i);
+                newLabel.Location = new Point(Map0Label.Location.X + offsetX*i, Map0Label.Location.Y + offsetY*i);
                 newLabel.Text = $"Mask {i}:";
                 newLabel.ForeColor = Brushes[i].Color;
                 newLabel.Anchor = Map0Label.Anchor;
@@ -108,6 +110,20 @@ namespace MineDotNet.GUI
 
         private void ShowMapsButton_Click(object sender, EventArgs e)
         {
+            DisplayMaps();
+        }
+
+        private void DisplayCell(Graphics graphics, string str, int x, int y, int width, int height, Brush textBrush)
+        {
+            var font = new Font(Font.FontFamily, 12, FontStyle.Bold);
+            if (str != null)
+            {
+                graphics.DrawString(str, font, textBrush, x + width/2 - 12, y + height/2 - 7);
+            }
+        }
+
+        private void DisplayMaps()
+        {
             var parser = new TextMapParser();
             var maps = new Map[MapTextBoxes.Count];
             for (var i = 0; i < MapTextBoxes.Count; i++)
@@ -124,16 +140,7 @@ namespace MineDotNet.GUI
             DisplayMaps(maps);
         }
 
-        private void DisplayCell(Graphics graphics, string str, int x, int y, int width, int height, Brush textBrush)
-        {
-            var font = new Font(Font.FontFamily, 12, FontStyle.Bold);
-            if (str != null)
-            {
-                graphics.DrawString(str, font, textBrush, x + width/2 - 12, y + height/2 - 7);
-            }
-        }
-
-        private void DisplayMaps(params Map[] maps)
+        private void DisplayMaps(Map[] maps)
         {
             var visualizer = new TextMapVisualizer();
             var bmp = new Bitmap(MainPictureBox.Width, MainPictureBox.Height);
@@ -190,6 +197,34 @@ namespace MineDotNet.GUI
 
             MainPictureBox.Image = bmp;
             MainPictureBox.Invalidate();
+        }
+
+        private Map GetMask(IDictionary<Coordinate, Verdict> verdicts, Verdict targetVerdict, int width, int height)
+        {
+            var map = new Map(width, height, true);
+            foreach (var verdict in verdicts)
+            {
+                if (verdict.Value == targetVerdict)
+                {
+                    map.Cells[verdict.Key.X, verdict.Key.Y].State = CellState.Filled;
+                }
+            }
+            return map;
+        }
+
+        private void SolveMapButton_Click(object sender, EventArgs e)
+        {
+            var solver = new BorderSeparationSolver();
+            var parser = new TextMapParser();
+            var visualizer = new TextMapVisualizer();
+            var map = parser.Parse(Map0TextBox.Text);
+            var verdicts = solver.Solve(map);
+            var maskHasMine = GetMask(verdicts, Verdict.HasMine, map.Width, map.Height);
+            var maskDoesntHaveMine = GetMask(verdicts, Verdict.DoesntHaveMine, map.Width, map.Height);
+            MapTextBoxes[1].Text = visualizer.VisualizeToString(maskDoesntHaveMine);
+            MapTextBoxes[2].Text = visualizer.VisualizeToString(maskHasMine);
+            
+            DisplayMaps();
         }
     }
 }

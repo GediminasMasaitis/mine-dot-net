@@ -130,6 +130,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\MineDotNet.AI\MineDotNet.AI.csproj">
+      <Project>{f2de75d9-62fd-49b1-9070-f8860322d8ea}</Project>
+      <Name>MineDotNet.AI</Name>
+    </ProjectReference>
     <ProjectReference Include="..\MineDotNet.Common\MineDotNet.Common.csproj">
       <Project>{ef7d77f2-c167-46c3-b5a5-c335a023c08f}</Project>
       <Name>MineDotNet.Common</Name>
