@@ -38,6 +38,9 @@
             // 
             // MainPictureBox
             // 
+            this.MainPictureBox.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.MainPictureBox.Location = new System.Drawing.Point(0, 0);
             this.MainPictureBox.Name = "MainPictureBox";
             this.MainPictureBox.Size = new System.Drawing.Size(513, 513);
@@ -46,7 +49,7 @@
             // 
             // ShowMapsButton
             // 
-            this.ShowMapsButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.ShowMapsButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.ShowMapsButton.Location = new System.Drawing.Point(524, 7);
             this.ShowMapsButton.Name = "ShowMapsButton";
             this.ShowMapsButton.Size = new System.Drawing.Size(110, 23);
@@ -77,7 +80,7 @@
             // 
             // SolveMapButton
             // 
-            this.SolveMapButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.SolveMapButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.SolveMapButton.Location = new System.Drawing.Point(524, 36);
             this.SolveMapButton.Name = "SolveMapButton";
             this.SolveMapButton.Size = new System.Drawing.Size(110, 23);

@@ -125,22 +125,16 @@ namespace MineDotNet.AI.Solvers
             }
             var commonBorderCoordinateSet = new HashSet<Coordinate>(commonBorder.Cells.Select(x => x.Coordinate));
             var nonBorderFilledCells = map.AllCells.Where(x => !commonBorderCoordinateSet.Contains(x.Coordinate) && x.State == CellState.Filled && x.Flag == CellFlag.None).ToList();
-            if (combinationsMineCount == map.RemainingMineCount.Value)
+            if (nonBorderFilledCells.Count == 0)
             {
-                foreach (var nonBorderFilledCell in nonBorderFilledCells)
-                {
-                    probabilities[nonBorderFilledCell.Coordinate] = 0;
-                }
                 return probabilities;
             }
-            if (nonBorderFilledCells.Count == map.RemainingMineCount.Value - combinationsMineCount)
+            var nonBorderProbability = (map.RemainingMineCount.Value - combinationsMineCount)/(decimal)nonBorderFilledCells.Count;
+            foreach (var nonBorderFilledCell in nonBorderFilledCells)
             {
-                foreach (var nonBorderFilledCell in nonBorderFilledCells)
-                {
-                    probabilities[nonBorderFilledCell.Coordinate] = 1;
-                }
-                return probabilities;
+                probabilities[nonBorderFilledCell.Coordinate] = nonBorderProbability;
             }
+
             return probabilities;
         }
 
