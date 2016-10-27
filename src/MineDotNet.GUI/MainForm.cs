@@ -188,7 +188,7 @@ namespace MineDotNet.GUI
                         decimal probability;
                         if(probabilities.TryGetValue(cell.Coordinate, out probability))
                         {
-                            var probabilityStr = "p: " + probability.ToString("###.##%");
+                            var probabilityStr = "p: " + probability.ToString("##0.##%");
                             graphics.DrawString(probabilityStr, font, textBrush, j * cellWidth, i * cellHeight + cellHeight - 15);
                         }
                     }
