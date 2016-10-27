@@ -67,6 +67,7 @@
             // 
             // Map0TextBox
             // 
+            this.Map0TextBox.AcceptsReturn = true;
             this.Map0TextBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.Map0TextBox.Location = new System.Drawing.Point(6, 534);
             this.Map0TextBox.Multiline = true;

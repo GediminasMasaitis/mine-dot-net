@@ -33,9 +33,15 @@ namespace MineDotNet.AI.Solvers
             var commonBorder = GetCommonBorder(map);
             OnDebugLine("Common border calculated, found " + commonBorder.Cells.Count + " cells");
             var borders = SeparateBorders(commonBorder, map).ToList();
-
-            var splitBordersStr = "(" + borders.Select(x=>x.Cells.Count.ToString()).Aggregate((x, n) => x + ", " + n) + ")";
-            OnDebugLine("Common border split into " + borders.Count + " separate borders " + splitBordersStr);
+            if (borders.Count > 0)
+            {
+                var splitBordersStr = "(" + borders.Select(x => x.Cells.Count.ToString()).Aggregate((x, n) => x + ", " + n) + ")";
+                OnDebugLine("Common border split into " + borders.Count + " separate borders " + splitBordersStr);
+            }
+            else
+            {
+                OnDebugLine("No borders found!");
+            }
 
             foreach (var border in borders)
             {
@@ -52,6 +58,7 @@ namespace MineDotNet.AI.Solvers
                 if (border.ValidCombinations.Count == 0)
                 {
                     // TODO Must be invalid map... Handle somehow
+                    return null;
                 }
 
                 border.SmallestPossibleMineCount = border.ValidCombinations.Min(x => x.Count(y => y.Value == Verdict.HasMine));
@@ -98,12 +105,13 @@ namespace MineDotNet.AI.Solvers
                 return probabilities;
             }
 
-            var combinationsMineCount = commonBorder.ValidCombinations[0].Count(x => x.Value == Verdict.HasMine);
-            if (combinationsMineCount == 0)
+            var anyCombinations = commonBorder.ValidCombinations.Count > 0;
+            var combinationsMineCount = anyCombinations ? commonBorder.ValidCombinations[0].Count(x => x.Value == Verdict.HasMine) : 0;
+            /*if (combinationsMineCount == 0)
             {
                 return probabilities;
-            }
-            var sameMineCountForAllCombinations = commonBorder.ValidCombinations.All(x => x.Count(y => y.Value == Verdict.HasMine) == combinationsMineCount);
+            }*/
+            var sameMineCountForAllCombinations = !anyCombinations || commonBorder.ValidCombinations.All(x => x.Count(y => y.Value == Verdict.HasMine) == combinationsMineCount);
             if (!sameMineCountForAllCombinations)
             {
                 return probabilities;
@@ -129,8 +137,12 @@ namespace MineDotNet.AI.Solvers
             return probabilities;
         }
 
-        private IEnumerable<IDictionary<Coordinate, Verdict>> GetCommonBorderValidCombinations(IEnumerable<Border> borders)
+        private IEnumerable<IDictionary<Coordinate, Verdict>> GetCommonBorderValidCombinations(IList<Border> borders)
         {
+            if (borders.Count == 0)
+            {
+                return new List<IDictionary<Coordinate, Verdict>>();
+            }
             var commorBorder = borders.Select(x => x.ValidCombinations).MultiCartesian(x => x.SelectMany(y => y).ToDictionary(y => y.Key, y => y.Value));
             return commorBorder;
         }

@@ -70,6 +70,7 @@ namespace MineDotNet.GUI
                 newTextBox.Multiline = Map0TextBox.Multiline;
                 newTextBox.Size = Map0TextBox.Size;
                 newTextBox.Anchor = Map0TextBox.Anchor;
+                newTextBox.AcceptsReturn = Map0TextBox.AcceptsReturn;
 
                 var newLabel = new Label();
                 newLabel.Parent = this;
@@ -219,11 +220,13 @@ namespace MineDotNet.GUI
             var visualizer = new TextMapVisualizer();
             var map = parser.Parse(Map0TextBox.Text);
             var verdicts = solver.Solve(map);
-            var maskHasMine = GetMask(verdicts, Verdict.HasMine, map.Width, map.Height);
-            var maskDoesntHaveMine = GetMask(verdicts, Verdict.DoesntHaveMine, map.Width, map.Height);
-            MapTextBoxes[1].Text = visualizer.VisualizeToString(maskDoesntHaveMine);
-            MapTextBoxes[2].Text = visualizer.VisualizeToString(maskHasMine);
-            
+            if (verdicts != null)
+            {
+                var maskHasMine = GetMask(verdicts, Verdict.HasMine, map.Width, map.Height);
+                var maskDoesntHaveMine = GetMask(verdicts, Verdict.DoesntHaveMine, map.Width, map.Height);
+                MapTextBoxes[1].Text = visualizer.VisualizeToString(maskDoesntHaveMine);
+                MapTextBoxes[2].Text = visualizer.VisualizeToString(maskHasMine);
+            }
             DisplayMaps();
         }
     }
