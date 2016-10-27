@@ -24,6 +24,12 @@ namespace MineDotNet.AI.Solvers
 
         public override IDictionary<Coordinate,Verdict> Solve(Map map)
         {
+            IDictionary<Coordinate, decimal> _;
+            return Solve(map, out _);
+        }
+
+        public IDictionary<Coordinate, Verdict> Solve(Map map, out IDictionary<Coordinate, decimal> probabilities)
+        {
             map.BuildNeighbourCache();
 
             var filledCount = map.AllCells.Count(x => x.State == CellState.Filled);
@@ -53,11 +59,12 @@ namespace MineDotNet.AI.Solvers
                 OnDebugLine("Found " + border.ValidCombinations.Count + " valid combinations");
                 foreach (var validCombination in border.ValidCombinations)
                 {
-                    OnDebugLine(validCombination.Where(x => x.Value == Verdict.HasMine).Select(x => x.Key.ToString()).Aggregate("", (x,n) => x + ";" + n));
+                    OnDebugLine(validCombination.Where(x => x.Value == Verdict.HasMine).Select(x => x.Key.ToString()).Aggregate("", (x, n) => x + ";" + n));
                 }
                 if (border.ValidCombinations.Count == 0)
                 {
                     // TODO Must be invalid map... Handle somehow
+                    probabilities = null;
                     return null;
                 }
 
@@ -84,15 +91,15 @@ namespace MineDotNet.AI.Solvers
 
             var nonBorderProbabilities = GetNonBorderProbabilitiesByMineCount(map, commonBorder);
 
-            var allProbabilities = commonBorder.Probabilities.Concat(nonBorderProbabilities).ToDictionary(x => x.Key, x => x.Value);
+            probabilities = commonBorder.Probabilities.Concat(nonBorderProbabilities).ToDictionary(x => x.Key, x => x.Value);
 
-            var commonBorderPredictions = GetBorderPredictions(allProbabilities);
+            var commonBorderPredictions = GetBorderPredictions(probabilities);
             OnDebugLine("Found " + commonBorderPredictions.Count + " guaranteed moves.");
             if (commonBorderPredictions.Count == 0)
             {
                 var lastRiskyPrediction = commonBorder.Probabilities.MinBy(x => x.Value);
                 OnDebugLine("Guessing from a border with " + (1 - lastRiskyPrediction.Value) + " chance of success.");
-                return new Dictionary<Coordinate, Verdict> { { lastRiskyPrediction.Key, Verdict.DoesntHaveMine } };
+                return new Dictionary<Coordinate, Verdict> {{lastRiskyPrediction.Key, Verdict.DoesntHaveMine}};
             }
             return commonBorderPredictions;
         }

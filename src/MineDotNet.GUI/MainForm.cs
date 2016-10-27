@@ -123,26 +123,27 @@ namespace MineDotNet.GUI
             }
         }
 
-        private void DisplayMaps()
+        private void DisplayMaps(Map[] maps = null, IDictionary<Coordinate, decimal> probabilities = null)
         {
-            var parser = new TextMapParser();
-            var maps = new Map[MapTextBoxes.Count];
-            for (var i = 0; i < MapTextBoxes.Count; i++)
+            if (maps == null)
             {
-                var mapStr = MapTextBoxes[i].Text.Replace(";", Environment.NewLine);
-                if (string.IsNullOrWhiteSpace(mapStr))
+                var parser = new TextMapParser();
+                maps = new Map[MapTextBoxes.Count];
+                for (var i = 0; i < MapTextBoxes.Count; i++)
                 {
-                    continue;
+                    var mapStr = MapTextBoxes[i].Text.Replace(";", Environment.NewLine);
+                    if (string.IsNullOrWhiteSpace(mapStr))
+                    {
+                        continue;
+                    }
+                    var map = parser.Parse(mapStr);
+                    maps[i] = map;
                 }
-                var map = parser.Parse(mapStr);
-                maps[i] = map;
             }
-
-            DisplayMaps(maps);
-        }
-
-        private void DisplayMaps(Map[] maps)
-        {
+            if (probabilities == null)
+            {
+                probabilities = new Dictionary<Coordinate, decimal>();
+            }
             var visualizer = new TextMapVisualizer();
             var bmp = new Bitmap(MainPictureBox.Width, MainPictureBox.Height);
 
@@ -169,7 +170,8 @@ namespace MineDotNet.GUI
                     {
                         
                         graphics.FillRectangle(EmptyBrush, j*cellWidth, i*cellHeight, cellWidth, cellHeight);
-                        var cellStr = visualizer.VisualizeCell(maps[0].Cells[i, j]);
+                        var cell = maps[0].Cells[i, j];
+                        var cellStr = visualizer.VisualizeCell(cell);
                         DisplayCell(graphics, cellStr, j * cellWidth, i * cellHeight, cellWidth, cellHeight, textBrush);
 
                         var borderWidth = 0;
@@ -181,8 +183,14 @@ namespace MineDotNet.GUI
                                 borderWidth += borderIncrement;
                             }
                         }
-                        var pos = $"[{i};{j}]";
-                        graphics.DrawString(pos, font, textBrush, j*cellWidth , i*cellHeight);
+                        var posStr = $"[{i};{j}]";
+                        graphics.DrawString(posStr, font, textBrush, j*cellWidth , i*cellHeight);
+                        decimal probability;
+                        if(probabilities.TryGetValue(cell.Coordinate, out probability))
+                        {
+                            var probabilityStr = "p: " + probability.ToString("###.##%");
+                            graphics.DrawString(probabilityStr, font, textBrush, j * cellWidth, i * cellHeight + cellHeight - 15);
+                        }
                     }
                 }
 
@@ -219,7 +227,8 @@ namespace MineDotNet.GUI
             var parser = new TextMapParser();
             var visualizer = new TextMapVisualizer();
             var map = parser.Parse(Map0TextBox.Text);
-            var verdicts = solver.Solve(map);
+            IDictionary<Coordinate, decimal> probabilities;
+            var verdicts = solver.Solve(map, out probabilities);
             if (verdicts != null)
             {
                 var maskHasMine = GetMask(verdicts, Verdict.HasMine, map.Width, map.Height);
@@ -227,7 +236,7 @@ namespace MineDotNet.GUI
                 MapTextBoxes[1].Text = visualizer.VisualizeToString(maskDoesntHaveMine);
                 MapTextBoxes[2].Text = visualizer.VisualizeToString(maskHasMine);
             }
-            DisplayMaps();
+            DisplayMaps(probabilities:probabilities);
         }
     }
 }
