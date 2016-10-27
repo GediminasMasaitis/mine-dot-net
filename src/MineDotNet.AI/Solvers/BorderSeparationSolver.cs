@@ -97,8 +97,8 @@ namespace MineDotNet.AI.Solvers
             OnDebugLine("Found " + commonBorderPredictions.Count + " guaranteed moves.");
             if (commonBorderPredictions.Count == 0)
             {
-                var lastRiskyPrediction = commonBorder.Probabilities.MinBy(x => x.Value);
-                OnDebugLine("Guessing from a border with " + (1 - lastRiskyPrediction.Value) + " chance of success.");
+                var lastRiskyPrediction = probabilities.MinBy(x => x.Value);
+                OnDebugLine("Guessing with " + (1 - lastRiskyPrediction.Value) + " chance of success.");
                 return new Dictionary<Coordinate, Verdict> {{lastRiskyPrediction.Key, Verdict.DoesntHaveMine}};
             }
             return commonBorderPredictions;
@@ -112,24 +112,14 @@ namespace MineDotNet.AI.Solvers
                 return probabilities;
             }
 
-            var anyCombinations = commonBorder.ValidCombinations.Count > 0;
-            var combinationsMineCount = anyCombinations ? commonBorder.ValidCombinations[0].Count(x => x.Value == Verdict.HasMine) : 0;
-            /*if (combinationsMineCount == 0)
-            {
-                return probabilities;
-            }*/
-            var sameMineCountForAllCombinations = !anyCombinations || commonBorder.ValidCombinations.All(x => x.Count(y => y.Value == Verdict.HasMine) == combinationsMineCount);
-            if (!sameMineCountForAllCombinations)
-            {
-                return probabilities;
-            }
+            var combinationsMineCount = commonBorder.ValidCombinations.Count > 0 ? commonBorder.ValidCombinations.Sum(x => x.Count(y => y.Value == Verdict.HasMine)) / (decimal)commonBorder.ValidCombinations.Count : 0;
             var commonBorderCoordinateSet = new HashSet<Coordinate>(commonBorder.Cells.Select(x => x.Coordinate));
             var nonBorderFilledCells = map.AllCells.Where(x => !commonBorderCoordinateSet.Contains(x.Coordinate) && x.State == CellState.Filled && x.Flag == CellFlag.None).ToList();
             if (nonBorderFilledCells.Count == 0)
             {
                 return probabilities;
             }
-            var nonBorderProbability = (map.RemainingMineCount.Value - combinationsMineCount)/(decimal)nonBorderFilledCells.Count;
+            var nonBorderProbability = (map.RemainingMineCount.Value - combinationsMineCount)/nonBorderFilledCells.Count;
             foreach (var nonBorderFilledCell in nonBorderFilledCells)
             {
                 probabilities[nonBorderFilledCell.Coordinate] = nonBorderProbability;
