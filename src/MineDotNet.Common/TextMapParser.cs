@@ -13,6 +13,14 @@ namespace MineDotNet.Common
             
         }
 
+        public Map Parse(string str)
+        {
+            using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(str)))
+            {
+                return Parse(ms);
+            }
+        }
+
         public Map Parse(Stream stream)
         {
             var reader = new StreamReader(stream);
