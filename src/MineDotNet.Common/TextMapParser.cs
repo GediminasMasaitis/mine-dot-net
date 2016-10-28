@@ -50,6 +50,9 @@ namespace MineDotNet.Common
                         case '#':
                             cell = new Cell(i, j, CellState.Filled, CellFlag.None, 0);
                             break;
+                        case '?':
+                            cell = new Cell(i,j, CellState.Filled, CellFlag.NotSure, 0);
+                            break;
                         case '!':
                             cell = new Cell(i, j, CellState.Filled, CellFlag.HasMine, 0);
                             break;

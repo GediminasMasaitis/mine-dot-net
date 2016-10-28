@@ -149,6 +149,12 @@ namespace MineDotNet.GUI
                 FlagTextures[CellFlag.HasMine] = Image.FromFile(flagPath);
             }
 
+            var unknownPath = $@"{path}\unknown.png";
+            if (File.Exists(unknownPath))
+            {
+                FlagTextures[CellFlag.NotSure] = Image.FromFile(unknownPath);
+            }
+
             var filledPath = $@"{path}\filled.png";
             if (File.Exists(filledPath))
             {
