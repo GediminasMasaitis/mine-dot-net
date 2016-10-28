@@ -193,15 +193,19 @@ namespace MineDotNet.AI.Solvers
                 {
                     var coord = coordQueue.Dequeue();
                     var cell = map.Cells[coord.X, coord.Y];
-                    var neighbors = map.GetNeighboursOf(cell).Where(x => x.Flag != CellFlag.HasMine && (cell.State == CellState.Filled || x.State == CellState.Filled));
                     if (commonCoords.Contains(coord))
                     {
                         currentCells.Add(cell);
                         commonCoords.Remove(coord);
                     }
                     visited.Add(cell.Coordinate);
+                    var neighbors = map.GetNeighboursOf(cell).Where(x => x.Flag != CellFlag.HasMine && ((cell.State == CellState.Filled && x.State == CellState.Empty) || (cell.State == CellState.Empty && x.State == CellState.Filled)));
                     foreach (var neighbor in neighbors)
                     {
+                        /*if (cell.State == CellState.Filled && neighbor.State == CellState.Filled && map.NeighbourCache[neighbor.Coordinate].ByState[CellState.Empty].Count == 0)
+                        {
+                            continue;
+                        }*/
                         if (visited.Add(neighbor.Coordinate))
                         {
                             coordQueue.Enqueue(neighbor.Coordinate);
