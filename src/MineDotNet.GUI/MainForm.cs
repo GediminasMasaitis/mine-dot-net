@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using MineDotNet.AI;
@@ -14,7 +15,11 @@ namespace MineDotNet.GUI
         private IList<TextBox> MapTextBoxes { get; }
         private IList<SolidBrush> Brushes { get;}
         private SolidBrush EmptyBrush { get; }
+        private TextMapParser Parser { get; }
+        private TextMapVisualizer Visualizer { get; }
         private int MapCount { get; }
+        private IDictionary<int, Image> HintTextures { get; set; }
+        private IDictionary<CellFlag, Image> FlagTextures { get; set; }
 
         public MainForm() : this(new Map[0])
         {
@@ -23,6 +28,8 @@ namespace MineDotNet.GUI
         public MainForm(IList<Map> maps)
         {
             InitializeComponent();
+            Parser = new TextMapParser();
+            Visualizer = new TextMapVisualizer();
             var allMaps = maps.ToList();
             MapCount = 3;
             MapTextBoxes = new TextBox[MapCount];
@@ -94,19 +101,48 @@ namespace MineDotNet.GUI
                 MapTextBoxes[i].Font = new Font(FontFamily.GenericMonospace, 10, FontStyle.Bold);
             }
 
-            var visualizer = new TextMapVisualizer();
             for (var i = 0; i < allMaps.Count; i++)
             {
                 if (i >= MapTextBoxes.Count)
                 {
                     break;
                 }
-                var mapStr = visualizer.VisualizeToString(allMaps[i]);
+                var mapStr = Visualizer.VisualizeToString(allMaps[i]);
                 MapTextBoxes[i].Text = mapStr;
             }
-
-
+            TryLoadAssets();
             DisplayMaps(allMaps.ToArray());
+        }
+
+        private void TryLoadAssets()
+        {
+            var path = @".\assets";
+            HintTextures = new Dictionary<int, Image>();
+            FlagTextures = new Dictionary<CellFlag, Image>();
+            if (!Directory.Exists(path))
+            {
+                return;
+            }
+            for (var i = 0; i <= 8; i++)
+            {
+                var hintPath = $@"{path}\{i}.png";
+                if (File.Exists(hintPath))
+                {
+                    HintTextures[i] = Image.FromFile(hintPath);
+                }
+            }
+
+            var flagPath = $@"{path}\flag.png";
+            if (File.Exists(flagPath))
+            {
+                FlagTextures[CellFlag.HasMine] = Image.FromFile(flagPath);
+            }
+
+            var filledPath = $@"{path}\filled.png";
+            if (File.Exists(filledPath))
+            {
+                FlagTextures[CellFlag.None] = Image.FromFile(filledPath);
+            }
         }
 
         private void ShowMapsButton_Click(object sender, EventArgs e)
@@ -114,8 +150,28 @@ namespace MineDotNet.GUI
             DisplayMaps();
         }
 
-        private void DisplayCell(Graphics graphics, string str, int x, int y, int width, int height, Brush textBrush)
+        private void DisplayCell(Graphics graphics, Cell cell, int x, int y, int width, int height, Brush textBrush)
         {
+            Image tile = null;
+            switch (cell.State)
+            {
+                case CellState.Empty:
+                    HintTextures.TryGetValue(cell.Hint, out tile);
+                    break;
+                case CellState.Filled:
+                    FlagTextures.TryGetValue(cell.Flag, out tile);
+                    break;
+                case CellState.Wall:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            if (tile != null)
+            {
+                graphics.DrawImage(tile, x, y, width, height);
+                return;
+            }
+            var str = Visualizer.VisualizeCell(cell);
             var font = new Font(Font.FontFamily, 12, FontStyle.Bold);
             if (str != null)
             {
@@ -127,7 +183,6 @@ namespace MineDotNet.GUI
         {
             if (maps == null)
             {
-                var parser = new TextMapParser();
                 maps = new Map[MapTextBoxes.Count];
                 for (var i = 0; i < MapTextBoxes.Count; i++)
                 {
@@ -136,7 +191,7 @@ namespace MineDotNet.GUI
                     {
                         continue;
                     }
-                    var map = parser.Parse(mapStr);
+                    var map = Parser.Parse(mapStr);
                     maps[i] = map;
                 }
             }
@@ -144,7 +199,6 @@ namespace MineDotNet.GUI
             {
                 probabilities = new Dictionary<Coordinate, decimal>();
             }
-            var visualizer = new TextMapVisualizer();
             var bmp = new Bitmap(MainPictureBox.Width, MainPictureBox.Height);
 
             var textBrush = new SolidBrush(Color.FromArgb(255,255,255));
@@ -171,8 +225,7 @@ namespace MineDotNet.GUI
                         
                         graphics.FillRectangle(EmptyBrush, j*cellWidth, i*cellHeight, cellWidth, cellHeight);
                         var cell = maps[0].Cells[i, j];
-                        var cellStr = visualizer.VisualizeCell(cell);
-                        DisplayCell(graphics, cellStr, j * cellWidth, i * cellHeight, cellWidth, cellHeight, textBrush);
+                        DisplayCell(graphics, cell, j * cellWidth, i * cellHeight, cellWidth, cellHeight, textBrush);
 
                         var borderWidth = 0;
                         for (var k = 1; k < maps.Length; k++)
@@ -194,14 +247,14 @@ namespace MineDotNet.GUI
                     }
                 }
 
-                for (var i = 0; i <= maps[0].Height; i++)
-                {
-                    graphics.DrawLine(Pens.Black, cellWidth*i, 0, cellWidth*i, cellHeight*maps[0].Width);
-                }
-                for (var i = 0; i <= maps[0].Width; i++)
-                {
-                    graphics.DrawLine(Pens.Black, 0, cellHeight * i, cellHeight * maps[0].Height, cellHeight * i);
-                }
+                //for (var i = 0; i <= maps[0].Height; i++)
+                //{
+                //    graphics.DrawLine(Pens.Black, cellWidth*i, 0, cellWidth*i, cellHeight*maps[0].Width);
+                //}
+                //for (var i = 0; i <= maps[0].Width; i++)
+                //{
+                //    graphics.DrawLine(Pens.Black, 0, cellHeight * i, cellHeight * maps[0].Height, cellHeight * i);
+                //}
             }
 
             MainPictureBox.Image = bmp;
@@ -224,17 +277,15 @@ namespace MineDotNet.GUI
         private void SolveMapButton_Click(object sender, EventArgs e)
         {
             var solver = new BorderSeparationSolver();
-            var parser = new TextMapParser();
-            var visualizer = new TextMapVisualizer();
-            var map = parser.Parse(Map0TextBox.Text);
+            var map = Parser.Parse(Map0TextBox.Text);
             IDictionary<Coordinate, decimal> probabilities;
             var verdicts = solver.Solve(map, out probabilities);
             if (verdicts != null)
             {
                 var maskHasMine = GetMask(verdicts, Verdict.HasMine, map.Width, map.Height);
                 var maskDoesntHaveMine = GetMask(verdicts, Verdict.DoesntHaveMine, map.Width, map.Height);
-                MapTextBoxes[1].Text = visualizer.VisualizeToString(maskDoesntHaveMine);
-                MapTextBoxes[2].Text = visualizer.VisualizeToString(maskHasMine);
+                MapTextBoxes[1].Text = Visualizer.VisualizeToString(maskDoesntHaveMine);
+                MapTextBoxes[2].Text = Visualizer.VisualizeToString(maskHasMine);
             }
             DisplayMaps(probabilities:probabilities);
         }
