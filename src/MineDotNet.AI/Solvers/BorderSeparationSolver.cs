@@ -10,18 +10,6 @@ namespace MineDotNet.AI.Solvers
 {
     public class BorderSeparationSolver : SolverBase
     {
-        private class Border
-        {
-            public Border(IList<Cell> cells)
-            {
-                Cells = cells;
-            }
-            public IList<Cell> Cells { get; set; }
-            public IList<IDictionary<Coordinate, Verdict>> ValidCombinations { get; set; }
-            public int SmallestPossibleMineCount { get; set; }
-            public IDictionary<Coordinate, decimal> Probabilities { get; set; }
-        }
-
         public override IDictionary<Coordinate,Verdict> Solve(Map map)
         {
             IDictionary<Coordinate, decimal> _;

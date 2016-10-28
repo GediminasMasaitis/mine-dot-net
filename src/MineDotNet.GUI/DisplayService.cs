@@ -5,6 +5,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Windows.Forms;
 using MineDotNet.Common;
@@ -68,7 +69,8 @@ namespace MineDotNet.GUI
 
         public void TryLoadAssets()
         {
-            var path = @".\assets";
+            var currentPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            var path = $@"{currentPath}\assets";
             HintTextures = new Dictionary<int, Image>();
             FlagTextures = new Dictionary<CellFlag, Image>();
             StateTextures = new Dictionary<CellState, Image>();

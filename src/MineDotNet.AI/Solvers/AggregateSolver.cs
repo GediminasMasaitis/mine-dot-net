@@ -57,7 +57,7 @@ namespace MineDotNet.AI.Solvers
                 foreach (var result in results)
                 {
                     allResults[result.Key] = result.Value;
-                    map.Cells[result.Key.X, result.Key.Y] = new Cell(result.Key, CellState.Wall, CellFlag.None, 0);
+                    map.Cells[result.Key.X, result.Key.Y] = result.Value == Verdict.HasMine ? new Cell(result.Key, CellState.Filled, CellFlag.HasMine, 0) : new Cell(result.Key, CellState.Wall, CellFlag.None, 0);
                 }
                 OnDebugLine(new TextMapVisualizer().VisualizeToString(map));
             }

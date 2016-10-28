@@ -40,6 +40,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Solvers\AggregateSolver.cs" />
+    <Compile Include="Solvers\Border.cs" />
     <Compile Include="Solvers\BorderSeparationSolver.cs" />
     <Compile Include="Solvers\ISolver.cs" />
     <Compile Include="MultiCartesianExtension.cs" />

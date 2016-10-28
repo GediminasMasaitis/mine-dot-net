@@ -43,6 +43,7 @@
     <Compile Include="CellFlag.cs" />
     <Compile Include="CellState.cs" />
     <Compile Include="Coordinate.cs" />
+    <Compile Include="Debugging.cs" />
     <Compile Include="Map.cs" />
     <Compile Include="NeighbourCacheEntry.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
