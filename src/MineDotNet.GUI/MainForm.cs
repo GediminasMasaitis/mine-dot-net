@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Windows.Forms;
 using MineDotNet.AI;
 using MineDotNet.AI.Solvers;
@@ -18,8 +21,15 @@ namespace MineDotNet.GUI
         private TextMapParser Parser { get; }
         private TextMapVisualizer Visualizer { get; }
         private int MapCount { get; }
+
         private IDictionary<int, Image> HintTextures { get; set; }
+        private IDictionary<CellState, Image> StateTextures { get; set; }
         private IDictionary<CellFlag, Image> FlagTextures { get; set; }
+        private IDictionary<int, Image> ResizedHintTextures { get; set; }
+        private IDictionary<CellState, Image> ResizedStateTextures { get; set; }
+        private IDictionary<CellFlag, Image> ResizedFlagTextures { get; set; }
+        private int CurrentTextureWidth { get; set; }
+        private int CurrentTextureHeight { get; set; }
 
         public MainForm() : this(new Map[0])
         {
@@ -119,11 +129,12 @@ namespace MineDotNet.GUI
             var path = @".\assets";
             HintTextures = new Dictionary<int, Image>();
             FlagTextures = new Dictionary<CellFlag, Image>();
+            StateTextures = new Dictionary<CellState, Image>();
             if (!Directory.Exists(path))
             {
                 return;
             }
-            for (var i = 0; i <= 8; i++)
+            for (var i = 1; i <= 8; i++)
             {
                 var hintPath = $@"{path}\{i}.png";
                 if (File.Exists(hintPath))
@@ -141,7 +152,13 @@ namespace MineDotNet.GUI
             var filledPath = $@"{path}\filled.png";
             if (File.Exists(filledPath))
             {
-                FlagTextures[CellFlag.None] = Image.FromFile(filledPath);
+                StateTextures[CellState.Filled] = Image.FromFile(filledPath);
+            }
+
+            var emptyPath = $@"{path}\empty.png";
+            if (File.Exists(emptyPath))
+            {
+                StateTextures[CellState.Empty] = Image.FromFile(emptyPath);
             }
         }
 
@@ -150,25 +167,79 @@ namespace MineDotNet.GUI
             DisplayMaps();
         }
 
+        private Image ResizeImage(Image image, int width, int height)
+        {
+            //return new Bitmap(image, width, height);
+            var rect = new Rectangle(0, 0, width, height);
+            var bitmap = new Bitmap(width, height);
+            using (var graphics = Graphics.FromImage(bitmap))
+            {
+                graphics.InterpolationMode = InterpolationMode.High;
+                graphics.CompositingQuality = CompositingQuality.HighQuality;
+                graphics.SmoothingMode = SmoothingMode.HighQuality;
+                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+                using (var attr = new ImageAttributes())
+                {
+                    attr.SetWrapMode(WrapMode.TileFlipXY);
+                    graphics.DrawImage(image, rect, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, attr);
+                }
+            }
+            return bitmap;
+        }
+
+        private void RescaleTiles(int width, int height)
+        {
+            if (CurrentTextureWidth == width && CurrentTextureHeight == height)
+            {
+                return;
+            }
+            ResizedFlagTextures = new Dictionary<CellFlag, Image>();
+            ResizedHintTextures = new Dictionary<int, Image>();
+            ResizedStateTextures = new Dictionary<CellState, Image>();
+
+            foreach (var texture in StateTextures)
+            {
+                ResizedStateTextures[texture.Key] = ResizeImage(texture.Value, width, height);
+            }
+            foreach (var texture in HintTextures)
+            {
+                ResizedHintTextures[texture.Key] = ResizeImage(texture.Value, width, height);
+            }
+            foreach (var texture in FlagTextures)
+            {
+                ResizedFlagTextures[texture.Key] = ResizeImage(texture.Value, width, height);
+            }
+            CurrentTextureWidth = width;
+            CurrentTextureHeight = height;
+        }
+
         private void DisplayCell(Graphics graphics, Cell cell, int x, int y, int width, int height, Brush textBrush)
         {
-            Image tile = null;
-            switch (cell.State)
+            var tiles = new List<Image>();
+            Image tempTile;
+            var needStr = true;
+            if (ResizedStateTextures.TryGetValue(cell.State, out tempTile))
             {
-                case CellState.Empty:
-                    HintTextures.TryGetValue(cell.Hint, out tile);
-                    break;
-                case CellState.Filled:
-                    FlagTextures.TryGetValue(cell.Flag, out tile);
-                    break;
-                case CellState.Wall:
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
+                tiles.Add(tempTile);
             }
-            if (tile != null)
+            if (ResizedFlagTextures.TryGetValue(cell.Flag, out tempTile))
+            {
+                tiles.Add(tempTile);
+                needStr = false;
+            }
+            if (ResizedHintTextures.TryGetValue(cell.Hint, out tempTile))
+            {
+                tiles.Add(tempTile);
+                needStr = false;
+            }
+            needStr = needStr && cell.Hint != 0 && cell.Flag != CellFlag.None;
+            foreach(var tile in tiles)
             {
                 graphics.DrawImage(tile, x, y, width, height);
+            }
+            if (!needStr)
+            {
                 return;
             }
             var str = Visualizer.VisualizeCell(cell);
@@ -212,6 +283,9 @@ namespace MineDotNet.GUI
             {
                 cellWidth = cellHeight;
             }
+
+            RescaleTiles(cellHeight, cellWidth);
+
             var font = new Font(Font.FontFamily, 7, FontStyle.Bold);
 
             var borderIncrement = (cellWidth/2-5)/ maps.Length;
