@@ -19,7 +19,7 @@ namespace MineDotNet.AI.Solvers
         public AggregateSolver(params ISolver[] solvers)
         {
             Solvers = solvers;
-            Behavior = SolverAggregationBehavior.StopOnFirstResult;
+            Behavior = SolverAggregationBehavior.GoThroughAllSolvers;
         }
 
         public override IDictionary<Coordinate, Verdict> Solve(Map map)
@@ -53,7 +53,13 @@ namespace MineDotNet.AI.Solvers
                 {
                     return results;
                 }
-                allResults.AddRange(results);
+                map = new Map(map.AllCells.ToList());
+                foreach (var result in results)
+                {
+                    allResults[result.Key] = result.Value;
+                    map.Cells[result.Key.X, result.Key.Y] = new Cell(result.Key, CellState.Wall, CellFlag.None, 0);
+                }
+                OnDebugLine(new TextMapVisualizer().VisualizeToString(map));
             }
             return allResults;
         }
