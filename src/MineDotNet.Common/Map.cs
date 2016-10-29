@@ -7,7 +7,7 @@ namespace MineDotNet.Common
 {
     public class Map
     {
-        public Map(int width, int height, bool createCells = false)
+        public Map(int width, int height, bool createCells = false, CellState fillWithState = CellState.Empty)
         {
             Width = width;
             Height = height;
@@ -16,7 +16,7 @@ namespace MineDotNet.Common
             {
                 for (var j = 0; j < Height; j++)
                 {
-                    var cell = createCells ? new Cell(i, j) : null;
+                    var cell = createCells ? new Cell(i, j, fillWithState) : null;
                     Cells[i, j] = cell;
                 }
             }

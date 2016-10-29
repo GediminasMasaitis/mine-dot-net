@@ -13,8 +13,8 @@ namespace MineDotNet.AI.Solvers
             while (results.Count != initialVerdictCount)
             {
                 initialVerdictCount = results.Count;
-                var hintedCells = map.AllCells.Where(x => x.Hint != 0);
-                foreach (var cell in hintedCells)
+                var allCells = map.AllCells.Where(x => x.State == CellState.Empty);
+                foreach (var cell in allCells)
                 {
                     var cellNeighbours = map.GetNeighboursOf(cell);
                     var filledNeighbours = cellNeighbours.Where(x => x.State == CellState.Filled && (!results.ContainsKey(x.Coordinate) || results[x.Coordinate].Verdict != Verdict.DoesntHaveMine)).ToList();

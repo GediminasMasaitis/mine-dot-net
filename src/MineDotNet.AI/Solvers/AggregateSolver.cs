@@ -54,7 +54,7 @@ namespace MineDotNet.AI.Solvers
                 stopwatch.Restart();
                 var results = solver.Solve(map, allResults);
                 stopwatch.Stop();
-                var elapsedStr = stopwatch.Elapsed.TotalMilliseconds.ToString("#.##");
+                var elapsedStr = stopwatch.Elapsed.TotalMilliseconds.ToString("0.##");
                 if (results.Count > 0)
                 {
                     OnDebugLine($"{solverName} succeeded, found {results.Count} results in {elapsedStr} ms.");
