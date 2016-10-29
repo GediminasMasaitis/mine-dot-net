@@ -28,13 +28,7 @@ namespace TestConsole
             Console.WriteLine(mapStr);
             Console.WriteLine();
 
-            var simpleSolver = new SimpleSolver();
-            simpleSolver.Debug += AiOnDebug;
-
-            var borderSeparationSolver = new BorderSeparationSolver();
-            borderSeparationSolver.Debug += AiOnDebug;
-
-            var solver = new AggregateSolver(simpleSolver, borderSeparationSolver);
+            var solver = new AggregateSolver();
             solver.Debug += AiOnDebug;
 
             var verdicts = solver.Solve(map);

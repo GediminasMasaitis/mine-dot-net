@@ -33,13 +33,7 @@ namespace MineDotNet.GUI
         {
             InitializeComponent();
 
-            var simpleSolver = new SimpleSolver();
-            simpleSolver.Debug += AiOnDebug;
-
-            var borderSeparationSolver = new BorderSeparationSolver();
-            borderSeparationSolver.Debug += AiOnDebug;
-
-            var aggregateSolver = new AggregateSolver(simpleSolver, borderSeparationSolver);
+            var aggregateSolver = new AggregateSolver();
             aggregateSolver.Debug += AiOnDebug;
             Solver = aggregateSolver;
 

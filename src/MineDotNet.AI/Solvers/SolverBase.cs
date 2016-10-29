@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using MineDotNet.Common;
 
 namespace MineDotNet.AI.Solvers
@@ -10,6 +11,6 @@ namespace MineDotNet.AI.Solvers
         protected virtual void OnDebug(string s) => Debug?.Invoke(s);
         protected virtual void OnDebugLine(string s) => OnDebug(s + Environment.NewLine);
 
-        public abstract IDictionary<Coordinate, SolverResult> Solve(Map map);
+        public abstract IDictionary<Coordinate, SolverResult> Solve(Map map, IDictionary<Coordinate, SolverResult> previousResults = null);
     }
 }

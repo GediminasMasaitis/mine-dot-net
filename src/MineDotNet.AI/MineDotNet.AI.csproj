@@ -44,6 +44,7 @@
     <Compile Include="Solvers\BorderSeparationSolver.cs" />
     <Compile Include="Solvers\ISolver.cs" />
     <Compile Include="MultiCartesianExtension.cs" />
+    <Compile Include="Solvers\OptimalGuessSolver.cs" />
     <Compile Include="Solvers\SimpleSolver.cs" />
     <Compile Include="SolverAggregationBehavior.cs" />
     <Compile Include="Solvers\SolverBase.cs" />

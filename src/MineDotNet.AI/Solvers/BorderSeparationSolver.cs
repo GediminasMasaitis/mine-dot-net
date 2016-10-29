@@ -10,8 +10,9 @@ namespace MineDotNet.AI.Solvers
 {
     public class BorderSeparationSolver : SolverBase
     {
-        public override IDictionary<Coordinate, SolverResult> Solve(Map map)
+        public override IDictionary<Coordinate, SolverResult> Solve(Map map, IDictionary<Coordinate, SolverResult> previousResults = null)
         {
+            
             map.BuildNeighbourCache();
 
             var filledCount = map.AllCells.Count(x => x.State == CellState.Filled);
@@ -76,15 +77,8 @@ namespace MineDotNet.AI.Solvers
 
             var results = GetResultsFromProbabilities(probabilities);
             OnDebugLine("Found " + results.Count + " guaranteed moves.");
-            if (results.Count > 0)
-            {
-                return results;
-            }
-            var leastRiskyPrediction = probabilities.MinBy(x => x.Value);
-            var chanceStr = (1 - leastRiskyPrediction.Value).ToString("##0%");
-            OnDebugLine("Guessing with " + chanceStr + " chance of success.");
-            var guess = new SolverResult(leastRiskyPrediction.Key, leastRiskyPrediction.Value, Verdict.DoesntHaveMine);
-            return new Dictionary<Coordinate, SolverResult> {{leastRiskyPrediction.Key, guess}};
+            return results;
+            
         }
 
         private IDictionary<Coordinate, decimal> GetNonBorderProbabilitiesByMineCount(Map map, Border commonBorder)
