@@ -13,5 +13,6 @@ namespace MineDotNet.AI
         public IList<IDictionary<Coordinate, Verdict>> ValidCombinations { get; set; }
         public int SmallestPossibleMineCount { get; set; }
         public IDictionary<Coordinate, decimal> Probabilities { get; set; }
+        public bool SolvedFully { get; set; }
     }
 }
