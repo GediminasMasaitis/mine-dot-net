@@ -40,15 +40,16 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Solvers\AggregateSolver.cs" />
-    <Compile Include="Solvers\Border.cs" />
+    <Compile Include="Border.cs" />
     <Compile Include="Solvers\BorderSeparationSolver.cs" />
     <Compile Include="Solvers\ISolver.cs" />
     <Compile Include="MultiCartesianExtension.cs" />
     <Compile Include="Solvers\SimpleSolver.cs" />
-    <Compile Include="Solvers\SolverAggregationBehavior.cs" />
+    <Compile Include="SolverAggregationBehavior.cs" />
     <Compile Include="Solvers\SolverBase.cs" />
     <Compile Include="ExtensionMethods.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SolverResult.cs" />
     <Compile Include="Verdict.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -1,4 +1,4 @@
-namespace MineDotNet.AI.Solvers
+namespace MineDotNet.AI
 {
     public enum SolverAggregationBehavior
     {

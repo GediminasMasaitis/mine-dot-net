@@ -6,43 +6,45 @@ namespace MineDotNet.AI.Solvers
 {
     public class SimpleSolver : SolverBase
     {
-        public override IDictionary<Coordinate, Verdict> Solve(Map map)
+        public override IDictionary<Coordinate, SolverResult> Solve(Map map)
         {
-            var verdicts = new Dictionary<Coordinate, Verdict>();
+            var results = new Dictionary<Coordinate, SolverResult>();
             var initialVerdictCount = -1;
-            while (verdicts.Count != initialVerdictCount)
+            while (results.Count != initialVerdictCount)
             {
-                initialVerdictCount = verdicts.Count;
+                initialVerdictCount = results.Count;
                 var hintedCells = map.AllCells.Where(x => x.Hint != 0);
                 foreach (var cell in hintedCells)
                 {
                     var cellNeighbours = map.GetNeighboursOf(cell);
-                    var filledNeighbours = cellNeighbours.Where(x => x.State == CellState.Filled && (!verdicts.ContainsKey(x.Coordinate) || verdicts[x.Coordinate] != Verdict.DoesntHaveMine)).ToList();
-                    var markedNeighbours = filledNeighbours.Where(x => x.Flag == CellFlag.HasMine || (verdicts.ContainsKey(x.Coordinate) && verdicts[x.Coordinate] == Verdict.HasMine)).ToList();
+                    var filledNeighbours = cellNeighbours.Where(x => x.State == CellState.Filled && (!results.ContainsKey(x.Coordinate) || results[x.Coordinate].Verdict != Verdict.DoesntHaveMine)).ToList();
+                    var markedNeighbours = filledNeighbours.Where(x => x.Flag == CellFlag.HasMine || (results.ContainsKey(x.Coordinate) && results[x.Coordinate].Verdict == Verdict.HasMine)).ToList();
                     if (filledNeighbours.Count == markedNeighbours.Count)
                     {
                         continue;
                     }
                     if (filledNeighbours.Count == cell.Hint)
                     {
-                        var neighboursToFlag = filledNeighbours.Where(x => x.Flag != CellFlag.HasMine && !verdicts.ContainsKey(x.Coordinate));
+                        var neighboursToFlag = filledNeighbours.Where(x => x.Flag != CellFlag.HasMine && !results.ContainsKey(x.Coordinate));
                         foreach (var neighbour in neighboursToFlag)
                         {
-                            verdicts.Add(neighbour.Coordinate, Verdict.HasMine);
+                            var result = new SolverResult(neighbour.Coordinate, 1, Verdict.HasMine);
+                            results.Add(neighbour.Coordinate, result);
                         }
                     }
                     if (markedNeighbours.Count == cell.Hint)
                     {
                         var unmarkedNeighbours = filledNeighbours.Where(x => x.Flag != CellFlag.HasMine);
-                        var neighboursToClick = unmarkedNeighbours.Where(x => !verdicts.ContainsKey(x.Coordinate));
+                        var neighboursToClick = unmarkedNeighbours.Where(x => !results.ContainsKey(x.Coordinate));
                         foreach (var neighbour in neighboursToClick)
                         {
-                            verdicts.Add(neighbour.Coordinate, Verdict.DoesntHaveMine);
+                            var result = new SolverResult(neighbour.Coordinate, 0, Verdict.DoesntHaveMine);
+                            results.Add(neighbour.Coordinate, result);
                         }
                     }
                 }
             }
-            return verdicts;
+            return results;
         }
     }
 }

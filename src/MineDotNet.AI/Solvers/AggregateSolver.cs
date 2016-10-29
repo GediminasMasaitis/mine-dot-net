@@ -22,7 +22,7 @@ namespace MineDotNet.AI.Solvers
             Behavior = SolverAggregationBehavior.GoThroughAllSolvers;
         }
 
-        public override IDictionary<Coordinate, Verdict> Solve(Map map)
+        public override IDictionary<Coordinate, SolverResult> Solve(Map map)
         {
             OnDebug($"Solving {map.Width}x{map.Height} map");
             if (map.RemainingMineCount.HasValue)
@@ -31,7 +31,7 @@ namespace MineDotNet.AI.Solvers
             }
             OnDebugLine(string.Empty);
             var stopwatch = new Stopwatch();
-            var allResults = new Dictionary<Coordinate, Verdict>();
+            var allResults = new Dictionary<Coordinate, SolverResult>();
             foreach (var solver in Solvers)
             {
                 var solverName = solver.GetType().Name;
@@ -57,7 +57,15 @@ namespace MineDotNet.AI.Solvers
                 foreach (var result in results)
                 {
                     allResults[result.Key] = result.Value;
-                    map.Cells[result.Key.X, result.Key.Y] = result.Value == Verdict.HasMine ? new Cell(result.Key, CellState.Filled, CellFlag.HasMine, 0) : new Cell(result.Key, CellState.Wall, CellFlag.None, 0);
+                    switch (result.Value.Verdict)
+                    {
+                        case Verdict.HasMine:
+                            map.Cells[result.Key.X, result.Key.Y] = new Cell(result.Key, CellState.Filled, CellFlag.HasMine, 0);
+                            break;
+                        case Verdict.DoesntHaveMine:
+                            map.Cells[result.Key.X, result.Key.Y] = new Cell(result.Key, CellState.Wall, CellFlag.None, 0);
+                            break;
+                    }
                 }
                 OnDebugLine(new TextMapVisualizer().VisualizeToString(map));
             }

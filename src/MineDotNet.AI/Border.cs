@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using MineDotNet.Common;
 
-namespace MineDotNet.AI.Solvers
+namespace MineDotNet.AI
 {
     public class Border
     {

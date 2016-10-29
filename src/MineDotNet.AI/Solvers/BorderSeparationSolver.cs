@@ -10,13 +10,7 @@ namespace MineDotNet.AI.Solvers
 {
     public class BorderSeparationSolver : SolverBase
     {
-        public override IDictionary<Coordinate,Verdict> Solve(Map map)
-        {
-            IDictionary<Coordinate, decimal> _;
-            return Solve(map, out _);
-        }
-
-        public IDictionary<Coordinate, Verdict> Solve(Map map, out IDictionary<Coordinate, decimal> probabilities)
+        public override IDictionary<Coordinate, SolverResult> Solve(Map map)
         {
             map.BuildNeighbourCache();
 
@@ -52,7 +46,6 @@ namespace MineDotNet.AI.Solvers
                 if (border.ValidCombinations.Count == 0)
                 {
                     // TODO Must be invalid map... Handle somehow
-                    probabilities = null;
                     return null;
                 }
 
@@ -79,17 +72,19 @@ namespace MineDotNet.AI.Solvers
 
             var nonBorderProbabilities = GetNonBorderProbabilitiesByMineCount(map, commonBorder);
 
-            probabilities = commonBorder.Probabilities.Concat(nonBorderProbabilities).ToDictionary(x => x.Key, x => x.Value);
+            var probabilities = commonBorder.Probabilities.Concat(nonBorderProbabilities).ToDictionary(x => x.Key, x => x.Value);
 
-            var commonBorderPredictions = GetBorderPredictions(probabilities);
-            OnDebugLine("Found " + commonBorderPredictions.Count + " guaranteed moves.");
-            if (commonBorderPredictions.Count == 0)
+            var results = GetResultsFromProbabilities(probabilities);
+            OnDebugLine("Found " + results.Count + " guaranteed moves.");
+            if (results.Count > 0)
             {
-                var lastRiskyPrediction = probabilities.MinBy(x => x.Value);
-                OnDebugLine("Guessing with " + (1 - lastRiskyPrediction.Value) + " chance of success.");
-                return new Dictionary<Coordinate, Verdict> {{lastRiskyPrediction.Key, Verdict.DoesntHaveMine}};
+                return results;
             }
-            return commonBorderPredictions;
+            var leastRiskyPrediction = probabilities.MinBy(x => x.Value);
+            var chanceStr = (1 - leastRiskyPrediction.Value).ToString("##0%");
+            OnDebugLine("Guessing with " + chanceStr + " chance of success.");
+            var guess = new SolverResult(leastRiskyPrediction.Key, leastRiskyPrediction.Value, Verdict.DoesntHaveMine);
+            return new Dictionary<Coordinate, SolverResult> {{leastRiskyPrediction.Key, guess}};
         }
 
         private IDictionary<Coordinate, decimal> GetNonBorderProbabilitiesByMineCount(Map map, Border commonBorder)
@@ -298,7 +293,7 @@ namespace MineDotNet.AI.Solvers
             return true;
         }
 
-        private static IDictionary<Coordinate, decimal> GetBorderProbabilities(Border border)
+        private IDictionary<Coordinate, decimal> GetBorderProbabilities(Border border)
         {
             var probabilities = new Dictionary<Coordinate, decimal>();
             foreach (var cell in border.Cells)
@@ -310,21 +305,27 @@ namespace MineDotNet.AI.Solvers
             return probabilities;
         }
 
-        private static IDictionary<Coordinate, Verdict> GetBorderPredictions(IDictionary<Coordinate, decimal> probabilities)
+        private IDictionary<Coordinate, SolverResult> GetResultsFromProbabilities(IDictionary<Coordinate, decimal> probabilities)
         {
-            var commonVerdicts = new Dictionary<Coordinate, Verdict>();
+            var results = new Dictionary<Coordinate, SolverResult>();
             foreach (var probability in probabilities)
             {
+                Verdict? verdict;
                 if (probability.Value == 0)
                 {
-                    commonVerdicts[probability.Key] = Verdict.DoesntHaveMine;
+                    verdict = Verdict.DoesntHaveMine;
                 }
                 else if(probability.Value == 1)
                 {
-                    commonVerdicts[probability.Key] = Verdict.HasMine;
+                    verdict = Verdict.HasMine;
                 }
+                else
+                {
+                    verdict = null;
+                }
+                results[probability.Key] = new SolverResult(probability.Key, probability.Value, verdict);
             }
-            return commonVerdicts;
+            return results;
         }
     }
 }

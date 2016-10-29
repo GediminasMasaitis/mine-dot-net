@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -16,7 +17,7 @@ namespace MineDotNet.GUI
     public partial class MainForm : Form
     {
         private IList<TextBox> MapTextBoxes { get; }
-
+        private ISolver Solver { get; }
         
         private TextMapParser Parser { get; }
         private TextMapVisualizer Visualizer { get; }
@@ -31,10 +32,21 @@ namespace MineDotNet.GUI
         public MainForm(IList<Map> maps)
         {
             InitializeComponent();
+
+            var simpleSolver = new SimpleSolver();
+            simpleSolver.Debug += AiOnDebug;
+
+            var borderSeparationSolver = new BorderSeparationSolver();
+            borderSeparationSolver.Debug += AiOnDebug;
+
+            var aggregateSolver = new AggregateSolver(simpleSolver, borderSeparationSolver);
+            aggregateSolver.Debug += AiOnDebug;
+            Solver = aggregateSolver;
+
             Parser = new TextMapParser();
             Visualizer = new TextMapVisualizer();
             var allMaps = maps.ToList();
-            MapCount = 3;
+            MapCount = allMaps.Count > 3 ? allMaps.Count : 3;
             MapTextBoxes = new TextBox[MapCount];
             MapTextBoxes[0] = Map0TextBox;
 
@@ -90,8 +102,10 @@ namespace MineDotNet.GUI
             Display.DisplayMaps(allMaps.ToArray());
         }
 
-        
-
+        private static void AiOnDebug(string s)
+        {
+            Debug.Write(s);
+        }
         private void ShowMapsButton_Click(object sender, EventArgs e)
         {
             var maps = GetMapsFromTextBoxes();
@@ -114,14 +128,14 @@ namespace MineDotNet.GUI
             return maps;
         }
 
-        private Map GetMask(IDictionary<Coordinate, Verdict> verdicts, Verdict targetVerdict, int width, int height)
+        private Map GetMask(IDictionary<Coordinate, SolverResult> results, Verdict targetVerdict, int width, int height)
         {
             var map = new Map(width, height, true);
-            foreach (var verdict in verdicts)
+            foreach (var result in results)
             {
-                if (verdict.Value == targetVerdict)
+                if (result.Value.Verdict == targetVerdict)
                 {
-                    map.Cells[verdict.Key.X, verdict.Key.Y].State = CellState.Filled;
+                    map.Cells[result.Key.X, result.Key.Y].State = CellState.Filled;
                 }
             }
             return map;
@@ -129,19 +143,17 @@ namespace MineDotNet.GUI
 
         private void SolveMapButton_Click(object sender, EventArgs e)
         {
-            var solver = new BorderSeparationSolver();
             var map = Parser.Parse(Map0TextBox.Text);
-            IDictionary<Coordinate, decimal> probabilities;
-            var verdicts = solver.Solve(map, out probabilities);
-            if (verdicts != null)
+            var results = Solver.Solve(map);
+            if (results != null)
             {
-                var maskHasMine = GetMask(verdicts, Verdict.HasMine, map.Width, map.Height);
-                var maskDoesntHaveMine = GetMask(verdicts, Verdict.DoesntHaveMine, map.Width, map.Height);
+                var maskHasMine = GetMask(results, Verdict.HasMine, map.Width, map.Height);
+                var maskDoesntHaveMine = GetMask(results, Verdict.DoesntHaveMine, map.Width, map.Height);
                 MapTextBoxes[1].Text = Visualizer.VisualizeToString(maskDoesntHaveMine);
                 MapTextBoxes[2].Text = Visualizer.VisualizeToString(maskHasMine);
             }
             var maps = GetMapsFromTextBoxes();
-            Display.DisplayMaps(maps, probabilities);
+            Display.DisplayMaps(maps, results);
         }
     }
 }

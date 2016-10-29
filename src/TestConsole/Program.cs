@@ -24,10 +24,8 @@ namespace TestConsole
             }
             
             var visualizer = new TextMapVisualizer();
-            using (var consoleOut = Console.OpenStandardOutput())
-            {
-                visualizer.Visualize(map, consoleOut);
-            }
+            var mapStr = visualizer.VisualizeToString(map);
+            Console.WriteLine(mapStr);
             Console.WriteLine();
 
             var simpleSolver = new SimpleSolver();
@@ -43,7 +41,7 @@ namespace TestConsole
             Console.WriteLine();
             foreach (var verdict in verdicts)
             {
-                Console.WriteLine(verdict.Key + ": " + verdict.Value);
+                Console.WriteLine(verdict.Value.ToString());
             }
             Console.WriteLine("Press any key to close...");
             Console.ReadKey();

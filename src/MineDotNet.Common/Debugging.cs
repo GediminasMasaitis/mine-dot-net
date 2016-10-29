@@ -30,7 +30,7 @@ namespace MineDotNet.Common
                 {
                     maskMap.Cells[coordinate.X, coordinate.Y].State = CellState.Filled;;
                 }
-                maps.Add(mainMap);
+                maps.Add(maskMap);
             }
             var parameterStr = maps.Select(x => visualizer.VisualizeToString(x).Replace(Environment.NewLine, ";")).Aggregate((x, n) => x + " " + n);
             var startInfo = new ProcessStartInfo(visualizerPath);

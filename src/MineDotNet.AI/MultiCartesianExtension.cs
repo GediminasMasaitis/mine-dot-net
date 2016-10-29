@@ -14,7 +14,7 @@ namespace MineDotNet.AI
         public static IEnumerable<TOutput> MultiCartesian<TInput, TOutput>(this IEnumerable<IEnumerable<TInput>> input, Func<TInput[], TOutput> selector)
         {
             // Materializing here to avoid multiple enumerations.
-            var inputList = input.ToList();
+            var inputList = input as IList<IEnumerable<TInput>> ?? input.ToList();
             var buffer = new TInput[inputList.Count];
             var results = MultiCartesianInner(inputList, buffer, 0);
             var transformed = results.Select(selector);

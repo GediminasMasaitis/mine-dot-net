@@ -8,6 +8,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Windows.Forms;
+using MineDotNet.AI;
 using MineDotNet.Common;
 
 namespace MineDotNet.GUI
@@ -40,16 +41,16 @@ namespace MineDotNet.GUI
                 Color.FromArgb(100, 0, 150, 0),
                 Color.FromArgb(100, 150, 0, 0),
                 Color.FromArgb(100, 40, 70, 220),
-                //Color.FromArgb(100, 100, 0),
-                //Color.FromArgb(100, 0, 100),
-                //Color.FromArgb(0, 100, 100),
-                //Color.FromArgb(170, 70, 0),
-                //Color.FromArgb(0, 170, 100),
-                //Color.FromArgb(70, 30, 0),
-                //Color.FromArgb(180, 0, 100),
-                //Color.FromArgb(180, 150, 50),
-                //Color.FromArgb(120, 120, 120),
-                //Color.FromArgb(170, 170, 170),
+                Color.FromArgb(100,100, 100, 0),
+                Color.FromArgb(100,100, 0, 100),
+                Color.FromArgb(100,0, 100, 100),
+                Color.FromArgb(100,170, 70, 0),
+                Color.FromArgb(100,0, 170, 100),
+                Color.FromArgb(100,70, 30, 0),
+                Color.FromArgb(100,180, 0, 100),
+                Color.FromArgb(100,180, 150, 50),
+                Color.FromArgb(100,120, 120, 120),
+                Color.FromArgb(100,170, 170, 170),
             };
 
             var rng = new Random(0);
@@ -195,11 +196,11 @@ namespace MineDotNet.GUI
             }
         }
 
-        public void DisplayMaps(Map[] maps, IDictionary<Coordinate, decimal> probabilities = null)
+        public void DisplayMaps(Map[] maps, IDictionary<Coordinate, SolverResult> results = null)
         {
-            if (probabilities == null)
+            if (results == null)
             {
-                probabilities = new Dictionary<Coordinate, decimal>();
+                results = new Dictionary<Coordinate, SolverResult>();
             }
 
             var textBrush = new SolidBrush(Color.FromArgb(255, 255, 255));
@@ -242,10 +243,10 @@ namespace MineDotNet.GUI
                         }
                         var posStr = $"[{i};{j}]";
                         graphics.DrawString(posStr, font, textBrush, j*cellWidth, i*cellHeight);
-                        decimal probability;
-                        if (probabilities.TryGetValue(cell.Coordinate, out probability))
+                        SolverResult result;
+                        if (results.TryGetValue(cell.Coordinate, out result))
                         {
-                            var probabilityStr = probability.ToString("##0.00%");
+                            var probabilityStr = result.Probability.ToString("##0.00%");
                             graphics.DrawString(probabilityStr, font, textBrush, j*cellWidth, i*cellHeight + cellHeight - 15);
                         }
                     }
