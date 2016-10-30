@@ -12,18 +12,18 @@ namespace MineDotNet.AI.Solvers
 {
     public class BorderSeparationSolver : SolverBase
     {
-        public override IDictionary<Coordinate, SolverResult> Solve(Map map, IDictionary<Coordinate, SolverResult> previousResults = null)
+        public override IDictionary<Coordinate, SolverResult> Solve(IMap givenMap, IDictionary<Coordinate, SolverResult> previousResults = null)
         {
-            
+            var mapCopy = new Map(givenMap.AllCells.ToList());
+            var map = new BorderSeparationSolverMap(mapCopy);
+
             map.BuildNeighbourCache();
 
-            var filledCount = map.AllCells.Count(x => x.State == CellState.Filled);
-            var flaggedCount = map.AllCells.Count(x => x.Flag == CellFlag.HasMine);
-            var undecidedCellsRemaining = filledCount - flaggedCount;
+            var allResults = new Dictionary<Coordinate, SolverResult>();
 
             var commonBorder = GetCommonBorder(map);
             OnDebugLine("Common border calculated, found " + commonBorder.Cells.Count + " cells");
-            var borders = SeparateBorders(commonBorder, map).ToList();
+            var borders = SeparateBorders(commonBorder, map).OrderBy(x => x.Cells.Count).ToList();
             if (borders.Count > 0)
             {
                 var splitBordersStr = "(" + borders.Select(x => x.Cells.Count.ToString()).Aggregate((x, n) => x + ", " + n) + ")";
@@ -34,25 +34,44 @@ namespace MineDotNet.AI.Solvers
                 OnDebugLine("No borders found!");
             }
 
+            var fullySolvedBorders = new List<Border>();
+            var commonBorderCoords = new HashSet<Coordinate>(commonBorder.Cells.Select(x => x.Coordinate));
             foreach (var border in borders)
             {
-                var borderResults = SolveBorder(border, map, undecidedCellsRemaining, true);
+                var borderResults = SolveBorder(border, map, true);
+                foreach (var borderResult in borderResults)
+                {
+                    allResults[borderResult.Key] = borderResult.Value;
+                    commonBorderCoords.Remove(borderResult.Key);
+                }
+                if (border.SolvedFully)
+                {
+                    fullySolvedBorders.Add(border);
+                }
+                else
+                {
+                    foreach (var cell in border.Cells)
+                    {
+                        commonBorderCoords.Remove(cell.Coordinate);
+                    }
+                }
             }
+            commonBorder.Cells = commonBorder.Cells.Where(x => commonBorderCoords.Contains(x.Coordinate)).ToList();
 
             if (map.RemainingMineCount.HasValue)
             {
-                foreach (var border in borders)
+                foreach (var border in fullySolvedBorders)
                 {
-                    var guaranteedOtherCombinations = borders.Where(x => x != border).Sum(x => x.SmallestPossibleMineCount);
-                    TrimValidCombinationsByMineCount(border, map.RemainingMineCount.Value, undecidedCellsRemaining, guaranteedOtherCombinations);
+                    var guaranteedOtherCombinations = fullySolvedBorders.Where(x => x != border).Sum(x => x.SmallestPossibleMineCount);
+                    TrimValidCombinationsByMineCount(border, map.RemainingMineCount.Value, map.UndecidedCount, guaranteedOtherCombinations);
                 }
             }
 
-            commonBorder.ValidCombinations = GetCommonBorderValidCombinations(borders).ToList();
+            commonBorder.ValidCombinations = GetCommonBorderValidCombinations(fullySolvedBorders).ToList();
 
             if (map.RemainingMineCount.HasValue)
             {
-                TrimValidCombinationsByMineCount(commonBorder, map.RemainingMineCount.Value, undecidedCellsRemaining, 0);
+                TrimValidCombinationsByMineCount(commonBorder, map.RemainingMineCount.Value, map.UndecidedCount, 0);
             }
 
             commonBorder.Probabilities = GetBorderProbabilities(commonBorder);
@@ -62,12 +81,18 @@ namespace MineDotNet.AI.Solvers
             var probabilities = commonBorder.Probabilities.Concat(nonBorderProbabilities).ToDictionary(x => x.Key, x => x.Value);
 
             var results = GetResultsFromProbabilities(probabilities, true);
-            OnDebugLine("Found " + results.Count + " guaranteed moves.");
-            return results;
-            
+            foreach (var result in results)
+            {
+                if (!allResults.ContainsKey(result.Key))
+                {
+                    allResults[result.Key] = result.Value;
+                }
+            }
+            OnDebugLine("Found " + allResults.Count + " guaranteed moves.");
+            return allResults;
         }
 
-        private IDictionary<Coordinate, SolverResult> SolveBorder(Border border, Map map, int undecidedCellsRemaining, bool allowPartialBorderSolving)
+        private IDictionary<Coordinate, SolverResult> SolveBorder(Border border, BorderSeparationSolverMap map, bool allowPartialBorderSolving)
         {
             OnDebugLine("Solving " + border.Cells.Count + " cell border");
             var allResults = new Dictionary<Coordinate, SolverResult>();
@@ -81,7 +106,7 @@ namespace MineDotNet.AI.Solvers
                 {
                     var targetCoordinate = border.Cells[i].Coordinate;
                     var partialBorderSize = targetPartialBorderSize;
-                    
+
                     var partialBorder = GetPartialBorder(border, map, targetCoordinate, partialBorderSize);
                     var partialMap = GetPartialMap(partialBorder, map);
                     while (partialBorder.Cells.Count < targetPartialBorderSize && partialBorderSize < border.Cells.Count)
@@ -108,23 +133,11 @@ namespace MineDotNet.AI.Solvers
                     //Debugging.Visualize(map, partialMap.AllCells.Select(x => x.Coordinate), partialBorder.Cells.Select(x => x.Coordinate));
                     //Debugging.Visualize(partialMap, partialBorder.Cells.Select(x => x.Coordinate));
                     partialMap.BuildNeighbourCache();
-                    SolveBorder(partialBorder, partialMap, 0, false);
-                    //partialBorder.Probabilities = GetBorderProbabilities(partialBorder);
-                    var partialBorderResults = GetResultsFromProbabilities(partialBorder.Probabilities, false);
+                    var partialBorderResults = SolveBorder(partialBorder, partialMap, false);
+                    SetCellsByResults(map, partialBorderResults);
                     foreach (var result in partialBorderResults)
                     {
                         var cell = map.Cells[result.Key.X, result.Key.Y];
-                        switch (result.Value.Verdict.Value)
-                        {
-                            case Verdict.HasMine:
-                                cell.Flag = CellFlag.HasMine;
-                                break;
-                            case Verdict.DoesntHaveMine:
-                                cell.State = CellState.Wall;
-                                break;
-                            default:
-                                throw new ArgumentOutOfRangeException();
-                        }
                         allPartialBorderResults[result.Key] = result.Value;
                         allResults[result.Key] = result.Value;
                         var cellIndex = border.Cells.IndexOf(cell);
@@ -142,7 +155,7 @@ namespace MineDotNet.AI.Solvers
                     {
                         foreach (var resplitBorder in resplitBorders)
                         {
-                            var resplitBorderResults = SolveBorder(resplitBorder, map, 0, false);
+                            var resplitBorderResults = SolveBorder(resplitBorder, map, false);
                             foreach (var resplitBorderResult in resplitBorderResults)
                             {
                                 allResults[resplitBorderResult.Key] = resplitBorderResult.Value;
@@ -157,7 +170,6 @@ namespace MineDotNet.AI.Solvers
                     }
                     //Debugging.Visualize(map);
                 }
-                
             }
 
             if (border.Cells.Count > 25)
@@ -166,7 +178,7 @@ namespace MineDotNet.AI.Solvers
                 return allResults;
             }
 
-            border.ValidCombinations = FindValidBorderCellCombinations(map, border, undecidedCellsRemaining);
+            border.ValidCombinations = FindValidBorderCellCombinations(map, border);
 
             OnDebugLine("Found " + border.ValidCombinations.Count + " valid combinations");
             foreach (var validCombination in border.ValidCombinations)
@@ -181,15 +193,51 @@ namespace MineDotNet.AI.Solvers
             border.SmallestPossibleMineCount = border.ValidCombinations.Min(x => x.Count(y => y.Value == Verdict.HasMine));
             border.Probabilities = GetBorderProbabilities(border);
             var wholeBorderResults = GetResultsFromProbabilities(border.Probabilities, false);
+            SetCellsByResults(map, wholeBorderResults);
             foreach (var wholeBorderResult in wholeBorderResults)
             {
+                var cell = map.Cells[wholeBorderResult.Key.X, wholeBorderResult.Key.Y];
+                border.Cells.Remove(cell);
                 allResults[wholeBorderResult.Key] = wholeBorderResult.Value;
+                foreach (var validCombination in border.ValidCombinations)
+                {
+                    validCombination.Remove(wholeBorderResult.Key);
+                }
             }
             border.SolvedFully = true;
             return allResults;
         }
 
-        private IDictionary<Coordinate, decimal> GetNonBorderProbabilitiesByMineCount(Map map, Border commonBorder)
+        private void SetCellsByResults(BorderSeparationSolverMap map, IDictionary<Coordinate, SolverResult> results)
+        {
+            foreach (var result in results)
+            {
+                if (!result.Value.Verdict.HasValue)
+                {
+                    continue;
+                }
+                var cell = map.Cells[result.Key.X, result.Key.Y];
+                switch (result.Value.Verdict.Value)
+                {
+                    case Verdict.HasMine:
+                        cell.Flag = CellFlag.HasMine;
+                        map.FlaggedCount++;
+                        if (map.RemainingMineCount.HasValue)
+                        {
+                            map.RemainingMineCount--;
+                        }
+                        break;
+                    case Verdict.DoesntHaveMine:
+                        cell.State = CellState.Wall;
+                        map.FilledCount--;
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+        }
+
+        private IDictionary<Coordinate, decimal> GetNonBorderProbabilitiesByMineCount(IMap map, Border commonBorder)
         {
             var probabilities = new Dictionary<Coordinate, decimal>();
             if (!map.RemainingMineCount.HasValue)
@@ -213,7 +261,7 @@ namespace MineDotNet.AI.Solvers
             return probabilities;
         }
 
-        private IEnumerable<IDictionary<Coordinate, Verdict>> GetCommonBorderValidCombinations(IList<Border> borders)
+        private IEnumerable<IDictionary<Coordinate, Verdict>> GetCommonBorderValidCombinations(ICollection<Border> borders)
         {
             if (borders.Count == 0)
             {
@@ -243,7 +291,7 @@ namespace MineDotNet.AI.Solvers
             }
         }
 
-        private bool IsCoordinateABorder(Map map, Cell cell)
+        private bool IsCoordinateABorder(IMap map, Cell cell)
         {
             if (cell.State != CellState.Filled || cell.Flag == CellFlag.HasMine)
             {
@@ -254,14 +302,14 @@ namespace MineDotNet.AI.Solvers
             return hasOpenedNeighbour;
         }
 
-        private Border GetCommonBorder(Map map)
+        private Border GetCommonBorder(IMap map)
         {
             var borderCells = map.AllCells.Where(x => IsCoordinateABorder(map, x)).ToList();
             var border = new Border(borderCells);
             return border;
         }
 
-        private Map GetPartialMap(Border border, Map parentMap)
+        private BorderSeparationSolverMap GetPartialMap(Border border, IMap parentMap)
         {
             //Debugging.Visualize(parentMap, border.Cells.Select(x=>x.Coordinate));
 
@@ -287,10 +335,11 @@ namespace MineDotNet.AI.Solvers
                 partialMap.Cells[cell.X, cell.Y] = cell;
             }
             //Debugging.Visualize(partialMap);
-            return partialMap;
+            var solverMap = new BorderSeparationSolverMap(partialMap);
+            return solverMap;
         }
 
-        private Border GetPartialBorder(Border commonBorder, Map map, Coordinate targetCoordinate, int partialBorderSize)
+        private Border GetPartialBorder(Border commonBorder, IMap map, Coordinate targetCoordinate, int partialBorderSize)
         {
             var commonCoords = new HashSet<Coordinate>(commonBorder.Cells.Select(x => x.Coordinate));
             var coordQueue = new Queue<Coordinate>();
@@ -313,7 +362,7 @@ namespace MineDotNet.AI.Solvers
             return border;
         }
 
-        private IEnumerable<Border> SeparateBorders(Border commonBorder, Map map)
+        private IEnumerable<Border> SeparateBorders(Border commonBorder, IMap map)
         {
             var commonCoords = new HashSet<Coordinate>(commonBorder.Cells.Select(x => x.Coordinate));
             var visited = new HashSet<Coordinate>();
@@ -347,7 +396,7 @@ namespace MineDotNet.AI.Solvers
             }
         }
 
-        private IList<IDictionary<Coordinate, Verdict>> FindValidBorderCellCombinations(Map map, Border border, int undecidedCellsRemaining)
+        private IList<IDictionary<Coordinate, Verdict>> FindValidBorderCellCombinations(BorderSeparationSolverMap map, Border border)
         {
             var borderLength = border.Cells.Count;
             const int maxSize = 31;
@@ -357,7 +406,7 @@ namespace MineDotNet.AI.Solvers
             }
             var totalCombinations = 1 << borderLength;
             OnDebugLine("Attempting " + (1 << border.Cells.Count) + " combinations");
-            var allRemainingCellsInBorder = undecidedCellsRemaining == borderLength;
+            var allRemainingCellsInBorder = map.UndecidedCount == borderLength;
             var validPredictions = new ConcurrentBag<IDictionary<Coordinate, Verdict>>();
             var emptyCells = map.AllCells.Where(x => x.State == CellState.Empty).ToList();
             var combos = Enumerable.Range(0, totalCombinations);
@@ -400,7 +449,7 @@ namespace MineDotNet.AI.Solvers
             return (((i + (i >> 4)) & 0x0F0F0F0F)*0x01010101) >> 24;
         }
 
-        public bool IsPredictionValid(Map map, IDictionary<Coordinate, Verdict> predictions, IList<Cell> emptyCells)
+        public bool IsPredictionValid(IMap map, IDictionary<Coordinate, Verdict> predictions, IList<Cell> emptyCells)
         {
             foreach (var cell in emptyCells)
             {
@@ -450,6 +499,10 @@ namespace MineDotNet.AI.Solvers
         private IDictionary<Coordinate, decimal> GetBorderProbabilities(Border border)
         {
             var probabilities = new Dictionary<Coordinate, decimal>();
+            if (border.ValidCombinations.Count == 0)
+            {
+                return probabilities;
+            }
             foreach (var cell in border.Cells)
             {
                 var mineInCount = border.ValidCombinations.Count(x => x[cell.Coordinate] == Verdict.HasMine);
@@ -484,6 +537,42 @@ namespace MineDotNet.AI.Solvers
                 results[probability.Key] = new SolverResult(probability.Key, probability.Value, verdict);
             }
             return results;
+        }
+
+        private class BorderSeparationSolverMap : IMap
+        {
+            public IMap InnerMap { get; set; }
+            public int FilledCount { get; set; }
+            public int FlaggedCount { get; set; }
+            public int UndecidedCount => FilledCount - FlaggedCount;
+
+            public BorderSeparationSolverMap(IMap innerMap)
+            {
+                InnerMap = innerMap;
+                FilledCount = AllCells.Count(x => x.State == CellState.Filled);
+                FlaggedCount = AllCells.Count(x => x.Flag == CellFlag.HasMine);
+            }
+
+            public int Width => InnerMap.Width;
+
+            public int Height => InnerMap.Height;
+
+            public Cell[,] Cells => InnerMap.Cells;
+
+            public int? RemainingMineCount
+            {
+                get { return InnerMap.RemainingMineCount; }
+                set { InnerMap.RemainingMineCount = value; }
+            }
+
+            public IEnumerable<Cell> AllCells => InnerMap.AllCells;
+
+            public IDictionary<Coordinate, NeighbourCacheEntry> NeighbourCache => InnerMap.NeighbourCache;
+
+            public bool CellExists(Coordinate coord) => InnerMap.CellExists(coord);
+
+            public IList<Cell> GetNeighboursOf(Cell cell, bool includeSelf = false) => InnerMap.GetNeighboursOf(cell, includeSelf);
+            public void BuildNeighbourCache() => InnerMap.BuildNeighbourCache();
         }
     }
 }

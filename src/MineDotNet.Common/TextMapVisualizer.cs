@@ -8,7 +8,7 @@ namespace MineDotNet.Common
 {
     public class TextMapVisualizer
     {
-        public string VisualizeToString(Map map)
+        public string VisualizeToString(IMap map)
         {
             using (var ms = new MemoryStream())
             {
@@ -18,7 +18,7 @@ namespace MineDotNet.Common
             }
         }
 
-        public void Visualize(Map map, Stream outputStream)
+        public void Visualize(IMap map, Stream outputStream)
         {
             var writer = new StreamWriter(outputStream);
             for (var i = 0; i < map.Width; i++)

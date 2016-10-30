@@ -6,7 +6,7 @@ namespace MineDotNet.AI.Solvers
 {
     public class SimpleSolver : SolverBase
     {
-        public override IDictionary<Coordinate, SolverResult> Solve(Map map, IDictionary<Coordinate, SolverResult> previousResults = null)
+        public override IDictionary<Coordinate, SolverResult> Solve(IMap map, IDictionary<Coordinate, SolverResult> previousResults = null)
         {
             var results = new Dictionary<Coordinate, SolverResult>();
             var initialVerdictCount = -1;

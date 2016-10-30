@@ -7,6 +7,6 @@ namespace MineDotNet.AI.Solvers
     public interface ISolver
     {
         event Action<string> Debug;
-        IDictionary<Coordinate, SolverResult> Solve(Map map, IDictionary<Coordinate, SolverResult> previousResults = null);
+        IDictionary<Coordinate, SolverResult> Solve(IMap map, IDictionary<Coordinate, SolverResult> previousResults = null);
     }
 }

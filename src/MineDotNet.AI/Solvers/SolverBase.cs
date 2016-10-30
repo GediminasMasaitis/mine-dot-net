@@ -11,6 +11,6 @@ namespace MineDotNet.AI.Solvers
         protected virtual void OnDebug(string s) => Debug?.Invoke(s);
         protected virtual void OnDebugLine(string s) => OnDebug(s + Environment.NewLine);
 
-        public abstract IDictionary<Coordinate, SolverResult> Solve(Map map, IDictionary<Coordinate, SolverResult> previousResults = null);
+        public abstract IDictionary<Coordinate, SolverResult> Solve(IMap map, IDictionary<Coordinate, SolverResult> previousResults = null);
     }
 }

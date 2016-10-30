@@ -8,7 +8,7 @@ namespace MineDotNet.AI.Solvers
 {
     class OptimalGuessSolver : SolverBase
     {
-        public override IDictionary<Coordinate, SolverResult> Solve(Map map, IDictionary<Coordinate, SolverResult> previousResults = null)
+        public override IDictionary<Coordinate, SolverResult> Solve(IMap map, IDictionary<Coordinate, SolverResult> previousResults = null)
         {
             var guesses = new Dictionary<Coordinate, SolverResult>();
             if (previousResults == null || previousResults.Any(x => x.Value.Verdict.HasValue))

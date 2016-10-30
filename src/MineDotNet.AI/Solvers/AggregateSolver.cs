@@ -35,7 +35,7 @@ namespace MineDotNet.AI.Solvers
             Behavior = SolverAggregationBehavior.GoThroughAllSolvers;
         }
 
-        public override IDictionary<Coordinate, SolverResult> Solve(Map map, IDictionary<Coordinate, SolverResult> previousResults = null)
+        public override IDictionary<Coordinate, SolverResult> Solve(IMap map, IDictionary<Coordinate, SolverResult> previousResults = null)
         {
             OnDebug($"Solving {map.Width}x{map.Height} map");
             if (map.RemainingMineCount.HasValue)
@@ -77,23 +77,31 @@ namespace MineDotNet.AI.Solvers
             return allResults;
         }
 
-        private Map MergeResultsIntoMap(Map map, IDictionary<Coordinate, SolverResult> previousResults)
+        private Map MergeResultsIntoMap(IMap map, IDictionary<Coordinate, SolverResult> previousResults)
         {
-            map = new Map(map.AllCells.ToList());
+            var newMap = new Map(map.AllCells.ToList());
+            newMap.RemainingMineCount = map.RemainingMineCount;
             foreach (var result in previousResults)
             {
                 switch (result.Value.Verdict)
                 {
                     case Verdict.HasMine:
-                        map.Cells[result.Key.X, result.Key.Y] = new Cell(result.Key, CellState.Filled, CellFlag.HasMine, 0);
+                        if (newMap.Cells[result.Key.X, result.Key.Y].Flag != CellFlag.HasMine)
+                        {
+                            newMap.Cells[result.Key.X, result.Key.Y] = new Cell(result.Key, CellState.Filled, CellFlag.HasMine, 0);
+                            if (newMap.RemainingMineCount.HasValue)
+                            {
+                                newMap.RemainingMineCount--;
+                            }
+                        }
                         break;
                     case Verdict.DoesntHaveMine:
-                        map.Cells[result.Key.X, result.Key.Y] = new Cell(result.Key, CellState.Wall, CellFlag.None, 0);
+                        newMap.Cells[result.Key.X, result.Key.Y] = new Cell(result.Key, CellState.Wall, CellFlag.None, 0);
                         break;
                 }
             }
             OnDebugLine(new TextMapVisualizer().VisualizeToString(map));
-            return map;
+            return newMap;
         }
     }
 }

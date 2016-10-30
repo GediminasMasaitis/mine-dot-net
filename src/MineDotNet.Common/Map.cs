@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace MineDotNet.Common
 {
-    public class Map
+    public class Map : IMap
     {
         public Map(int width, int height, bool createCells = false, CellState fillWithState = CellState.Empty)
         {
@@ -38,7 +38,7 @@ namespace MineDotNet.Common
 
         public IEnumerable<Cell> AllCells => Cells.Cast<Cell>().Where(x => x != null);
 
-        public IDictionary<Coordinate, NeighbourCacheEntry> NeighbourCache { get; set; }
+        public IDictionary<Coordinate, NeighbourCacheEntry> NeighbourCache { get; private set; }
 
         public bool CellExists(Coordinate coord) => coord.X >= 0 && coord.Y >= 0 && coord.X < Width && coord.Y < Height && Cells[coord.X, coord.Y] != null && Cells[coord.X, coord.Y].State != CellState.Wall;
 
