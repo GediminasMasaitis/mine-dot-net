@@ -10,7 +10,7 @@ namespace MineDotNet.Common
 {
     public static class Debugging
     {
-        public static void Visualize(Map mainMap, params IEnumerable<Coordinate>[] regions)
+        public static void Visualize(IMap mainMap, params IEnumerable<Coordinate>[] regions)
         {
             var currentPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 #if DEBUG
@@ -21,7 +21,7 @@ namespace MineDotNet.Common
             var visualizerPath =  currentPath + @"\..\..\..\MineDotNet.GUI\bin\Release\MineDotNet.GUI.exe"
 #endif
             var visualizer = new TextMapVisualizer();
-            var maps = new List<Map>();
+            var maps = new List<IMap>();
             maps.Add(mainMap);
             foreach (var region in regions)
             {

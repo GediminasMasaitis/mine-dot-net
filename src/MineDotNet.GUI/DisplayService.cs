@@ -202,8 +202,8 @@ namespace MineDotNet.GUI
             {
                 results = new Dictionary<Coordinate, SolverResult>();
             }
-
-            var textBrush = new SolidBrush(Color.FromArgb(255, 255, 255));
+            var textColor = Color.DarkRed;
+            var textBrush = new SolidBrush(textColor);
             var cellWidth = Target.Width/maps[0].Height;
             var cellHeight = Target.Height/maps[0].Width;
             if (cellHeight > cellWidth)
@@ -216,7 +216,7 @@ namespace MineDotNet.GUI
             }
             RescaleTiles(cellHeight, cellWidth);
 
-            var font = new Font(FontFamily.GenericMonospace, 7, FontStyle.Bold);
+            var debugTextFont = new Font(FontFamily.GenericMonospace, 8, FontStyle.Bold);
 
             var borderIncrement = (cellWidth/2 - 5)/maps.Length;
 
@@ -242,12 +242,12 @@ namespace MineDotNet.GUI
                             }
                         }
                         var posStr = $"[{i};{j}]";
-                        graphics.DrawString(posStr, font, textBrush, j*cellWidth, i*cellHeight);
+                        graphics.DrawString(posStr, debugTextFont, textBrush, j*cellWidth, i*cellHeight);
                         SolverResult result;
                         if (results.TryGetValue(cell.Coordinate, out result))
                         {
                             var probabilityStr = result.Probability.ToString("##0.00%");
-                            graphics.DrawString(probabilityStr, font, textBrush, j*cellWidth, i*cellHeight + cellHeight - 15);
+                            graphics.DrawString(probabilityStr, debugTextFont, textBrush, j*cellWidth, i*cellHeight + cellHeight - 15);
                         }
                     }
 

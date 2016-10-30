@@ -36,7 +36,8 @@ namespace MineDotNet.AI
                 else
                 {
                     // Funky recursion here
-                    foreach (var a in MultiCartesianInner(input, buffer, depth + 1))
+                    var multiCartesianInner = MultiCartesianInner(input, buffer, depth + 1);
+                    foreach (var a in multiCartesianInner)
                     {
                         yield return a;
                     }
