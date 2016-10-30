@@ -98,5 +98,11 @@ namespace MineDotNet.Common
             var cellList = AllCells.Select(c => new Cell(new Coordinate(c.Coordinate.Y, c.Coordinate.X), c.State, c.Flag, c.Hint)).ToList();
             return new Map(cellList);
         }
+
+        public Cell this[Coordinate coordinate]
+        {
+            get { return Cells[coordinate.X, coordinate.Y]; }
+            set { Cells[coordinate.X, coordinate.Y] = value; }
+        }
     }
 }

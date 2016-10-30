@@ -192,7 +192,7 @@ namespace MineDotNet.AI.Solvers
             foreach (var wholeBorderResult in wholeBorderResults)
             {
                 border.Probabilities.Remove(wholeBorderResult.Key);
-                var cell = map.Cells[wholeBorderResult.Key.X, wholeBorderResult.Key.Y];
+                var cell = map[wholeBorderResult.Key];
                 border.Cells.Remove(cell);
                 allResults[wholeBorderResult.Key] = wholeBorderResult.Value;
                 foreach (var validCombination in border.ValidCombinations)
@@ -251,7 +251,7 @@ namespace MineDotNet.AI.Solvers
                 SetCellsByResults(map, partialBorderResults);
                 foreach (var result in partialBorderResults)
                 {
-                    var cell = map.Cells[result.Key.X, result.Key.Y];
+                    var cell = map[result.Key];
                     allResults[result.Key] = result.Value;
                     var cellIndex = border.Cells.IndexOf(cell);
                     if (cellIndex <= i)
@@ -280,6 +280,13 @@ namespace MineDotNet.AI.Solvers
                         {
                             allResults[resplitBorderResult.Key] = resplitBorderResult.Value;
                         }
+                        if (resplitBorder.SolvedFully)
+                        {
+                            foreach (var probability in resplitBorder.Probabilities)
+                            {
+                                border.Probabilities[probability.Key] = probability.Value;
+                            }
+                        }
                     }
                     if (resplitBorders.All(x => x.SolvedFully))
                     {
@@ -303,7 +310,7 @@ namespace MineDotNet.AI.Solvers
                     continue;
                 }
                 any = true;
-                var cell = map.Cells[result.Key.X, result.Key.Y];
+                var cell = map[result.Key];
                 switch (result.Value.Verdict.Value)
                 {
                     case Verdict.HasMine:
@@ -423,11 +430,11 @@ namespace MineDotNet.AI.Solvers
             var partialMap = new Map(newWidth, newHeight, true, CellState.Wall);
             foreach (var cell in border.Cells)
             {
-                partialMap.Cells[cell.X, cell.Y] = cell;
+                partialMap[cell.Coordinate] = cell;
             }
             foreach (var cell in onlyInfluencingBorder)
             {
-                partialMap.Cells[cell.X, cell.Y] = cell;
+                partialMap[cell.Coordinate] = cell;
             }
             //Debugging.Visualize(partialMap);
             var solverMap = new BorderSeparationSolverMap(partialMap);
@@ -444,7 +451,7 @@ namespace MineDotNet.AI.Solvers
             while (coordQueue.Count > 0 && currentCells.Count < partialBorderSize)
             {
                 var coord = coordQueue.Dequeue();
-                var cell = map.Cells[coord.X, coord.Y];
+                var cell = map[coord];
                 currentCells.Add(cell);
                 var neighbors = map.NeighbourCache[coord].ByState[CellState.Filled].Where(x => commonCoords.Contains(x.Coordinate));
                 foreach (var neighbor in neighbors)
@@ -470,7 +477,7 @@ namespace MineDotNet.AI.Solvers
                 while (coordQueue.Count > 0)
                 {
                     var coord = coordQueue.Dequeue();
-                    var cell = map.Cells[coord.X, coord.Y];
+                    var cell = map[coord];
                     if (commonCoords.Contains(coord))
                     {
                         currentCells.Add(cell);
@@ -668,6 +675,11 @@ namespace MineDotNet.AI.Solvers
 
             public IList<Cell> GetNeighboursOf(Cell cell, bool includeSelf = false) => InnerMap.GetNeighboursOf(cell, includeSelf);
             public void BuildNeighbourCache() => InnerMap.BuildNeighbourCache();
+            public Cell this[Coordinate coordinate]
+            {
+                get { return InnerMap[coordinate]; }
+                set { InnerMap[coordinate] = value; }
+            }
         }
     }
 }

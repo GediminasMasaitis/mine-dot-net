@@ -22,7 +22,7 @@ namespace MineDotNet.AI.Solvers
             {
                 solvers = new ISolver[]
                 {
-                    new SimpleSolver(), 
+                    new SimpleSolver(),
                     new BorderSeparationSolver(), 
                     new OptimalGuessSolver()
                 };
@@ -86,9 +86,9 @@ namespace MineDotNet.AI.Solvers
                 switch (result.Value.Verdict)
                 {
                     case Verdict.HasMine:
-                        if (newMap.Cells[result.Key.X, result.Key.Y].Flag != CellFlag.HasMine)
+                        if (newMap[result.Key].Flag != CellFlag.HasMine)
                         {
-                            newMap.Cells[result.Key.X, result.Key.Y] = new Cell(result.Key, CellState.Filled, CellFlag.HasMine, 0);
+                            newMap[result.Key] = new Cell(result.Key, CellState.Filled, CellFlag.HasMine, 0);
                             if (newMap.RemainingMineCount.HasValue)
                             {
                                 newMap.RemainingMineCount--;
@@ -96,7 +96,7 @@ namespace MineDotNet.AI.Solvers
                         }
                         break;
                     case Verdict.DoesntHaveMine:
-                        newMap.Cells[result.Key.X, result.Key.Y] = new Cell(result.Key, CellState.Wall, CellFlag.None, 0);
+                        newMap[result.Key] = new Cell(result.Key, CellState.Wall, CellFlag.None, 0);
                         break;
                 }
             }

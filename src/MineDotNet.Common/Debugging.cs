@@ -28,7 +28,7 @@ namespace MineDotNet.Common
                 var maskMap = new Map(mainMap.Width, mainMap.Height, true);
                 foreach (var coordinate in region)
                 {
-                    maskMap.Cells[coordinate.X, coordinate.Y].State = CellState.Filled;;
+                    maskMap[coordinate].State = CellState.Filled;;
                 }
                 maps.Add(maskMap);
             }

@@ -13,5 +13,6 @@ namespace MineDotNet.Common
         bool CellExists(Coordinate coord);
         IList<Cell> GetNeighboursOf(Cell cell, bool includeSelf = false);
         void BuildNeighbourCache();
+        Cell this[Coordinate coordinate] { get; set; }
     }
 }

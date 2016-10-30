@@ -129,7 +129,7 @@ namespace MineDotNet.GUI
             {
                 if (result.Value.Verdict == targetVerdict)
                 {
-                    map.Cells[result.Key.X, result.Key.Y].State = CellState.Filled;
+                    map[result.Key].State = CellState.Filled;
                 }
             }
             return map;
