@@ -39,6 +39,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AI\AI.cs" />
     <Compile Include="AI\Solvers\Border.cs" />
     <Compile Include="AI\MultiCartesianExtension.cs" />
     <Compile Include="AI\Solvers\SolverResult.cs" />
