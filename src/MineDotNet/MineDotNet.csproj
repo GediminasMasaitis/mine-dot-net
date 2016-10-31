@@ -48,7 +48,7 @@
     <Compile Include="AI\Solvers\BorderSeparationSolverMap.cs" />
     <Compile Include="AI\Solvers\ISolver.cs" />
     <Compile Include="AI\Guessers\LowestProbabilityGuesser.cs" />
-    <Compile Include="AI\Verdict.cs" />
+    <Compile Include="AI\Solvers\PartialBorderData.cs" />
     <Compile Include="Common\Cell.cs" />
     <Compile Include="Common\CellFlag.cs" />
     <Compile Include="Common\CellState.cs" />

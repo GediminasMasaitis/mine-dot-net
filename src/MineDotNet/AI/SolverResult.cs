@@ -4,7 +4,7 @@ namespace MineDotNet.AI
 {
     public class SolverResult
     {
-        public SolverResult(Coordinate coordinate, decimal probability, Verdict? verdict)
+        public SolverResult(Coordinate coordinate, decimal probability, bool? verdict)
         {
             Coordinate = coordinate;
             Probability = probability;
@@ -13,7 +13,7 @@ namespace MineDotNet.AI
 
         public Coordinate Coordinate { get; }
         public decimal Probability { get; set; }
-        public Verdict? Verdict { get; set; }
+        public bool? Verdict { get; set; }
 
         public override string ToString()
         {

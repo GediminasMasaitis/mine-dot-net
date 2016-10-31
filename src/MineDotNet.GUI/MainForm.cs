@@ -124,7 +124,7 @@ namespace MineDotNet.GUI
             return maps;
         }
 
-        private Map GetMask(IDictionary<Coordinate, SolverResult> results, Verdict targetVerdict, int width, int height)
+        private Map GetMask(IDictionary<Coordinate, SolverResult> results, bool targetVerdict, int width, int height)
         {
             var map = new Map(width, height, null, true);
             foreach (var result in results)
@@ -143,8 +143,8 @@ namespace MineDotNet.GUI
             var results = Solver.Solve(map);
             if (results != null)
             {
-                var maskHasMine = GetMask(results, Verdict.HasMine, map.Width, map.Height);
-                var maskDoesntHaveMine = GetMask(results, Verdict.DoesntHaveMine, map.Width, map.Height);
+                var maskHasMine = GetMask(results, true, map.Width, map.Height);
+                var maskDoesntHaveMine = GetMask(results, false, map.Width, map.Height);
                 MapTextBoxes[1].Text = Visualizer.VisualizeToString(maskDoesntHaveMine);
                 MapTextBoxes[2].Text = Visualizer.VisualizeToString(maskHasMine);
             }

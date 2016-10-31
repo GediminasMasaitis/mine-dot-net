@@ -1,9 +1,10 @@
 using System.Collections.Generic;
+using MineDotNet.AI.Solvers;
 using MineDotNet.Common;
 
 namespace MineDotNet.AI
 {
-    public class Border
+    internal class Border
     {
         public Border(IList<Cell> cells)
         {
@@ -12,7 +13,7 @@ namespace MineDotNet.AI
             Verdicts = new Dictionary<Coordinate, bool>();
         }
         public IList<Cell> Cells { get; set; }
-        public IList<IDictionary<Coordinate, Verdict>> ValidCombinations { get; set; }
+        public IList<IDictionary<Coordinate, bool>> ValidCombinations { get; set; }
         public int MinMineCount { get; set; }
         public int MaxMineCount { get; set; }
         public IDictionary<Coordinate, decimal> Probabilities { get; set; }
