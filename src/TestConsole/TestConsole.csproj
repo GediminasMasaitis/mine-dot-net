@@ -45,19 +45,15 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\MineDotNet.AI\MineDotNet.AI.csproj">
-      <Project>{f2de75d9-62fd-49b1-9070-f8860322d8ea}</Project>
-      <Name>MineDotNet.AI</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\MineDotNet.Common\MineDotNet.Common.csproj">
-      <Project>{ef7d77f2-c167-46c3-b5a5-c335a023c08f}</Project>
-      <Name>MineDotNet.Common</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="map.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MineDotNet\MineDotNet.csproj">
+      <Project>{ba14ff48-5702-4e2e-b445-16c1ce78d3f6}</Project>
+      <Name>MineDotNet</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

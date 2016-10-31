@@ -28,8 +28,10 @@ namespace TestConsole
             Console.WriteLine(mapStr);
             Console.WriteLine();
 
-            var solver = new AggregateSolver();
+            var solver = new BorderSeparationSolver();
+#if DEBUG
             solver.Debug += AiOnDebug;
+#endif
 
             var verdicts = solver.Solve(map);
             Console.WriteLine();

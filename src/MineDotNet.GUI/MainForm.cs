@@ -33,8 +33,10 @@ namespace MineDotNet.GUI
         {
             InitializeComponent();
 
-            var aggregateSolver = new AggregateSolver();
+            var aggregateSolver = new BorderSeparationSolver();
+#if DEBUG
             aggregateSolver.Debug += AiOnDebug;
+#endif
             Solver = aggregateSolver;
 
             Parser = new TextMapParser();
@@ -72,7 +74,7 @@ namespace MineDotNet.GUI
 
             if (allMaps.Count == 0)
             {
-                allMaps.Add(new Map(8,8,true));
+                allMaps.Add(new Map(8,8,null,true));
             }
 
 
@@ -124,7 +126,7 @@ namespace MineDotNet.GUI
 
         private Map GetMask(IDictionary<Coordinate, SolverResult> results, Verdict targetVerdict, int width, int height)
         {
-            var map = new Map(width, height, true);
+            var map = new Map(width, height, null, true);
             foreach (var result in results)
             {
                 if (result.Value.Verdict == targetVerdict)

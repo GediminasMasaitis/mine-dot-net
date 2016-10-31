@@ -1,3 +1,5 @@
+using System;
+
 namespace MineDotNet.Common
 {
     public class Cell
@@ -25,6 +27,11 @@ namespace MineDotNet.Common
         public override string ToString()
         {
             return Coordinate.ToString() + ": " + State + ", " + Flag + ", " + Hint;
+        }
+
+        public Cell Clone()
+        {
+            return new Cell(X, Y, State, Flag, Hint);
         }
     }
 }

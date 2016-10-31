@@ -7,7 +7,17 @@ namespace MineDotNet.Common
 {
     public class Map : IMap
     {
-        public Map(int width, int height, bool createCells = false, CellState fillWithState = CellState.Empty)
+        public int? RemainingMineCount { get; set; }
+        public int Width { get; }
+        public int Height { get; }
+
+        public Cell[,] Cells { get; }
+
+        public IEnumerable<Cell> AllCells => Cells.Cast<Cell>().Where(x => x != null);
+
+        public IDictionary<Coordinate, NeighbourCacheEntry> NeighbourCache { get; private set; }
+
+        public Map(int width, int height, int? remainingMineCount = null, bool createCells = false, CellState fillWithState = CellState.Empty)
         {
             Width = width;
             Height = height;
@@ -20,27 +30,16 @@ namespace MineDotNet.Common
                     Cells[i, j] = cell;
                 }
             }
+            RemainingMineCount = remainingMineCount;
         }
 
-        public Map(IList<Cell> cells) : this(cells.Max(c => c.X)+1, cells.Max(c => c.Y)+1)
+        public Map(IList<Cell> cells, int? remainingMineCount = null) : this(cells.Max(c => c.X)+1, cells.Max(c => c.Y)+1, remainingMineCount)
         {
             foreach (var cell in cells)
             {
                 Cells[cell.X , cell.Y] = cell;
             }
         }
-
-        public int? RemainingMineCount { get; set; }
-        public int Width { get; }
-        public int Height { get; }
-
-        public Cell[,] Cells { get; }
-
-        public IEnumerable<Cell> AllCells => Cells.Cast<Cell>().Where(x => x != null);
-
-        public IDictionary<Coordinate, NeighbourCacheEntry> NeighbourCache { get; private set; }
-
-        public bool CellExists(Coordinate coord) => coord.X >= 0 && coord.Y >= 0 && coord.X < Width && coord.Y < Height && Cells[coord.X, coord.Y] != null && Cells[coord.X, coord.Y].State != CellState.Wall;
 
         private static readonly Coordinate[] NeighbourOffsets = {
             new Coordinate(-1,-1),
@@ -52,6 +51,8 @@ namespace MineDotNet.Common
             new Coordinate(1,0),
             new Coordinate(1,1)
         };
+
+        public bool CellExists(Coordinate coord) => coord.X >= 0 && coord.Y >= 0 && coord.X < Width && coord.Y < Height && Cells[coord.X, coord.Y] != null && Cells[coord.X, coord.Y].State != CellState.Wall;
 
         public IList<Cell> GetNeighboursOf(Cell cell, bool includeSelf = false)
         {

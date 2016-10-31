@@ -16,16 +16,16 @@ namespace MineDotNet.Common
 #if DEBUG
             var visualizerPath = currentPath + @"\..\..\..\MineDotNet.GUI\bin\Debug\MineDotNet.GUI.exe";
 #elif TEST
-            var visualizerPath =  currentPath + @"\..\..\..\MineDotNet.GUI\bin\Test\MineDotNet.GUI.exe"
+            var visualizerPath =  currentPath + @"\..\..\..\MineDotNet.GUI\bin\Test\MineDotNet.GUI.exe";
 #else
-            var visualizerPath =  currentPath + @"\..\..\..\MineDotNet.GUI\bin\Release\MineDotNet.GUI.exe"
+            var visualizerPath =  currentPath + @"\..\..\..\MineDotNet.GUI\bin\Release\MineDotNet.GUI.exe";
 #endif
             var visualizer = new TextMapVisualizer();
             var maps = new List<IMap>();
             maps.Add(mainMap);
             foreach (var region in regions)
             {
-                var maskMap = new Map(mainMap.Width, mainMap.Height, true);
+                var maskMap = new Map(mainMap.Width, mainMap.Height, null, true);
                 foreach (var coordinate in region)
                 {
                     maskMap[coordinate].State = CellState.Filled;;

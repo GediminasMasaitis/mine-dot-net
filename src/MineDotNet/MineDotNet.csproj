@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{604DF705-E8BA-47AE-92C6-82860520E846}</ProjectGuid>
+    <ProjectGuid>{BA14FF48-5702-4E2E-B445-16C1CE78D3F6}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>MineDotNet.Game</RootNamespace>
-    <AssemblyName>MineDotNet.Game</AssemblyName>
+    <RootNamespace>MineDotNet</RootNamespace>
+    <AssemblyName>MineDotNet</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -39,17 +39,32 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GameCell.cs" />
-    <Compile Include="GameMap.cs" />
-    <Compile Include="GameMapGenerator.cs" />
+    <Compile Include="AI\Border.cs" />
+    <Compile Include="AI\ExtensionMethods.cs" />
+    <Compile Include="AI\MultiCartesianExtension.cs" />
+    <Compile Include="AI\SolverAggregationBehavior.cs" />
+    <Compile Include="AI\SolverResult.cs" />
+    <Compile Include="AI\Solvers\BorderSeparationSolver.cs" />
+    <Compile Include="AI\Solvers\BorderSeparationSolverMap.cs" />
+    <Compile Include="AI\Solvers\ISolver.cs" />
+    <Compile Include="AI\Guessers\LowestProbabilityGuesser.cs" />
+    <Compile Include="AI\Verdict.cs" />
+    <Compile Include="Common\Cell.cs" />
+    <Compile Include="Common\CellFlag.cs" />
+    <Compile Include="Common\CellState.cs" />
+    <Compile Include="Common\Coordinate.cs" />
+    <Compile Include="Common\Debugging.cs" />
+    <Compile Include="Common\IMap.cs" />
+    <Compile Include="Common\Map.cs" />
+    <Compile Include="Common\NeighbourCacheEntry.cs" />
+    <Compile Include="Common\TextMapParser.cs" />
+    <Compile Include="Common\TextMapVisualizer.cs" />
+    <Compile Include="Game\GameCell.cs" />
+    <Compile Include="Game\GameMap.cs" />
+    <Compile Include="Game\GameMapGenerator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\MineDotNet.Common\MineDotNet.Common.csproj">
-      <Project>{ef7d77f2-c167-46c3-b5a5-c335a023c08f}</Project>
-      <Name>MineDotNet.Common</Name>
-    </ProjectReference>
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
