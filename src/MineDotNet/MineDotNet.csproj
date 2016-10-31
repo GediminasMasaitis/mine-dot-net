@@ -39,11 +39,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AI\Border.cs" />
-    <Compile Include="AI\ExtensionMethods.cs" />
+    <Compile Include="AI\Solvers\Border.cs" />
     <Compile Include="AI\MultiCartesianExtension.cs" />
-    <Compile Include="AI\SolverAggregationBehavior.cs" />
-    <Compile Include="AI\SolverResult.cs" />
+    <Compile Include="AI\Solvers\SolverResult.cs" />
     <Compile Include="AI\Solvers\BorderSeparationSolver.cs" />
     <Compile Include="AI\Solvers\BorderSeparationSolverMap.cs" />
     <Compile Include="AI\Solvers\ISolver.cs" />

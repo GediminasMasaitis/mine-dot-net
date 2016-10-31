@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Text;
 using System.Windows.Forms;
 using MineDotNet.AI;
+using MineDotNet.AI.Solvers;
 using MineDotNet.Common;
 
 namespace MineDotNet.GUI

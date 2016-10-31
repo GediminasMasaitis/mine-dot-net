@@ -1,6 +1,6 @@
 using MineDotNet.Common;
 
-namespace MineDotNet.AI
+namespace MineDotNet.AI.Solvers
 {
     public class SolverResult
     {
