@@ -142,7 +142,7 @@ namespace MineDotNet.GUI
         private void SolveMapButton_Click(object sender, EventArgs e)
         {
             var map = Parser.Parse(Map0TextBox.Text);
-            var results = Solver.Solve(map);
+            var results = AI.AI.Solve(map);
             DisplayResults(map, results);
         }
 
@@ -163,10 +163,11 @@ namespace MineDotNet.GUI
         {
             var random = new Random();
             var generator = new GameMapGenerator(random);
-            var width = 16;
-            var height = 16;
+            var width = 32;
+            var height = 32;
             var startingPos = new Coordinate(random.Next(0, width), random.Next(0, height));
-            var gameMap = generator.GenerateWithMineDensity(width, height, startingPos, 0.2d);
+            var density = MineDensityTrackBar.Value/(double) 100;
+            var gameMap = generator.GenerateWithMineDensity(width, height, startingPos, density);
             while (true)
             {
                 var regularMap = gameMap.ToRegularMap();
@@ -196,7 +197,10 @@ namespace MineDotNet.GUI
                     {
                         if (gameMap[result.Key].HasMine)
                         {
-                            MessageBox.Show("Boom");
+                            regularMap[result.Key].Flag = CellFlag.NotSure;
+                            Map0TextBox.Text = Visualizer.VisualizeToString(regularMap);
+                            DisplayResults(regularMap, results);
+                            MessageBox.Show("Boom " + result.Key);
                             return;
                         }
                         gameMap[result.Key].State = CellState.Empty;
@@ -204,8 +208,13 @@ namespace MineDotNet.GUI
                 }
                 DisplayResults(regularMap, results);
                 Application.DoEvents();
-                Thread.Sleep(200);
+                Thread.Sleep(100);
             }
+        }
+
+        private void MineDensityTrackBar_ValueChanged(object sender, EventArgs e)
+        {
+            MineDensityLabel.Text = $"Mine density: {MineDensityTrackBar.Value}%";
         }
     }
 }

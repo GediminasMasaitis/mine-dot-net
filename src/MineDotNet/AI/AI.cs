@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using MineDotNet.AI.Guessers;
 using MineDotNet.AI.Solvers;
 using MineDotNet.Common;
@@ -12,6 +13,10 @@ namespace MineDotNet.AI
             var solver = new BorderSeparationSolver();
             var guesser = new LowestProbabilityGuesser();
             var solverResults = solver.Solve(map);
+            if (solverResults.Any(x => x.Value.Verdict.HasValue))
+            {
+                return solverResults;
+            }
             var guesserResult = guesser.Guess(solverResults);
             if (guesserResult != null)
             {

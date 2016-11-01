@@ -16,6 +16,7 @@ namespace MineDotNet.GUI
 {
     class DisplayService
     {
+        public bool DrawCoordinates { get; set; }
         public PictureBox Target { get; set; }
         public TextMapVisualizer Visualizer { get; set; }
 
@@ -33,6 +34,7 @@ namespace MineDotNet.GUI
 
         public DisplayService(PictureBox target, int colorCount, TextMapVisualizer visualizer)
         {
+            DrawCoordinates = false;
             Target = target;
             Visualizer = visualizer;
 
@@ -242,8 +244,11 @@ namespace MineDotNet.GUI
                                 borderWidth += borderIncrement;
                             }
                         }
-                        var posStr = $"[{i};{j}]";
-                        graphics.DrawString(posStr, debugTextFont, textBrush, j*cellWidth, i*cellHeight);
+                        if (DrawCoordinates)
+                        {
+                            var posStr = $"[{i};{j}]";
+                            graphics.DrawString(posStr, debugTextFont, textBrush, j*cellWidth, i*cellHeight);
+                        }
                         SolverResult result;
                         if (results.TryGetValue(cell.Coordinate, out result))
                         {

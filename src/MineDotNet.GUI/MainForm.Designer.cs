@@ -34,7 +34,10 @@
             this.Map0TextBox = new System.Windows.Forms.TextBox();
             this.SolveMapButton = new System.Windows.Forms.Button();
             this.AutoPlayButton = new System.Windows.Forms.Button();
+            this.MineDensityTrackBar = new System.Windows.Forms.TrackBar();
+            this.MineDensityLabel = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.MainPictureBox)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.MineDensityTrackBar)).BeginInit();
             this.SuspendLayout();
             // 
             // MainPictureBox
@@ -101,12 +104,35 @@
             this.AutoPlayButton.UseVisualStyleBackColor = true;
             this.AutoPlayButton.Click += new System.EventHandler(this.AutoPlayButton_Click);
             // 
+            // MineDensityTrackBar
+            // 
+            this.MineDensityTrackBar.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.MineDensityTrackBar.Location = new System.Drawing.Point(519, 94);
+            this.MineDensityTrackBar.Maximum = 100;
+            this.MineDensityTrackBar.Name = "MineDensityTrackBar";
+            this.MineDensityTrackBar.Size = new System.Drawing.Size(115, 45);
+            this.MineDensityTrackBar.TabIndex = 26;
+            this.MineDensityTrackBar.Value = 20;
+            this.MineDensityTrackBar.ValueChanged += new System.EventHandler(this.MineDensityTrackBar_ValueChanged);
+            // 
+            // MineDensityLabel
+            // 
+            this.MineDensityLabel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.MineDensityLabel.AutoSize = true;
+            this.MineDensityLabel.Location = new System.Drawing.Point(533, 126);
+            this.MineDensityLabel.Name = "MineDensityLabel";
+            this.MineDensityLabel.Size = new System.Drawing.Size(92, 13);
+            this.MineDensityLabel.TabIndex = 27;
+            this.MineDensityLabel.Text = "Mine density: 20%";
+            // 
             // MainForm
             // 
             this.AcceptButton = this.ShowMapsButton;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(641, 755);
+            this.Controls.Add(this.MineDensityLabel);
+            this.Controls.Add(this.MineDensityTrackBar);
             this.Controls.Add(this.AutoPlayButton);
             this.Controls.Add(this.SolveMapButton);
             this.Controls.Add(this.Map0Label);
@@ -116,6 +142,7 @@
             this.Name = "MainForm";
             this.Text = "Mine viewer";
             ((System.ComponentModel.ISupportInitialize)(this.MainPictureBox)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.MineDensityTrackBar)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -129,6 +156,8 @@
         private System.Windows.Forms.TextBox Map0TextBox;
         private System.Windows.Forms.Button SolveMapButton;
         private System.Windows.Forms.Button AutoPlayButton;
+        private System.Windows.Forms.TrackBar MineDensityTrackBar;
+        private System.Windows.Forms.Label MineDensityLabel;
     }
 }
 
