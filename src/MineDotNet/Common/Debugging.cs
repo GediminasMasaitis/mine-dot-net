@@ -5,11 +5,17 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using MineDotNet.AI.Solvers;
 
 namespace MineDotNet.Common
 {
     public static class Debugging
     {
+        internal static void Visualize(IMap mainMap, params Border[] borders)
+        {
+            Visualize(mainMap, borders.Select(x => x.Cells.Select(y => y.Coordinate)).ToArray());
+        }
+
         public static void Visualize(IMap mainMap, params IEnumerable<Coordinate>[] regions)
         {
             var currentPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);

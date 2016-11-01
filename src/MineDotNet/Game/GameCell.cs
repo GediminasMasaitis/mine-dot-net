@@ -2,7 +2,7 @@
 
 namespace MineDotNet.Game
 {
-    class GameCell : Cell
+    public class GameCell : Cell
     {
         public bool HasMine { get; set; }
 

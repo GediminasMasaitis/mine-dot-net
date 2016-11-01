@@ -31,6 +31,10 @@ namespace MineDotNet.Common
                 }
                 writer.WriteLine();
             }
+            if (map.RemainingMineCount.HasValue)
+            {
+                writer.WriteLine($"m{map.RemainingMineCount.Value}");
+            }
             writer.Flush();
         }
 

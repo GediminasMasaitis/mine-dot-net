@@ -7,10 +7,12 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading;
 using System.Windows.Forms;
 using MineDotNet.AI;
 using MineDotNet.AI.Solvers;
 using MineDotNet.Common;
+using MineDotNet.Game;
 
 namespace MineDotNet.GUI
 {
@@ -141,6 +143,11 @@ namespace MineDotNet.GUI
         {
             var map = Parser.Parse(Map0TextBox.Text);
             var results = Solver.Solve(map);
+            DisplayResults(map, results);
+        }
+
+        private void DisplayResults(IMap map, IDictionary<Coordinate, SolverResult> results)
+        {
             if (results != null)
             {
                 var maskHasMine = GetMask(results, true, map.Width, map.Height);
@@ -150,6 +157,55 @@ namespace MineDotNet.GUI
             }
             var maps = GetMapsFromTextBoxes();
             Display.DisplayMaps(maps, results);
+        }
+
+        private void AutoPlayButton_Click(object sender, EventArgs e)
+        {
+            var random = new Random();
+            var generator = new GameMapGenerator(random);
+            var width = 16;
+            var height = 16;
+            var startingPos = new Coordinate(random.Next(0, width), random.Next(0, height));
+            var gameMap = generator.GenerateWithMineDensity(width, height, startingPos, 0.2d);
+            while (true)
+            {
+                var regularMap = gameMap.ToRegularMap();
+                MapTextBoxes[0].Text = Visualizer.VisualizeToString(regularMap);
+                MapTextBoxes[1].Text = string.Empty;
+                MapTextBoxes[2].Text = string.Empty;
+                Display.DisplayMaps(new[] { regularMap });
+                Application.DoEvents();
+                var results = AI.AI.Solve(regularMap);
+                if (results.Count == 0)
+                {
+                    MessageBox.Show("Done");
+                    return;
+                }
+                foreach (var result in results)
+                {
+                    if (!result.Value.Verdict.HasValue)
+                    {
+                        continue;
+                    }
+                    if (result.Value.Verdict.Value)
+                    {
+                        gameMap[result.Key].Flag = CellFlag.HasMine;
+                        gameMap.RemainingMineCount--;
+                    }
+                    else
+                    {
+                        if (gameMap[result.Key].HasMine)
+                        {
+                            MessageBox.Show("Boom");
+                            return;
+                        }
+                        gameMap[result.Key].State = CellState.Empty;
+                    }
+                }
+                DisplayResults(regularMap, results);
+                Application.DoEvents();
+                Thread.Sleep(200);
+            }
         }
     }
 }

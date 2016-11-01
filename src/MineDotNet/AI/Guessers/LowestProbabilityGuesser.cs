@@ -20,7 +20,12 @@ namespace MineDotNet.AI.Guessers
                     leastRiskyPrediction = solverResult;
                 }
             }
-            return leastRiskyPrediction;
+            if (leastRiskyPrediction == null)
+            {
+                return null;
+            }
+            var guess = new SolverResult(leastRiskyPrediction.Coordinate, leastRiskyPrediction.Probability, false);
+            return guess;
         }
     }
 }

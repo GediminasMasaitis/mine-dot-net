@@ -13,7 +13,10 @@ namespace MineDotNet.AI
             var guesser = new LowestProbabilityGuesser();
             var solverResults = solver.Solve(map);
             var guesserResult = guesser.Guess(solverResults);
-            solverResults[guesserResult.Coordinate] = guesserResult;
+            if (guesserResult != null)
+            {
+                solverResults[guesserResult.Coordinate] = guesserResult;
+            }
             return solverResults;
         }
     }

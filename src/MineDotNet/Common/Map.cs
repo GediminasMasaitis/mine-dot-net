@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 
@@ -41,7 +42,7 @@ namespace MineDotNet.Common
             }
         }
 
-        private static readonly Coordinate[] NeighbourOffsets = {
+        public static readonly ReadOnlyCollection<Coordinate> NeighbourOffsets = new ReadOnlyCollection<Coordinate>(new List<Coordinate>{
             new Coordinate(-1,-1),
             new Coordinate(-1,0),
             new Coordinate(-1,1),
@@ -50,7 +51,7 @@ namespace MineDotNet.Common
             new Coordinate(1,-1),
             new Coordinate(1,0),
             new Coordinate(1,1)
-        };
+        });
 
         public bool CellExists(Coordinate coord) => coord.X >= 0 && coord.Y >= 0 && coord.X < Width && coord.Y < Height && Cells[coord.X, coord.Y] != null && Cells[coord.X, coord.Y].State != CellState.Wall;
 
@@ -59,7 +60,7 @@ namespace MineDotNet.Common
             var cache = new Dictionary<Coordinate, NeighbourCacheEntry>();
             foreach (var cell in AllCells)
             {
-                var neighbours = GetNeighboursOf(cell.Coordinate);
+                var neighbours = CalculateNeighboursOf(cell.Coordinate);
                 var entry = new NeighbourCacheEntry();
                 entry.AllNeighbours = neighbours;
 
@@ -82,7 +83,7 @@ namespace MineDotNet.Common
             NeighbourCache = cache;
         }
 
-        private IList<Cell> GetNeighboursOf(Coordinate coord, bool includeSelf = false)
+        private IList<Cell> CalculateNeighboursOf(Coordinate coord, bool includeSelf = false)
         {
             var validOffsets = NeighbourOffsets.Select(x => coord + x).Where(CellExists).ToList();
             if (includeSelf && CellExists(coord))

@@ -33,6 +33,7 @@
             this.Map0Label = new System.Windows.Forms.Label();
             this.Map0TextBox = new System.Windows.Forms.TextBox();
             this.SolveMapButton = new System.Windows.Forms.Button();
+            this.AutoPlayButton = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.MainPictureBox)).BeginInit();
             this.SuspendLayout();
             // 
@@ -89,12 +90,24 @@
             this.SolveMapButton.UseVisualStyleBackColor = true;
             this.SolveMapButton.Click += new System.EventHandler(this.SolveMapButton_Click);
             // 
+            // AutoPlayButton
+            // 
+            this.AutoPlayButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.AutoPlayButton.Location = new System.Drawing.Point(524, 65);
+            this.AutoPlayButton.Name = "AutoPlayButton";
+            this.AutoPlayButton.Size = new System.Drawing.Size(110, 23);
+            this.AutoPlayButton.TabIndex = 25;
+            this.AutoPlayButton.Text = "Auto play";
+            this.AutoPlayButton.UseVisualStyleBackColor = true;
+            this.AutoPlayButton.Click += new System.EventHandler(this.AutoPlayButton_Click);
+            // 
             // MainForm
             // 
             this.AcceptButton = this.ShowMapsButton;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(641, 755);
+            this.Controls.Add(this.AutoPlayButton);
             this.Controls.Add(this.SolveMapButton);
             this.Controls.Add(this.Map0Label);
             this.Controls.Add(this.Map0TextBox);
@@ -115,6 +128,7 @@
         private System.Windows.Forms.Label Map0Label;
         private System.Windows.Forms.TextBox Map0TextBox;
         private System.Windows.Forms.Button SolveMapButton;
+        private System.Windows.Forms.Button AutoPlayButton;
     }
 }
 
