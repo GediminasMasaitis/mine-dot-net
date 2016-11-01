@@ -14,6 +14,8 @@ namespace MineDotNet.AI.Solvers
     public class BorderSeparationSolver : ISolver
     {
         public bool SetPartiallyCalculatedProbabilities { get; set; }
+        public bool IgnoreMineCountCompletely { get; set; }
+        public bool SolveByMineCount { get; set; }
         public bool SolveNonBorderCells { get; set; }
         public int PartialBorderSolveFrom { get; set; }
         public int GiveUpFrom { get; set; }
@@ -23,6 +25,8 @@ namespace MineDotNet.AI.Solvers
         public BorderSeparationSolver()
         {
             SetPartiallyCalculatedProbabilities = true;
+            IgnoreMineCountCompletely = false;
+            SolveByMineCount = true;
             SolveNonBorderCells = true;
             PartialBorderSolveFrom = 22;
             GiveUpFrom = 25;
@@ -52,9 +56,12 @@ namespace MineDotNet.AI.Solvers
             // We prepare some intial data we will work with.
             // It's important to deep copy the cells, in order to not modify the original map.
             var map = new BorderSeparationSolverMap(givenMap);
+            if (IgnoreMineCountCompletely)
+            {
+                map.RemainingMineCount = null;
+            }
             map.BuildNeighbourCache();
             var allProbabilities = new Dictionary<Coordinate, decimal>();
-            var fullySolvedBorders = new List<Border>();
 
             // We first attempt trivial solving.
             // If it's all the user wants, we return immediately.
@@ -68,105 +75,108 @@ namespace MineDotNet.AI.Solvers
             var commonBorder = FindCommonBorder(map);
             OnDebugLine($"Common border calculated, found {commonBorder.Cells.Count} cells");
 
-            // We make two HashSets of the common border coordinates.
-            // One which will stay unmodified - to be able to identify border cells without recalculating,
-            // another which will get coordinates removed as we progress with solving.
-            var originalCommonBorderCoords = new HashSet<Coordinate>(commonBorder.Cells.Select(x => x.Coordinate));
-            var commonBorderCoords = new HashSet<Coordinate>(originalCommonBorderCoords);
-
             // We separate the common border into multiple, non-connecting borders, which can be solved independently.
             var borders = SeparateBorders(commonBorder, map).OrderBy(x => x.Cells.Count).ToList();
             OnDebugLine($"Common border split into {borders.Count} separate borders.");
 
-            // We iterate over each border, and attempt to solve it.
+            // We iterate over each border, and attempt to solve it,
+            // then copy the border's verdicts and probabilities
             foreach (var border in borders)
             {
                 SolveBorder(border, map, true);
-
-                // We copy the results to our main list
-                // and remove any found results from the common border, to not analyze them further.
                 foreach (var borderVerdict in border.Verdicts)
                 {
                     allVerdicts[borderVerdict.Key] = borderVerdict.Value;
-                    commonBorderCoords.Remove(borderVerdict.Key);
                 }
-                if (border.SolvedFully)
-                {
-                    fullySolvedBorders.Add(border);
-                }
-                else
-                {
-                    // If the border wasn't solved fully, we can't do later algorithms,
-                    // since we lack a list of valid combinations. So we remove the cells from the common border.
-                    foreach (var cell in border.Cells)
-                    {
-                        commonBorderCoords.Remove(cell.Coordinate);
-                    }
-                }
-
-                // We copy all probabilities. Some may get overwritten later, but that's no problem.
                 foreach (var probability in border.Probabilities)
                 {
                     allProbabilities[probability.Key] = probability.Value;
                 }
             }
 
+            if (SolveByMineCount)
+            {
+                SolveMapByMineCounts(map, commonBorder, borders, allProbabilities, allVerdicts);
+            }
+
+            var finalResults = GetFinalResults(allProbabilities, allVerdicts);
+            OnDebugLine("Found " + allVerdicts.Count + " guaranteed moves.");
+            return finalResults;
+        }
+
+        private void SolveMapByMineCounts(BorderSeparationSolverMap map, Border commonBorder, List<Border> borders, Dictionary<Coordinate, decimal> allProbabilities, IDictionary<Coordinate, bool> allVerdicts)
+        {
+            if (!map.RemainingMineCount.HasValue)
+            {
+                return;
+            }
+
+            // We make two HashSets of the common border coordinates.
+            // One which will stay unmodified - to be able to identify border cells without recalculating,
+            // another which will get unfit coordinates removed.
+            var originalCommonBorderCoords = new HashSet<Coordinate>(commonBorder.Cells.Select(x => x.Coordinate));
+            var commonBorderCoords = new HashSet<Coordinate>(originalCommonBorderCoords);
+            commonBorderCoords.ExceptWith(allVerdicts.Keys);
+
+            var fullySolvedBorders = borders.Where(x => x.SolvedFully).ToList();
+            var unsolvedBorders = borders.Where(x => !x.SolvedFully).ToList();
+
+            // If the border wasn't solved fully, we can't do later algorithms,
+            // since we lack a list of valid combinations. So we remove the cells from the common border.
+            foreach (var unsolvedBorder in unsolvedBorders)
+            {
+                foreach (var unsolvedBorderCell in unsolvedBorder.Cells)
+                {
+                    commonBorderCoords.Remove(unsolvedBorderCell.Coordinate);
+                }
+            }
+
+            foreach (var border in fullySolvedBorders)
+            {
+                var otherBorders = fullySolvedBorders.Where(x => x != border).ToList();
+                var otherBorderSizeSum = otherBorders.Sum(x => x.Cells.Count);
+                var guaranteedMines = otherBorders.Sum(x => x.MinMineCount);
+                var guaranteedEmpty = otherBorderSizeSum - guaranteedMines;
+                TrimValidCombinationsByMineCount(border, map.RemainingMineCount.Value, map.UndecidedCount, guaranteedMines, guaranteedEmpty);
+            }
+
+            var bordersWithExactMineCount = fullySolvedBorders.Where(x => x.MinMineCount == x.MaxMineCount).ToList();
+            var bordersWithVariableMineCount = fullySolvedBorders.Where(x => x.MinMineCount != x.MaxMineCount).ToList();
+
+            foreach (var border in bordersWithExactMineCount)
+            {
+                foreach (var cell in border.Cells)
+                {
+                    commonBorderCoords.Remove(cell.Coordinate);
+                }
+            }
+
+            commonBorder.Cells = commonBorder.Cells.Where(x => commonBorderCoords.Contains(x.Coordinate)).ToList();
+            commonBorder.ValidCombinations = GetCommonBorderValidCombinations(bordersWithVariableMineCount);
+
+            var exactMineCount = bordersWithExactMineCount.Sum(x => x.MaxMineCount);
+            var exactBorderSize = bordersWithExactMineCount.Sum(x => x.Cells.Count);
+            var exactNonMineCount = exactBorderSize - exactMineCount;
+            TrimValidCombinationsByMineCount(commonBorder, map.RemainingMineCount.Value, map.UndecidedCount, exactMineCount, exactNonMineCount);
+
+            commonBorder.Probabilities = GetBorderProbabilities(commonBorder);
+            foreach (var probability in commonBorder.Probabilities)
+            {
+                allProbabilities[probability.Key] = probability.Value;
+            }
             if (SolveNonBorderCells)
             {
-                if (map.RemainingMineCount.HasValue)
-                {
-                    foreach (var border in fullySolvedBorders)
-                    {
-                        var guaranteedOtherCombinations = fullySolvedBorders.Where(x => x != border).Sum(x => x.MinMineCount);
-                        TrimValidCombinationsByMineCount(border, map.RemainingMineCount.Value, map.UndecidedCount, guaranteedOtherCombinations);
-                    }
-                }
-
-                var bordersWithExactMineCount = fullySolvedBorders.Where(x => x.MinMineCount == x.MaxMineCount).ToList();
-                var bordersWithVariableMineCount = fullySolvedBorders.Where(x => x.MinMineCount != x.MaxMineCount).ToList();
-
-                foreach (var border in bordersWithExactMineCount)
-                {
-                    foreach (var cell in border.Cells)
-                    {
-                        commonBorderCoords.Remove(cell.Coordinate);
-                    }
-                }
-
-                commonBorder.Cells = commonBorder.Cells.Where(x => commonBorderCoords.Contains(x.Coordinate)).ToList();
-
-                commonBorder.ValidCombinations = GetCommonBorderValidCombinations(bordersWithVariableMineCount);
-
-                if (map.RemainingMineCount.HasValue)
-                {
-
-                    var exactMineCount = bordersWithExactMineCount.Sum(x => x.MaxMineCount);
-                    TrimValidCombinationsByMineCount(commonBorder, map.RemainingMineCount.Value, map.UndecidedCount, exactMineCount);
-                }
-
-                commonBorder.Probabilities = GetBorderProbabilities(commonBorder);
-                foreach (var probability in commonBorder.Probabilities)
-                {
-                    allProbabilities[probability.Key] = probability.Value;
-                }
-
                 var nonBorderProbabilities = GetNonBorderProbabilitiesByMineCount(map, allProbabilities, originalCommonBorderCoords);
                 foreach (var probability in nonBorderProbabilities)
                 {
                     allProbabilities[probability.Key] = probability.Value;
                 }
-
-                var nonBorderVerdicts = GetVerdictsFromProbabilities(nonBorderProbabilities);
-                foreach (var nonBorderVerdict in nonBorderVerdicts)
-                {
-                    allVerdicts[nonBorderVerdict.Key] = nonBorderVerdict.Value;
-                }
             }
-            //var probabilities = commonBorder.Probabilities.Concat(nonBorderProbabilities).ToDictionary(x => x.Key, x => x.Value);
-
-            var results = GetFinalResults(allProbabilities, allVerdicts);
-            OnDebugLine("Found " + allVerdicts.Count + " guaranteed moves.");
-            return results;
+            var verdictsFromProbabilities = GetVerdictsFromProbabilities(allProbabilities);
+            foreach (var verdict in verdictsFromProbabilities)
+            {
+                allVerdicts[verdict.Key] = verdict.Value;
+            }
         }
 
         private IDictionary<Coordinate, bool> SolveTrivial(BorderSeparationSolverMap map)
@@ -399,7 +409,7 @@ namespace MineDotNet.AI.Solvers
             return combinationsCartesianProduct;
         }
 
-        private void TrimValidCombinationsByMineCount(Border border, int minesRemaining, int undecidedCellsRemaining, int minesElsewhere)
+        private void TrimValidCombinationsByMineCount(Border border, int minesRemaining, int undecidedCellsRemaining, int minesElsewhere, int nonMineCountElsewhere)
         {
             for (var i = 0; i < border.ValidCombinations.Count; i++)
             {
@@ -411,11 +421,17 @@ namespace MineDotNet.AI.Solvers
                     i--;
                     continue;
                 }
-                if (undecidedCellsRemaining == combination.Count && minePredictionCount != minesRemaining)
+                if (minesRemaining - minePredictionCount > undecidedCellsRemaining - combination.Count - nonMineCountElsewhere)
                 {
                     border.ValidCombinations.RemoveAt(i);
                     i--;
+                    continue;
                 }
+                //if (undecidedCellsRemaining == combination.Count && minePredictionCount != minesRemaining)
+                //{
+                //    border.ValidCombinations.RemoveAt(i);
+                //    i--;
+                //}
             }
         }
 

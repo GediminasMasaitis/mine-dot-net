@@ -13,7 +13,9 @@ namespace MineDotNet.AI.Solvers
 
         public BorderSeparationSolverMap(IMap map) : base(CloneCellsFromMap(map), map.RemainingMineCount)
         {
-            
+            var filledCells = map.AllCells.Where(x => x.State == CellState.Filled).ToList();
+            FilledCount = filledCells.Count;
+            FlaggedCount = filledCells.Count(x => x.Flag == CellFlag.HasMine);
         }
 
         private static IList<Cell> CloneCellsFromMap(IMap map)
