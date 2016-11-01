@@ -114,19 +114,28 @@ namespace MineDotNet.AI.Solvers
 
         private void SolveTrivial(BorderSeparationSolverMap map, IDictionary<Coordinate, bool> allVerdicts)
         {
+            // Trivial solving works in rounds - it may fail to find a verdict once, but will find it on a second pass.
+            // We keep solving until we fail to find anything.
             while (true)
             {
                 var currentRoundVerdicts = new Dictionary<Coordinate, bool>();
+
+                // We find all empty cells, and iterate through them
                 var emptyCells = map.AllCells.Where(x => x.State == CellState.Empty);
                 foreach (var cell in emptyCells)
                 {
+                    // We find all the cells' filled neighbours.
+                    // if there's none of them, or they're all flagged, we can skip this cell.
                     var neighbourEntry = map.NeighbourCache[cell.Coordinate];
                     var filledNeighbours = neighbourEntry.ByState[CellState.Filled];
-                    var markedNeighbours = neighbourEntry.ByFlag[CellFlag.HasMine];
-                    if (filledNeighbours.Count == markedNeighbours.Count)
+                    var flaggedNeighbours = neighbourEntry.ByFlag[CellFlag.HasMine];
+                    if (filledNeighbours.Count == flaggedNeighbours.Count)
                     {
                         continue;
                     }
+
+                    // If the hint is equal to however many filled neighbours a cell has,
+                    // all the neighbours must have a mine, so we flag them all.
                     if (filledNeighbours.Count == cell.Hint)
                     {
                         var neighboursToFlag = filledNeighbours.Where(x => x.Flag != CellFlag.HasMine && !allVerdicts.ContainsKey(x.Coordinate));
@@ -136,7 +145,10 @@ namespace MineDotNet.AI.Solvers
                             allVerdicts[neighbour.Coordinate] = true;
                         }
                     }
-                    if (markedNeighbours.Count == cell.Hint)
+
+                    // If the hint is equal to however many flagged neighbours a cell has,
+                    // then the remaining filled non-flagged neighbours have to be empty, so we "click" them all.
+                    if (flaggedNeighbours.Count == cell.Hint)
                     {
                         var neighboursToClick = filledNeighbours.Where(x => x.Flag != CellFlag.HasMine && !allVerdicts.ContainsKey(x.Coordinate));
                         foreach (var neighbour in neighboursToClick)
@@ -146,9 +158,12 @@ namespace MineDotNet.AI.Solvers
                         }
                     }
                 }
+
+                // If we didn't find any results this round, we can stop searching and return.
+                // Else, we modify the map to have our results, and go for another round.
                 if (currentRoundVerdicts.Count == 0)
                 {
-                    break;
+                    return;
                 }
                 SetCellsByVerdicts(map, currentRoundVerdicts);
             }
@@ -168,11 +183,11 @@ namespace MineDotNet.AI.Solvers
             var commonBorderCoords = new HashSet<Coordinate>(originalCommonBorderCoords);
             commonBorderCoords.ExceptWith(allVerdicts.Keys);
 
+            // If the border wasn't solved fully, we can't do later algorithms with it,
+            // since we lack a list of valid combinations. So we split the borders into two lists
+            // and remove the non-solved border cells from the common border.
             var fullySolvedBorders = borders.Where(x => x.SolvedFully).ToList();
             var unsolvedBorders = borders.Where(x => !x.SolvedFully).ToList();
-
-            // If the border wasn't solved fully, we can't do later algorithms,
-            // since we lack a list of valid combinations. So we remove the cells from the common border.
             foreach (var unsolvedBorder in unsolvedBorders)
             {
                 foreach (var unsolvedBorderCell in unsolvedBorder.Cells)
@@ -181,18 +196,23 @@ namespace MineDotNet.AI.Solvers
                 }
             }
 
+            // We look at each fully solved border, and remove any invalid combinations due to mine count.
+            // This step isn't mandatory, since we will look at the common border as a whole later, but
+            // it may greatly help cut down on the amount of combinations in the common border later on.
             foreach (var border in fullySolvedBorders)
             {
                 var otherBorders = fullySolvedBorders.Where(x => x != border).ToList();
-                var otherBorderSizeSum = otherBorders.Sum(x => x.Cells.Count);
                 var guaranteedMines = otherBorders.Sum(x => x.MinMineCount);
-                var guaranteedEmpty = otherBorderSizeSum - guaranteedMines;
+                var guaranteedEmpty = otherBorders.Sum(x => x.Cells.Count - x.MaxMineCount);
                 TrimValidCombinationsByMineCount(border, map.RemainingMineCount.Value, map.UndecidedCount, guaranteedMines, guaranteedEmpty);
             }
 
+            // We split all our borders into two groups - those that have an exact known mine count,
+            // and those that don't. We can remove the ones that have an exact known mine count
+            // from the common border, since we don't need to look at the individual combinations,
+            // we can just say for certain that this border has X mines, and N-X non-mines.
             var bordersWithExactMineCount = fullySolvedBorders.Where(x => x.MinMineCount == x.MaxMineCount).ToList();
             var bordersWithVariableMineCount = fullySolvedBorders.Where(x => x.MinMineCount != x.MaxMineCount).ToList();
-
             foreach (var border in bordersWithExactMineCount)
             {
                 foreach (var cell in border.Cells)
@@ -201,19 +221,26 @@ namespace MineDotNet.AI.Solvers
                 }
             }
 
+            // Since we're done trimming the common border cells, we can get a proper list of the cells.
+            // Once we have a proper list, we can calculate the valid combinations of the whole common border.
             commonBorder.Cells = commonBorder.Cells.Where(x => commonBorderCoords.Contains(x.Coordinate)).ToList();
             commonBorder.ValidCombinations = GetCommonBorderValidCombinations(bordersWithVariableMineCount);
 
+            // For the borders with an exact mine count, we calculate the total mines, and total empty cells.
+            // We then use those numbers to efficiently remove invalid combinations from the common border.
             var exactMineCount = bordersWithExactMineCount.Sum(x => x.MaxMineCount);
             var exactBorderSize = bordersWithExactMineCount.Sum(x => x.Cells.Count);
             var exactNonMineCount = exactBorderSize - exactMineCount;
             TrimValidCombinationsByMineCount(commonBorder, map.RemainingMineCount.Value, map.UndecidedCount, exactMineCount, exactNonMineCount);
 
+            // We calculate the mine probabilities in the common border, and copy them over.
             commonBorder.Probabilities = GetBorderProbabilities(commonBorder);
             foreach (var probability in commonBorder.Probabilities)
             {
                 allProbabilities[probability.Key] = probability.Value;
             }
+
+            // If requested, we calculate the probabilities of mines in non-border cells, and copy them over.
             if (SolveNonBorderCells)
             {
                 var nonBorderProbabilities = GetNonBorderProbabilitiesByMineCount(map, allProbabilities, originalCommonBorderCoords);
@@ -222,6 +249,8 @@ namespace MineDotNet.AI.Solvers
                     allProbabilities[probability.Key] = probability.Value;
                 }
             }
+
+            // Lastly, we find guaranteed verdicts from the probabilties, and copy them over.
             var verdictsFromProbabilities = GetVerdictsFromProbabilities(allProbabilities);
             foreach (var verdict in verdictsFromProbabilities)
             {
