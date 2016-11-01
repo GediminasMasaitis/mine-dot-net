@@ -11,7 +11,7 @@ namespace MineDotNet.Common
         IEnumerable<Cell> AllCells { get; }
         IDictionary<Coordinate, NeighbourCacheEntry> NeighbourCache { get; }
         bool CellExists(Coordinate coord);
-        IList<Cell> GetNeighboursOf(Cell cell, bool includeSelf = false);
+        //IList<Cell> GetNeighboursOf(Coordinate coord, bool includeSelf = false);
         void BuildNeighbourCache();
         Cell this[Coordinate coordinate] { get; set; }
     }

@@ -6,5 +6,6 @@ namespace MineDotNet.Common
     {
         public IList<Cell> AllNeighbours { get; set; }
         public IDictionary<CellState, IList<Cell>> ByState { get; set; }
+        public IDictionary<CellFlag, IList<Cell>> ByFlag { get; set; }
     }
 }

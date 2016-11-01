@@ -13,24 +13,29 @@ namespace MineDotNet.AI.Solvers
 {
     public class BorderSeparationSolver : ISolver
     {
-        public bool SetPartiallyCalculatedProbabilities { get; set; }
+        public bool OnlyTrivialSolving { get; set; }
+
         public bool IgnoreMineCountCompletely { get; set; }
         public bool SolveByMineCount { get; set; }
         public bool SolveNonBorderCells { get; set; }
+
         public int PartialBorderSolveFrom { get; set; }
         public int GiveUpFrom { get; set; }
         public int MaxPartialBorderSize { get; set; }
-        public bool OnlyTrivialSolving { get; set; }
+        public bool SetPartiallyCalculatedProbabilities { get; set; }
 
         public BorderSeparationSolver()
         {
-            SetPartiallyCalculatedProbabilities = true;
+            OnlyTrivialSolving = false;
+
             IgnoreMineCountCompletely = false;
             SolveByMineCount = true;
             SolveNonBorderCells = true;
+
             PartialBorderSolveFrom = 22;
             GiveUpFrom = 25;
             MaxPartialBorderSize = 16;
+            SetPartiallyCalculatedProbabilities = true;
         }
 
 #if DEBUG
@@ -62,10 +67,11 @@ namespace MineDotNet.AI.Solvers
             }
             map.BuildNeighbourCache();
             var allProbabilities = new Dictionary<Coordinate, decimal>();
+            var allVerdicts = new Dictionary<Coordinate, bool>();
 
             // We first attempt trivial solving.
             // If it's all the user wants, we return immediately.
-            var allVerdicts = SolveTrivial(map);
+            SolveTrivial(map, allVerdicts);
             if (OnlyTrivialSolving)
             {
                 return allVerdicts.ToDictionary(x => x.Key, x => new SolverResult(x.Key, x.Value ? 1 : 0, x.Value));
@@ -94,17 +100,61 @@ namespace MineDotNet.AI.Solvers
                 }
             }
 
+            // If requested, we do additional solving based on the remaining mine count
             if (SolveByMineCount)
             {
                 SolveMapByMineCounts(map, commonBorder, borders, allProbabilities, allVerdicts);
             }
 
+            // We get the final results, and return
             var finalResults = GetFinalResults(allProbabilities, allVerdicts);
             OnDebugLine("Found " + allVerdicts.Count + " guaranteed moves.");
             return finalResults;
         }
 
-        private void SolveMapByMineCounts(BorderSeparationSolverMap map, Border commonBorder, List<Border> borders, Dictionary<Coordinate, decimal> allProbabilities, IDictionary<Coordinate, bool> allVerdicts)
+        private void SolveTrivial(BorderSeparationSolverMap map, IDictionary<Coordinate, bool> allVerdicts)
+        {
+            while (true)
+            {
+                var currentRoundVerdicts = new Dictionary<Coordinate, bool>();
+                var emptyCells = map.AllCells.Where(x => x.State == CellState.Empty);
+                foreach (var cell in emptyCells)
+                {
+                    var neighbourEntry = map.NeighbourCache[cell.Coordinate];
+                    var filledNeighbours = neighbourEntry.ByState[CellState.Filled];
+                    var markedNeighbours = neighbourEntry.ByFlag[CellFlag.HasMine];
+                    if (filledNeighbours.Count == markedNeighbours.Count)
+                    {
+                        continue;
+                    }
+                    if (filledNeighbours.Count == cell.Hint)
+                    {
+                        var neighboursToFlag = filledNeighbours.Where(x => x.Flag != CellFlag.HasMine && !allVerdicts.ContainsKey(x.Coordinate));
+                        foreach (var neighbour in neighboursToFlag)
+                        {
+                            currentRoundVerdicts[neighbour.Coordinate] = true;
+                            allVerdicts[neighbour.Coordinate] = true;
+                        }
+                    }
+                    if (markedNeighbours.Count == cell.Hint)
+                    {
+                        var neighboursToClick = filledNeighbours.Where(x => x.Flag != CellFlag.HasMine && !allVerdicts.ContainsKey(x.Coordinate));
+                        foreach (var neighbour in neighboursToClick)
+                        {
+                            currentRoundVerdicts[neighbour.Coordinate] = false;
+                            allVerdicts[neighbour.Coordinate] = false;
+                        }
+                    }
+                }
+                if (currentRoundVerdicts.Count == 0)
+                {
+                    break;
+                }
+                SetCellsByVerdicts(map, currentRoundVerdicts);
+            }
+        }
+
+        private void SolveMapByMineCounts(BorderSeparationSolverMap map, Border commonBorder, List<Border> borders, IDictionary<Coordinate, decimal> allProbabilities, IDictionary<Coordinate, bool> allVerdicts)
         {
             if (!map.RemainingMineCount.HasValue)
             {
@@ -178,48 +228,6 @@ namespace MineDotNet.AI.Solvers
                 allVerdicts[verdict.Key] = verdict.Value;
             }
         }
-
-        private IDictionary<Coordinate, bool> SolveTrivial(BorderSeparationSolverMap map)
-        {
-            var verdicts = new Dictionary<Coordinate, bool>();
-            var initialVerdictCount = -1;
-            while (verdicts.Count != initialVerdictCount)
-            {
-                initialVerdictCount = verdicts.Count;
-                var allCells = map.AllCells.Where(x => x.State == CellState.Empty);
-                foreach (var cell in allCells)
-                {
-                    var cellNeighbours = map.GetNeighboursOf(cell);
-                    var filledNeighbours = cellNeighbours.Where(x => x.State == CellState.Filled && (!verdicts.ContainsKey(x.Coordinate) || verdicts[x.Coordinate])).ToList();
-                    var markedNeighbours = filledNeighbours.Where(x => x.Flag == CellFlag.HasMine || (verdicts.ContainsKey(x.Coordinate) && verdicts[x.Coordinate])).ToList();
-                    if (filledNeighbours.Count == markedNeighbours.Count)
-                    {
-                        continue;
-                    }
-                    if (filledNeighbours.Count == cell.Hint)
-                    {
-                        var neighboursToFlag = filledNeighbours.Where(x => x.Flag != CellFlag.HasMine && !verdicts.ContainsKey(x.Coordinate));
-                        foreach (var neighbour in neighboursToFlag)
-                        {
-                            verdicts[neighbour.Coordinate] = true;
-                        }
-                    }
-                    if (markedNeighbours.Count == cell.Hint)
-                    {
-                        var unmarkedNeighbours = filledNeighbours.Where(x => x.Flag != CellFlag.HasMine);
-                        var neighboursToClick = unmarkedNeighbours.Where(x => !verdicts.ContainsKey(x.Coordinate));
-                        foreach (var neighbour in neighboursToClick)
-                        {
-                            verdicts[neighbour.Coordinate] = false;
-                        }
-                    }
-                }
-            }
-            SetCellsByVerdicts(map, verdicts);
-            return verdicts;
-        }
-
-
 
         private void SolveBorder(Border border, BorderSeparationSolverMap map, bool allowPartialBorderSolving)
         {
@@ -342,9 +350,9 @@ namespace MineDotNet.AI.Solvers
             }
         }
 
-
         private void SetCellsByVerdicts(BorderSeparationSolverMap map, IDictionary<Coordinate, bool> verdicts)
         {
+            var coordsToUpdate = new HashSet<Coordinate>();
             foreach (var result in verdicts)
             {
                 var cell = map[result.Key];
@@ -363,12 +371,37 @@ namespace MineDotNet.AI.Solvers
                         map.FilledCount--;
                         break;
                     default:
-                        throw new ArgumentOutOfRangeException();
+                        throw new ArgumentOutOfRangeException(nameof(result));
                 }
+                var neighbours = map.NeighbourCache[result.Key].AllNeighbours.Select(x => x.Coordinate);
+                coordsToUpdate.UnionWith(neighbours);
             }
-            if (verdicts.Count > 0)
+            if (coordsToUpdate.Count > 0)
             {
-                map.BuildNeighbourCache();
+                UpdateMapCache(map, coordsToUpdate);
+            }
+        }
+
+        private void UpdateMapCache(IMap map, IEnumerable<Coordinate> updateForCoordinates)
+        {
+            foreach (var coordinate in updateForCoordinates)
+            {
+                // We assume that we will never update a wall into something,
+                // so it's safe to use the outdated neighbour cache.
+                var entry = map.NeighbourCache[coordinate];
+
+                // All we have to do is remove the entries with a wall, and update the by-x lists.
+                entry.AllNeighbours = entry.AllNeighbours.Where(x => x.State != CellState.Wall).ToList();
+                var allStates = entry.ByState.Keys.ToList();
+                foreach (var cellState in allStates)
+                {
+                    entry.ByState[cellState] = entry.AllNeighbours.Where(x => x.State == cellState).ToList();
+                }
+                var allFlags = entry.ByFlag.Keys.ToList();
+                foreach (var cellFlag in allFlags)
+                {
+                    entry.ByFlag[cellFlag] = entry.AllNeighbours.Where(x => x.Flag == cellFlag).ToList();
+                }
             }
         }
 
@@ -441,8 +474,8 @@ namespace MineDotNet.AI.Solvers
             {
                 return false;
             }
-            var neighbours = map.GetNeighboursOf(cell);
-            var hasOpenedNeighbour = neighbours.Any(x => x.State == CellState.Empty);
+            var neighbours = map.NeighbourCache[cell.Coordinate].ByState[CellState.Empty];
+            var hasOpenedNeighbour = neighbours.Count > 0;
             return hasOpenedNeighbour;
         }
 
@@ -548,7 +581,8 @@ namespace MineDotNet.AI.Solvers
                         commonCoords.Remove(coord);
                     }
                     visited.Add(cell.Coordinate);
-                    var neighbors = map.GetNeighboursOf(cell).Where(x => x.Flag != CellFlag.HasMine && ((cell.State == CellState.Filled && x.State == CellState.Empty) || (cell.State == CellState.Empty && x.State == CellState.Filled)));
+                    var unflaggedNeighbours = map.NeighbourCache[coord].ByFlag[CellFlag.None];
+                    var neighbors = unflaggedNeighbours.Where(x => (cell.State == CellState.Filled && x.State == CellState.Empty) || (cell.State == CellState.Empty && x.State == CellState.Filled));
                     foreach (var neighbor in neighbors)
                     {
                         if (visited.Add(neighbor.Coordinate))

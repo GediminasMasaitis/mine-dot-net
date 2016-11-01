@@ -54,37 +54,36 @@ namespace MineDotNet.Common
 
         public bool CellExists(Coordinate coord) => coord.X >= 0 && coord.Y >= 0 && coord.X < Width && coord.Y < Height && Cells[coord.X, coord.Y] != null && Cells[coord.X, coord.Y].State != CellState.Wall;
 
-        public IList<Cell> GetNeighboursOf(Cell cell, bool includeSelf = false)
-        {
-            return GetNeighboursOf(cell.Coordinate, includeSelf);
-        }
-
         public void BuildNeighbourCache()
         {
-            NeighbourCache = null;
             var cache = new Dictionary<Coordinate, NeighbourCacheEntry>();
             foreach (var cell in AllCells)
             {
                 var neighbours = GetNeighboursOf(cell.Coordinate);
                 var entry = new NeighbourCacheEntry();
                 entry.AllNeighbours = neighbours;
+
                 var states = Enum.GetValues(typeof(CellState)).Cast<CellState>().ToList();
                 entry.ByState = new Dictionary<CellState, IList<Cell>>(states.Count);
                 foreach (var cellState in states)
                 {
                     entry.ByState[cellState] = neighbours.Where(x => x.State == cellState).ToList();
                 }
+
+                var flags = Enum.GetValues(typeof(CellFlag)).Cast<CellFlag>().ToList();
+                entry.ByFlag = new Dictionary<CellFlag, IList<Cell>>(flags.Count);
+                foreach (var cellFlag in flags)
+                {
+                    entry.ByFlag[cellFlag] = neighbours.Where(x => x.Flag == cellFlag).ToList();
+                }
+
                 cache.Add(cell.Coordinate, entry);
             }
             NeighbourCache = cache;
         }
 
-        public IList<Cell> GetNeighboursOf(Coordinate coord, bool includeSelf = false)
+        private IList<Cell> GetNeighboursOf(Coordinate coord, bool includeSelf = false)
         {
-            if (NeighbourCache != null)
-            {
-                return NeighbourCache[coord].AllNeighbours;
-            }
             var validOffsets = NeighbourOffsets.Select(x => coord + x).Where(CellExists).ToList();
             if (includeSelf && CellExists(coord))
             {
