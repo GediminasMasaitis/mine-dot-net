@@ -82,14 +82,16 @@ namespace MineDotNet.AI.Solvers
             OnDebugLine($"Common border calculated, found {commonBorder.Cells.Count} cells");
 
             // We separate the common border into multiple, non-connecting borders, which can be solved independently.
-            var borders = SeparateBorders(commonBorder, map).OrderBy(x => x.Cells.Count).ToList();
-            OnDebugLine($"Common border split into {borders.Count} separate borders.");
+            var originalBorders = SeparateBorders(commonBorder, map).OrderBy(x => x.Cells.Count).ToList();
+            OnDebugLine($"Common border split into {originalBorders.Count} separate borders.");
 
+            var borders = new List<Border>();
             // We iterate over each border, and attempt to solve it,
             // then copy the border's verdicts and probabilities
-            foreach (var border in borders)
+            foreach (var border in originalBorders)
             {
-                SolveBorder(border, map, true);
+                var newBorders = SolveBorder(border, map, true);
+                borders.AddRange(newBorders);
                 foreach (var borderVerdict in border.Verdicts)
                 {
                     allVerdicts[borderVerdict.Key] = borderVerdict.Value;
@@ -250,22 +252,27 @@ namespace MineDotNet.AI.Solvers
             GetVerdictsFromProbabilities(allProbabilities, allVerdicts);
         }
 
-        private void SolveBorder(Border border, BorderSeparationSolverMap map, bool allowPartialBorderSolving)
+        private IList<Border> SolveBorder(Border border, BorderSeparationSolverMap map, bool allowPartialBorderSolving)
         {
             OnDebugLine("Solving " + border.Cells.Count + " cell border");
             if (allowPartialBorderSolving && border.Cells.Count > PartialBorderSolveFrom)
             {
                 TrySolveBorderByPartialBorders(border, map);
-                if (border.SolvedFully)
+            }
+
+            if (border.Verdicts.Count > 0)
+            {
+                var borders = TrySolveBorderByReseparating(border, map);
+                if (borders != null)
                 {
-                    return;
+                    return borders;
                 }
             }
 
             if (border.Cells.Count > GiveUpFrom)
             {
                 border.SolvedFully = false;
-                return;
+                return new List<Border> {border};
             }
 
             border.ValidCombinations = FindValidBorderCellCombinations(map, border);
@@ -292,13 +299,14 @@ namespace MineDotNet.AI.Solvers
                 }
             }
             border.SolvedFully = true;
+            // TODO: try resplitting borders anyway after solving?
+            return new List<Border> {border};
         }
 
         private void TrySolveBorderByPartialBorders(Border border, BorderSeparationSolverMap map)
         {
             OnDebugLine($"Attempting to solve border via partial borders with max partial border size {MaxPartialBorderSize}");
             IList<PartialBorderData> checkedPartialBorders = new List<PartialBorderData>();
-            var verdictsFoundByPartialBorders = 0;
             for (var i = 0; i < border.Cells.Count; i++)
             {
                 var targetCoordinate = border.Cells[i].Coordinate;
@@ -329,7 +337,6 @@ namespace MineDotNet.AI.Solvers
                     }
                     border.Cells.RemoveAt(cellIndex);
                 }
-                verdictsFoundByPartialBorders += partialBorder.Verdicts.Count;
                 checkedPartialBorders.Add(partialBorderData);
                 decimal partialProbability;
                 if (SetPartiallyCalculatedProbabilities && !partialBorder.Verdicts.ContainsKey(targetCoordinate) && partialBorder.Probabilities.TryGetValue(targetCoordinate, out partialProbability))
@@ -337,39 +344,31 @@ namespace MineDotNet.AI.Solvers
                     border.Probabilities[targetCoordinate] = partialProbability;
                 }
             }
-
-            if (verdictsFoundByPartialBorders > 0)
-            {
-                TrySolveBorderByReseparating(border, map);
-            }
         }
 
-        private void TrySolveBorderByReseparating(Border border, BorderSeparationSolverMap map)
+        private IList<Border> TrySolveBorderByReseparating(Border border, BorderSeparationSolverMap map)
         {
             var resplitBorders = SeparateBorders(border, map).ToList();
-            if (resplitBorders.Count > 1)
+            if (resplitBorders.Count < 2)
             {
-                foreach (var resplitBorder in resplitBorders)
+                return null;
+            }
+            foreach (var resplitBorder in resplitBorders)
+            {
+                SolveBorder(resplitBorder, map, false);
+                foreach (var resplitBorderVerdict in resplitBorder.Verdicts)
                 {
-                    SolveBorder(resplitBorder, map, false);
-                    foreach (var resplitBorderVerdict in resplitBorder.Verdicts)
-                    {
-                        border.Verdicts[resplitBorderVerdict.Key] = resplitBorderVerdict.Value;
-                    }
-                    if (resplitBorder.SolvedFully)
-                    {
-                        foreach (var probability in resplitBorder.Probabilities)
-                        {
-                            border.Probabilities[probability.Key] = probability.Value;
-                        }
-                    }
+                    border.Verdicts[resplitBorderVerdict.Key] = resplitBorderVerdict.Value;
                 }
-                if (resplitBorders.All(x => x.SolvedFully))
+                if (resplitBorder.SolvedFully)
                 {
-                    border.ValidCombinations = GetCommonBorderValidCombinations(resplitBorders);
-                    border.SolvedFully = true;
+                    foreach (var probability in resplitBorder.Probabilities)
+                    {
+                        border.Probabilities[probability.Key] = probability.Value;
+                    }
                 }
             }
+            return resplitBorders;
         }
 
         private void SetCellsByVerdicts(BorderSeparationSolverMap map, IDictionary<Coordinate, bool> verdicts)
@@ -480,13 +479,7 @@ namespace MineDotNet.AI.Solvers
                 {
                     border.ValidCombinations.RemoveAt(i);
                     i--;
-                    continue;
                 }
-                //if (undecidedCellsRemaining == combination.Count && minePredictionCount != minesRemaining)
-                //{
-                //    border.ValidCombinations.RemoveAt(i);
-                //    i--;
-                //}
             }
         }
 
@@ -537,7 +530,7 @@ namespace MineDotNet.AI.Solvers
             return partialBorderData;
         }
 
-        private BorderSeparationSolverMap CalculatePartialMapAndTrimPartialBorder(Border border, IMap parentMap, HashSet<Coordinate> allFlaggedCoordinates)
+        private BorderSeparationSolverMap CalculatePartialMapAndTrimPartialBorder(Border border, BorderSeparationSolverMap parentMap, HashSet<Coordinate> allFlaggedCoordinates)
         {
             var borderCoordinateSet = new HashSet<Coordinate>(border.Cells.Select(x => x.Coordinate));
             var allSurroundingEmpty = borderCoordinateSet.SelectMany(x => parentMap.NeighbourCache[x].ByState[CellState.Empty]).Distinct();
@@ -549,9 +542,6 @@ namespace MineDotNet.AI.Solvers
             {
                 return null;
             }
-            var allCoordinateSet = new HashSet<Coordinate>(border.Cells.Select(x => x.Coordinate).Concat(onlyInflucencingBorderSet));
-            //var newWidth = allCoordinateSet.Max(x => x.X) + 1;
-            //var newHeight = allCoordinateSet.Max(x => x.Y) + 1;
             var newWidth = parentMap.Width;
             var newHeight = parentMap.Height;
             var partialMap = new Map(newWidth, newHeight, null, true, CellState.Wall);
