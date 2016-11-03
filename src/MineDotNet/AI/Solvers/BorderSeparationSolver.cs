@@ -29,16 +29,16 @@ namespace MineDotNet.AI.Solvers
         public BorderSeparationSolver()
         {
             OnlyTrivialSolving = false;
-            StopOnNoMineVerdict = false;
-            StopOnAnyVerdict = true;
+            StopOnNoMineVerdict = true;
+            StopOnAnyVerdict = false;
 
             IgnoreMineCountCompletely = false;
             SolveByMineCount = true;
             SolveNonBorderCells = true;
 
-            PartialBorderSolveFrom = 22;
-            GiveUpFrom = 22;
-            MaxPartialBorderSize = 16;
+            PartialBorderSolveFrom = 20;
+            GiveUpFrom = 20;
+            MaxPartialBorderSize = 15;
             SetPartiallyCalculatedProbabilities = true;
         }
 

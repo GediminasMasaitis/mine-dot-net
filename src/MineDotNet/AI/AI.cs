@@ -17,7 +17,7 @@ namespace MineDotNet.AI
             {
                 return solverResults;
             }
-            var guesserResult = guesser.Guess(solverResults);
+            var guesserResult = guesser.Guess(map, solverResults);
             if (guesserResult != null)
             {
                 solverResults[guesserResult.Coordinate] = guesserResult;

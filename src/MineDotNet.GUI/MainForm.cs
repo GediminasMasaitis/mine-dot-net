@@ -163,18 +163,22 @@ namespace MineDotNet.GUI
         {
             var random = new Random();
             var generator = new GameMapGenerator(random);
-            var width = 32;
-            var height = 32;
+            var width = 50;
+            var height = 110;
             var startingPos = new Coordinate(random.Next(0, width), random.Next(0, height));
             var density = MineDensityTrackBar.Value/(double) 100;
             var gameMap = generator.GenerateWithMineDensity(width, height, startingPos, density);
+            foreach (var cell in gameMap.AllCells.Where(x => !x.HasMine && x.Hint == 0))
+            {
+                //cell.State = CellState.Empty;
+            }
             while (true)
             {
                 var regularMap = gameMap.ToRegularMap();
                 MapTextBoxes[0].Text = Visualizer.VisualizeToString(regularMap);
                 MapTextBoxes[1].Text = string.Empty;
                 MapTextBoxes[2].Text = string.Empty;
-                Display.DisplayMaps(new[] { regularMap });
+                //Display.DisplayMaps(new[] { regularMap });
                 Application.DoEvents();
                 var results = AI.AI.Solve(regularMap);
                 if (results.Count == 0)

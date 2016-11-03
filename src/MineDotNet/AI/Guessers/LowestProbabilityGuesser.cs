@@ -8,7 +8,7 @@ namespace MineDotNet.AI.Guessers
 {
     class LowestProbabilityGuesser
     {
-        public SolverResult Guess(IDictionary<Coordinate, SolverResult> solverResults)
+        public SolverResult Guess(IMap map, IDictionary<Coordinate, SolverResult> solverResults)
         {
             if (solverResults == null) throw new ArgumentNullException(nameof(solverResults));
 
@@ -22,7 +22,12 @@ namespace MineDotNet.AI.Guessers
             }
             if (leastRiskyPrediction == null)
             {
-                return null;
+                var cell = map.AllCells.FirstOrDefault(x => x.State == CellState.Filled && x.Flag == CellFlag.None);
+                if (cell == null)
+                {
+                    return null;
+                }
+                return new SolverResult(cell.Coordinate, 0, false);
             }
             var guess = new SolverResult(leastRiskyPrediction.Coordinate, leastRiskyPrediction.Probability, false);
             return guess;
