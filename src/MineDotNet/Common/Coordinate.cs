@@ -6,11 +6,14 @@ namespace MineDotNet.Common
         {
             X = x;
             Y = y;
+            _hashCode = X*7919 + Y;
         }
 
         public int X { get; }
 
         public int Y { get; }
+
+        private readonly int _hashCode;
 
         private bool Equals(Coordinate other)
         {
@@ -27,10 +30,7 @@ namespace MineDotNet.Common
 
         public override int GetHashCode()
         {
-            unchecked
-            {
-                return (X * 397) ^ Y;
-            }
+            return _hashCode;
         }
 
         public override string ToString()

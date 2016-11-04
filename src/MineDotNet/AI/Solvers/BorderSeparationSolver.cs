@@ -235,20 +235,12 @@ namespace MineDotNet.AI.Solvers
                 }
             }
 
-            // Since we're done trimming the common border cells, we can get a proper list of the cells.
-            // Once we have a proper list, we can calculate the valid combinations of the whole common border.
-            commonBorder.Cells = commonBorder.Cells.Where(x => commonBorderCoords.Contains(x.Coordinate)).ToList();
-            commonBorder.ValidCombinations = GetCommonBorderValidCombinations(bordersWithVariableMineCount);
-
             // For the borders with an exact mine count, we calculate the total mines, and total empty cells.
             // We then use those numbers to efficiently remove invalid combinations from the common border.
             var exactMineCount = bordersWithExactMineCount.Sum(x => x.MaxMineCount);
             var exactBorderSize = bordersWithExactMineCount.Sum(x => x.Cells.Count);
             var exactNonMineCount = exactBorderSize - exactMineCount;
-            TrimValidCombinationsByMineCount(commonBorder, map.RemainingMineCount.Value, map.UndecidedCount, exactMineCount, exactNonMineCount);
-
-            // We calculate the mine probabilities in the common border, and copy them over.
-            GetBorderProbabilities(commonBorder, allProbabilities);
+            GetProbabilitiesFromMultipleBorders(bordersWithVariableMineCount, map.RemainingMineCount.Value, map.UndecidedCount, exactMineCount, exactNonMineCount, allProbabilities);
 
             // If requested, we calculate the probabilities of mines in non-border cells, and copy them over.
             if (SolveNonBorderCells)
@@ -488,13 +480,8 @@ namespace MineDotNet.AI.Solvers
             {
                 var combination = border.ValidCombinations[i];
                 var minePredictionCount = combination.Count(x => x.Value);
-                if (minePredictionCount + minesElsewhere > minesRemaining)
-                {
-                    border.ValidCombinations.RemoveAt(i);
-                    i--;
-                    continue;
-                }
-                if (minesRemaining - minePredictionCount > undecidedCellsRemaining - combination.Count - nonMineCountElsewhere)
+                var isValid = IsPredictionValidByMineCount(minePredictionCount, combination.Count, minesRemaining, undecidedCellsRemaining, minesElsewhere, nonMineCountElsewhere);
+                if (!isValid)
                 {
                     border.ValidCombinations.RemoveAt(i);
                     i--;
@@ -761,6 +748,61 @@ namespace MineDotNet.AI.Solvers
                 var probability = (decimal) mineInCount/border.ValidCombinations.Count;
                 targetProbabilities[cell.Coordinate] = probability;
             }
+        }
+
+        private void GetProbabilitiesFromMultipleBorders(IList<Border> borders, int minesRemaining, int undecidedCellsRemaining, int minesElsewhere, int nonMineCountElsewhere, IDictionary<Coordinate, decimal> targetProbabilities)
+        {
+            var counts = borders.SelectMany(x => x.ValidCombinations[0]).ToDictionary(x => x.Key, x => 0);
+            var countLocks = counts.ToDictionary(x => x.Key, x => new object());
+            var totalValidCombinationsLock = new object();
+            var totalValidCombinations = borders.Select(x => x.ValidCombinations.Count).Aggregate((x, n) => x * n);
+            var cartesianSequence = borders.Select(x => x.ValidCombinations).MultiCartesian();
+            //foreach (var combinationArr in cartesianSequence)
+            Parallel.ForEach(cartesianSequence, combinationArr =>
+            {
+                var minePredictionCount = combinationArr.SelectMany(x => x).Count(x => x.Value);
+                var totalCombinationLength = combinationArr.Sum(x => x.Count);
+                var isValid = IsPredictionValidByMineCount(minePredictionCount, totalCombinationLength, minesRemaining, undecidedCellsRemaining, minesElsewhere, nonMineCountElsewhere);
+                if (!isValid)
+                {
+                    lock (totalValidCombinationsLock)
+                    {
+                        totalValidCombinations--;
+                    }
+                    return;
+                }
+                foreach (var combination in combinationArr)
+                {
+                    foreach (var verdict in combination)
+                    {
+                        if (verdict.Value)
+                        {
+                            lock (countLocks[verdict.Key])
+                            {
+                                counts[verdict.Key]++;
+                            }
+                        }
+                    }
+                }
+            });
+            foreach (var count in counts)
+            {
+                var probability = count.Value/(decimal)totalValidCombinations;
+                targetProbabilities[count.Key] = probability;
+            }
+        }
+
+        private bool IsPredictionValidByMineCount(int minePredictionCount, int totalCombinationLength, int minesRemaining, int undecidedCellsRemaining, int minesElsewhere, int nonMineCountElsewhere)
+        {
+            if (minePredictionCount + minesElsewhere > minesRemaining)
+            {
+                return false;
+            }
+            if (minesRemaining - minePredictionCount > undecidedCellsRemaining - totalCombinationLength - nonMineCountElsewhere)
+            {
+                return false;
+            }
+            return true;
         }
 
         private void GetVerdictsFromProbabilities(IDictionary<Coordinate, decimal> probabilities, IDictionary<Coordinate, bool> targetVerdicts)
