@@ -8,6 +8,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using MineDotNet.Common;
+using MineDotNet.Etc;
 
 namespace MineDotNet.AI.Solvers
 {
@@ -29,7 +30,7 @@ namespace MineDotNet.AI.Solvers
         public BorderSeparationSolver()
         {
             OnlyTrivialSolving = false;
-            StopOnNoMineVerdict = true;
+            StopOnNoMineVerdict = false;
             StopOnAnyVerdict = false;
 
             IgnoreMineCountCompletely = false;
@@ -235,16 +236,23 @@ namespace MineDotNet.AI.Solvers
                 }
             }
 
-            // For the borders with an exact mine count, we calculate the total mines, and total empty cells.
-            // We then use those numbers to efficiently remove invalid combinations from the common border.
-            var exactMineCount = bordersWithExactMineCount.Sum(x => x.MaxMineCount);
-            var exactBorderSize = bordersWithExactMineCount.Sum(x => x.Cells.Count);
-            var exactNonMineCount = exactBorderSize - exactMineCount;
-            GetProbabilitiesFromMultipleBorders(bordersWithVariableMineCount, map.RemainingMineCount.Value, map.UndecidedCount, exactMineCount, exactNonMineCount, allProbabilities);
+            var nonBorderCells = map.AllCells.Where(x => !originalCommonBorderCoords.Contains(x.Coordinate) && x.State == CellState.Filled && x.Flag == CellFlag.None).ToList();
+
+            if (bordersWithVariableMineCount.Count > 0)
+            {
+
+                // For the borders with an exact mine count, we calculate the total mines, and total empty cells.
+                // We then use those numbers to efficiently remove invalid combinations from the common border.
+                var exactMineCount = bordersWithExactMineCount.Sum(x => x.MaxMineCount);
+                var exactBorderSize = bordersWithExactMineCount.Sum(x => x.Cells.Count);
+                var exactNonMineCount = exactBorderSize - exactMineCount;
+                GetVariableMineCountBordersProbabilities(bordersWithVariableMineCount, map.RemainingMineCount.Value, map.UndecidedCount, nonBorderCells.Count, exactMineCount, exactNonMineCount, allProbabilities);
+            }
 
             // If requested, we calculate the probabilities of mines in non-border cells, and copy them over.
             if (SolveNonBorderCells)
             {
+                
                 var nonBorderProbabilities = GetNonBorderProbabilitiesByMineCount(map, allProbabilities, originalCommonBorderCoords);
                 foreach (var probability in nonBorderProbabilities)
                 {
@@ -513,7 +521,8 @@ namespace MineDotNet.AI.Solvers
             BorderSeparationSolverMap partialMap = null;
             var partialBorderCells = new List<Cell>();
             var allFlaggedCoordinates = new HashSet<Coordinate>(map.AllCells.Where(x => x.Flag == CellFlag.HasMine).Select(x => x.Coordinate));
-            var partialBorderSequence = GetPartialBorderCellSequence(border, map, targetCoordinate);
+            var borderCoordinates = border.Cells.Select(x => x.Coordinate);
+            var partialBorderSequence = GetPartialBorderCellSequence(borderCoordinates, map, targetCoordinate);
             foreach (var cell in partialBorderSequence)
             {
                 partialBorderCells.Add(cell);
@@ -572,9 +581,9 @@ namespace MineDotNet.AI.Solvers
             return solverMap;
         }
 
-        private IEnumerable<Cell> GetPartialBorderCellSequence(Border commonBorder, IMap map, Coordinate targetCoordinate)
+        private IEnumerable<Cell> GetPartialBorderCellSequence(IEnumerable<Coordinate> allowedCoordinates, IMap map, Coordinate targetCoordinate)
         {
-            var commonCoords = new HashSet<Coordinate>(commonBorder.Cells.Select(x => x.Coordinate));
+            var commonCoords = new HashSet<Coordinate>(allowedCoordinates);//new HashSet<Coordinate>(commonBorder.Cells.Select(x => x.Coordinate));
             var coordQueue = new Queue<Coordinate>();
             coordQueue.Enqueue(targetCoordinate);
             var visited = new HashSet<Coordinate>();
@@ -605,35 +614,13 @@ namespace MineDotNet.AI.Solvers
         private IEnumerable<Border> SeparateBorders(Border commonBorder, IMap map)
         {
             var commonCoords = new HashSet<Coordinate>(commonBorder.Cells.Select(x => x.Coordinate));
-            var visited = new HashSet<Coordinate>();
             while (commonCoords.Count > 0)
             {
                 var initialCoord = commonCoords.First();
-                var coordQueue = new Queue<Coordinate>();
-                var currentCells = new List<Cell>();
-                coordQueue.Enqueue(initialCoord);
-                while (coordQueue.Count > 0)
-                {
-                    var coord = coordQueue.Dequeue();
-                    var cell = map[coord];
-                    if (commonCoords.Contains(coord))
-                    {
-                        currentCells.Add(cell);
-                        commonCoords.Remove(coord);
-                    }
-                    visited.Add(cell.Coordinate);
-                    var unflaggedNeighbours = map.NeighbourCache[coord].ByFlag[CellFlag.None];
-                    var neighbors = unflaggedNeighbours.Where(x => (cell.State == CellState.Filled && x.State == CellState.Empty) || (cell.State == CellState.Empty && x.State == CellState.Filled));
-                    foreach (var neighbor in neighbors)
-                    {
-                        if (visited.Add(neighbor.Coordinate))
-                        {
-                            coordQueue.Enqueue(neighbor.Coordinate);
-                        }
-                    }
-                }
-                var border = new Border(currentCells);
+                var cells = GetPartialBorderCellSequence(commonCoords, map, initialCoord).ToList();
+                var border = new Border(cells);
                 yield return border;
+                commonCoords.ExceptWith(cells.Select(x => x.Coordinate));
             }
         }
 
@@ -750,26 +737,53 @@ namespace MineDotNet.AI.Solvers
             }
         }
 
-        private void GetProbabilitiesFromMultipleBorders(IList<Border> borders, int minesRemaining, int undecidedCellsRemaining, int minesElsewhere, int nonMineCountElsewhere, IDictionary<Coordinate, decimal> targetProbabilities)
+        private void GetVariableMineCountBordersProbabilities(IList<Border> borders, int minesRemaining, int undecidedCellsRemaining, int nonBorderCellCount, int minesElsewhere, int nonMineCountElsewhere, IDictionary<Coordinate, decimal> targetProbabilities)
         {
-            var counts = borders.SelectMany(x => x.ValidCombinations[0]).ToDictionary(x => x.Key, x => 0);
+            var minMinesInNonBorder = minesRemaining - minesElsewhere - borders.Sum(x => x.MaxMineCount);
+            if (minMinesInNonBorder < 0)
+            {
+                minMinesInNonBorder = 0;
+            }
+            var maxMinesInNonBorder = minesRemaining - minesElsewhere - borders.Sum(x => x.MinMineCount);
+            if (maxMinesInNonBorder > nonBorderCellCount)
+            {
+                maxMinesInNonBorder = nonBorderCellCount;
+            }
+            var ratios = new Dictionary<int, decimal>();
+            decimal currentRatio = 1;
+            for (var i = minMinesInNonBorder; i <= maxMinesInNonBorder; i++)
+            {
+                currentRatio *= Maths.CombinationRatio(nonBorderCellCount, i);
+                ratios[i] = currentRatio;
+            }
+            var totalCombinationLength = borders.Sum(x => x.Cells.Count);
+            var counts = borders.SelectMany(x => x.Cells).ToDictionary(x => x.Coordinate, x => (decimal)0);
             var countLocks = counts.ToDictionary(x => x.Key, x => new object());
             var totalValidCombinationsLock = new object();
-            var totalValidCombinations = borders.Select(x => x.ValidCombinations.Count).Aggregate((x, n) => x * n);
+            decimal totalValidCombinations = 0;
             var cartesianSequence = borders.Select(x => x.ValidCombinations).MultiCartesian();
-            //foreach (var combinationArr in cartesianSequence)
             Parallel.ForEach(cartesianSequence, combinationArr =>
+            //cartesianSequence.ForEach(combinationArr =>
             {
                 var minePredictionCount = combinationArr.SelectMany(x => x).Count(x => x.Value);
-                var totalCombinationLength = combinationArr.Sum(x => x.Count);
+                var minesInNonBorder = minesRemaining - minesElsewhere - minePredictionCount;
+                if (minesInNonBorder < 0)
+                {
+                    return;
+                }
+                if (minesInNonBorder > nonBorderCellCount)
+                {
+                    return;
+                }
+                var ratio = ratios[minesInNonBorder];
+                lock (totalValidCombinationsLock)
+                {
+                    totalValidCombinations += ratio;
+                }
                 var isValid = IsPredictionValidByMineCount(minePredictionCount, totalCombinationLength, minesRemaining, undecidedCellsRemaining, minesElsewhere, nonMineCountElsewhere);
                 if (!isValid)
                 {
-                    lock (totalValidCombinationsLock)
-                    {
-                        totalValidCombinations--;
-                    }
-                    return;
+                    throw new Exception("temp");
                 }
                 foreach (var combination in combinationArr)
                 {
@@ -779,7 +793,7 @@ namespace MineDotNet.AI.Solvers
                         {
                             lock (countLocks[verdict.Key])
                             {
-                                counts[verdict.Key]++;
+                                counts[verdict.Key] += ratio;
                             }
                         }
                     }
@@ -787,7 +801,7 @@ namespace MineDotNet.AI.Solvers
             });
             foreach (var count in counts)
             {
-                var probability = count.Value/(decimal)totalValidCombinations;
+                var probability = count.Value/totalValidCombinations;
                 targetProbabilities[count.Key] = probability;
             }
         }

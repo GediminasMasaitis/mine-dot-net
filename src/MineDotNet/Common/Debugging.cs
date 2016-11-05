@@ -16,9 +16,17 @@ namespace MineDotNet.Common
             Visualize(mainMap, borders.Select(x => x.Cells.Select(y => y.Coordinate)).ToArray());
         }
 
-        internal static void Visualize(IMap mainMap, params IEnumerable<Cell>[] regions)
+        public static void Visualize(IMap mainMap, params IEnumerable<Cell>[] regions)
         {
             Visualize(mainMap, regions.Select(x => x.Select(y => y.Coordinate)).ToArray());
+        }
+
+        public static void ForEach<T>(this IEnumerable<T> enumeration, Action<T> action)
+        {
+            foreach (var item in enumeration)
+            {
+                action(item);
+            }
         }
 
         public static void Visualize(IMap mainMap, params IEnumerable<Coordinate>[] regions)

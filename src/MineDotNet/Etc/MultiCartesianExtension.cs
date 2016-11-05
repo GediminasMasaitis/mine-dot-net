@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MineDotNet.AI
+namespace MineDotNet.Etc
 {
     internal static class MultiCartesianExtension
     {
