@@ -71,7 +71,7 @@ namespace MineDotNet.AI.Solvers
                 map.RemainingMineCount = null;
             }
             map.BuildNeighbourCache();
-            var allProbabilities = new Dictionary<Coordinate, decimal>();
+            var allProbabilities = new Dictionary<Coordinate, double>();
             var allVerdicts = new Dictionary<Coordinate, bool>();
 
             // We first attempt trivial solving.
@@ -184,7 +184,7 @@ namespace MineDotNet.AI.Solvers
             }
         }
 
-        private void SolveMapByMineCounts(BorderSeparationSolverMap map, Border commonBorder, List<Border> borders, IDictionary<Coordinate, decimal> allProbabilities, IDictionary<Coordinate, bool> allVerdicts)
+        private void SolveMapByMineCounts(BorderSeparationSolverMap map, Border commonBorder, List<Border> borders, IDictionary<Coordinate, double> allProbabilities, IDictionary<Coordinate, bool> allVerdicts)
         {
             if (!map.RemainingMineCount.HasValue)
             {
@@ -329,7 +329,7 @@ namespace MineDotNet.AI.Solvers
                 var previousBorderData = checkedPartialBorders.FirstOrDefault(x => x.PartialBorderCoordinates.IsSupersetOf(partialBorderData.PartialBorderCoordinates));
                 if (previousBorderData != null)
                 {
-                    decimal probability;
+                    double probability;
                     if (previousBorderData.PartialBorder.Probabilities.TryGetValue(targetCoordinate, out probability))
                     {
                         border.Probabilities[targetCoordinate] = probability;
@@ -357,7 +357,7 @@ namespace MineDotNet.AI.Solvers
                     return;
                 }
                 checkedPartialBorders.Add(partialBorderData);
-                decimal partialProbability;
+                double partialProbability;
                 if (SetPartiallyCalculatedProbabilities && !partialBorder.Verdicts.ContainsKey(targetCoordinate) && partialBorder.Probabilities.TryGetValue(targetCoordinate, out partialProbability))
                 {
                     border.Probabilities[targetCoordinate] = partialProbability;
@@ -445,18 +445,16 @@ namespace MineDotNet.AI.Solvers
             }
         }
 
-        private IDictionary<Coordinate, decimal> GetNonBorderProbabilitiesByMineCount(IMap map, IDictionary<Coordinate, decimal> commonBorderProbabilities, HashSet<Coordinate> originalCommonBorder)
+        private IDictionary<Coordinate, double> GetNonBorderProbabilitiesByMineCount(IMap map, IDictionary<Coordinate, double> commonBorderProbabilities, HashSet<Coordinate> originalCommonBorder)
         {
-            var probabilities = new Dictionary<Coordinate, decimal>();
+            var probabilities = new Dictionary<Coordinate, double>();
             if (!map.RemainingMineCount.HasValue)
             {
                 return probabilities;
             }
 
-            //var combinationsMineCount = commonBorder.ValidCombinations.Count > 0 ? commonBorder.ValidCombinations.Sum(x => x.Count(y => y.Value == Verdict.HasMine))/(decimal) commonBorder.ValidCombinations.Count : 0;
-            //var commonBorderCoordinateSet = new HashSet<Coordinate>(commonBorder.Cells.Select(x => x.Coordinate));
             var probabilitySum = commonBorderProbabilities.Sum(x => x.Value);
-            var combinationsMineCount = Convert.ToInt32(probabilitySum*1000000)/(decimal)1000000;
+            var combinationsMineCount = probabilitySum;
             var nonBorderUndecidedCells = map.AllCells.Where(x => !originalCommonBorder.Contains(x.Coordinate) && x.State == CellState.Filled && x.Flag == CellFlag.None).ToList();
             if (nonBorderUndecidedCells.Count == 0)
             {
@@ -723,7 +721,7 @@ namespace MineDotNet.AI.Solvers
             return true;
         }
 
-        private void GetBorderProbabilities(Border border, IDictionary<Coordinate, decimal> targetProbabilities)
+        private void GetBorderProbabilities(Border border, IDictionary<Coordinate, double> targetProbabilities)
         {
             if (border.ValidCombinations.Count == 0)
             {
@@ -732,38 +730,39 @@ namespace MineDotNet.AI.Solvers
             foreach (var cell in border.Cells)
             {
                 var mineInCount = border.ValidCombinations.Count(x => x[cell.Coordinate]);
-                var probability = (decimal) mineInCount/border.ValidCombinations.Count;
+                var probability = (double) mineInCount/border.ValidCombinations.Count;
                 targetProbabilities[cell.Coordinate] = probability;
             }
         }
 
-        private void GetVariableMineCountBordersProbabilities(IList<Border> borders, int minesRemaining, int undecidedCellsRemaining, int nonBorderCellCount, int minesElsewhere, int nonMineCountElsewhere, IDictionary<Coordinate, decimal> targetProbabilities)
+        private void GetVariableMineCountBordersProbabilities(IList<Border> borders, int minesRemaining, int undecidedCellsRemaining, int nonBorderCellCount, int minesElsewhere, int nonMineCountElsewhere, IDictionary<Coordinate, double> targetProbabilities)
         {
-            var minMinesInNonBorder = minesRemaining - minesElsewhere - borders.Sum(x => x.MaxMineCount);
+            var alreadyFoundMines = borders.Sum(x => x.Verdicts.Count(y => y.Value));
+            var minMinesInNonBorder = minesRemaining - minesElsewhere - borders.Sum(x => x.MaxMineCount) + alreadyFoundMines;
             if (minMinesInNonBorder < 0)
             {
                 minMinesInNonBorder = 0;
             }
-            var maxMinesInNonBorder = minesRemaining - minesElsewhere - borders.Sum(x => x.MinMineCount);
+            var maxMinesInNonBorder = minesRemaining - minesElsewhere - borders.Sum(x => x.MinMineCount) + alreadyFoundMines;
             if (maxMinesInNonBorder > nonBorderCellCount)
             {
                 maxMinesInNonBorder = nonBorderCellCount;
             }
-            var ratios = new Dictionary<int, decimal>();
-            decimal currentRatio = 1;
+            var ratios = new Dictionary<int, double>();
+            double currentRatio = 1;
             for (var i = minMinesInNonBorder; i <= maxMinesInNonBorder; i++)
             {
                 currentRatio *= Maths.CombinationRatio(nonBorderCellCount, i);
                 ratios[i] = currentRatio;
             }
             var totalCombinationLength = borders.Sum(x => x.Cells.Count);
-            var counts = borders.SelectMany(x => x.Cells).ToDictionary(x => x.Coordinate, x => (decimal)0);
+            var counts = borders.SelectMany(x => x.Cells).ToDictionary(x => x.Coordinate, x => 0d);
             var countLocks = counts.ToDictionary(x => x.Key, x => new object());
             var totalValidCombinationsLock = new object();
-            decimal totalValidCombinations = 0;
+            double totalValidCombinations = 0;
             var cartesianSequence = borders.Select(x => x.ValidCombinations).MultiCartesian();
-            Parallel.ForEach(cartesianSequence, combinationArr =>
-            //cartesianSequence.ForEach(combinationArr =>
+            //Parallel.ForEach(cartesianSequence, combinationArr =>
+            cartesianSequence.ForEach(combinationArr =>
             {
                 var minePredictionCount = combinationArr.SelectMany(x => x).Count(x => x.Value);
                 var minesInNonBorder = minesRemaining - minesElsewhere - minePredictionCount;
@@ -819,16 +818,16 @@ namespace MineDotNet.AI.Solvers
             return true;
         }
 
-        private void GetVerdictsFromProbabilities(IDictionary<Coordinate, decimal> probabilities, IDictionary<Coordinate, bool> targetVerdicts)
+        private void GetVerdictsFromProbabilities(IDictionary<Coordinate, double> probabilities, IDictionary<Coordinate, bool> targetVerdicts)
         {
             foreach (var probability in probabilities)
             {
                 bool verdict;
-                if (probability.Value == 0)
+                if (Math.Abs(probability.Value) < 0.0000001)
                 {
                     verdict = false;
                 }
-                else if (probability.Value == 1)
+                else if (Math.Abs(probability.Value - 1) < 0.0000001)
                 {
                     verdict = true;
                 }
@@ -840,7 +839,7 @@ namespace MineDotNet.AI.Solvers
             }
         }
 
-        private IDictionary<Coordinate, SolverResult> GetFinalResults(IDictionary<Coordinate, decimal> probabilities, IDictionary<Coordinate, bool> verdicts)
+        private IDictionary<Coordinate, SolverResult> GetFinalResults(IDictionary<Coordinate, double> probabilities, IDictionary<Coordinate, bool> verdicts)
         {
             var results = new Dictionary<Coordinate, SolverResult>();
             if (probabilities != null)
