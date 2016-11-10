@@ -164,8 +164,6 @@ namespace MineDotNet.GUI
             var random = new Random();
             var generator = new GameMapGenerator(random);
             var engine = new GameEngine(generator);
-            var width = 50;
-            var height = 110;
             var density = MineDensityTrackBar.Value/(double) 100;
             engine.StartNew(16, 16, new Coordinate(8, 8), density);
             while (true)
@@ -213,6 +211,15 @@ namespace MineDotNet.GUI
         private void MineDensityTrackBar_ValueChanged(object sender, EventArgs e)
         {
             MineDensityLabel.Text = $"Mine density: {MineDensityTrackBar.Value}%";
+        }
+
+        private GameEngine CurrentGameEngine { get; set; }
+
+        private void ManualPlayButton_Click(object sender, EventArgs e)
+        {
+            var random = new Random();
+            var generator = new GameMapGenerator(random);
+            CurrentGameEngine = new GameEngine(generator);
         }
     }
 }

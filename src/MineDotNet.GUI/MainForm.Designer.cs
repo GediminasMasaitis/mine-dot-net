@@ -36,6 +36,7 @@
             this.AutoPlayButton = new System.Windows.Forms.Button();
             this.MineDensityTrackBar = new System.Windows.Forms.TrackBar();
             this.MineDensityLabel = new System.Windows.Forms.Label();
+            this.ManualPlayButton = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.MainPictureBox)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.MineDensityTrackBar)).BeginInit();
             this.SuspendLayout();
@@ -96,7 +97,7 @@
             // AutoPlayButton
             // 
             this.AutoPlayButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.AutoPlayButton.Location = new System.Drawing.Point(524, 65);
+            this.AutoPlayButton.Location = new System.Drawing.Point(524, 145);
             this.AutoPlayButton.Name = "AutoPlayButton";
             this.AutoPlayButton.Size = new System.Drawing.Size(110, 23);
             this.AutoPlayButton.TabIndex = 25;
@@ -125,12 +126,24 @@
             this.MineDensityLabel.TabIndex = 27;
             this.MineDensityLabel.Text = "Mine density: 20%";
             // 
+            // ManualPlayButton
+            // 
+            this.ManualPlayButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.ManualPlayButton.Location = new System.Drawing.Point(524, 174);
+            this.ManualPlayButton.Name = "ManualPlayButton";
+            this.ManualPlayButton.Size = new System.Drawing.Size(110, 23);
+            this.ManualPlayButton.TabIndex = 28;
+            this.ManualPlayButton.Text = "Play";
+            this.ManualPlayButton.UseVisualStyleBackColor = true;
+            this.ManualPlayButton.Click += new System.EventHandler(this.ManualPlayButton_Click);
+            // 
             // MainForm
             // 
             this.AcceptButton = this.ShowMapsButton;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(641, 755);
+            this.Controls.Add(this.ManualPlayButton);
             this.Controls.Add(this.MineDensityLabel);
             this.Controls.Add(this.MineDensityTrackBar);
             this.Controls.Add(this.AutoPlayButton);
@@ -158,6 +171,7 @@
         private System.Windows.Forms.Button AutoPlayButton;
         private System.Windows.Forms.TrackBar MineDensityTrackBar;
         private System.Windows.Forms.Label MineDensityLabel;
+        private System.Windows.Forms.Button ManualPlayButton;
     }
 }
 
