@@ -249,23 +249,26 @@ namespace MineDotNet.AI.Solvers
         {
             OnDebugLine("Solving " + border.Cells.Count + " cell border");
 
-            // If the border is too big, we attempt solving by partial borders.
-            if (allowPartialBorderSolving && border.Cells.Count > Settings.PartialBorderSolveFrom)
+            if (Settings.PartialBorderSolving)
             {
-                TrySolveBorderByPartialBorders(border, map);
-            }
-            if (ShouldStopSolving(border.Verdicts))
-            {
-                return new[] {border};
-            }
-
-            // If partial border solving found any guaranteed solutions, we can attempt to re-split the border.
-            if (border.Verdicts.Count > 0)
-            {
-                var borders = TrySolveBorderByReseparating(border, map);
-                if (borders != null)
+                // If the border is too big, we attempt solving by partial borders.
+                if (allowPartialBorderSolving && border.Cells.Count > Settings.PartialBorderSolveFrom)
                 {
-                    return borders;
+                    TrySolveBorderByPartialBorders(border, map);
+                }
+                if (ShouldStopSolving(border.Verdicts))
+                {
+                    return new[] {border};
+                }
+
+                // If partial border solving found any guaranteed solutions, we can attempt to re-split the border.
+                if (Settings.BorderResplitting && border.Verdicts.Count > 0)
+                {
+                    var borders = TrySolveBorderByReseparating(border, map);
+                    if (borders != null)
+                    {
+                        return borders;
+                    }
                 }
             }
 
