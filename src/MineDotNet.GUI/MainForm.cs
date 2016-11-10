@@ -163,18 +163,14 @@ namespace MineDotNet.GUI
         {
             var random = new Random();
             var generator = new GameMapGenerator(random);
+            var engine = new GameEngine(generator);
             var width = 50;
             var height = 110;
-            var startingPos = new Coordinate(random.Next(0, width), random.Next(0, height));
             var density = MineDensityTrackBar.Value/(double) 100;
-            var gameMap = generator.GenerateWithMineDensity(width, height, startingPos, density);
-            foreach (var cell in gameMap.AllCells.Where(x => !x.HasMine && x.Hint == 0))
-            {
-                //cell.State = CellState.Empty;
-            }
+            engine.StartNew(16, 16, new Coordinate(8, 8), density);
             while (true)
             {
-                var regularMap = gameMap.ToRegularMap();
+                var regularMap = engine.GameMap.ToRegularMap();
                 MapTextBoxes[0].Text = Visualizer.VisualizeToString(regularMap);
                 MapTextBoxes[1].Text = string.Empty;
                 MapTextBoxes[2].Text = string.Empty;
@@ -188,26 +184,24 @@ namespace MineDotNet.GUI
                 }
                 foreach (var result in results)
                 {
-                    if (!result.Value.Verdict.HasValue)
+                    switch (result.Value.Verdict)
                     {
-                        continue;
-                    }
-                    if (result.Value.Verdict.Value)
-                    {
-                        gameMap[result.Key].Flag = CellFlag.HasMine;
-                        gameMap.RemainingMineCount--;
-                    }
-                    else
-                    {
-                        if (gameMap[result.Key].HasMine)
-                        {
-                            regularMap[result.Key].Flag = CellFlag.NotSure;
-                            Map0TextBox.Text = Visualizer.VisualizeToString(regularMap);
-                            DisplayResults(regularMap, results);
-                            MessageBox.Show("Boom " + result.Key);
-                            return;
-                        }
-                        gameMap[result.Key].State = CellState.Empty;
+                        case true:
+                            engine.SetFlag(result.Key, CellFlag.HasMine);
+                            break;
+                        case false:
+                            var succesfullyOpened = engine.OpenCell(result.Key);
+                            if (!succesfullyOpened)
+                            {
+                                regularMap[result.Key].Flag = CellFlag.NotSure;
+                                Map0TextBox.Text = Visualizer.VisualizeToString(regularMap);
+                                DisplayResults(regularMap, results);
+                                MessageBox.Show("Boom " + result.Key);
+                                return;
+                            }
+                            break;
+                        case null:
+                            break;
                     }
                 }
                 DisplayResults(regularMap, results);
