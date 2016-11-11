@@ -10,6 +10,7 @@ namespace MineDotNet.Game
     {
         public GameMapGenerator Generator { get; set; }
         public GameMap GameMap { get; set; }
+        public bool GameStarted => GameMap != null;
 
         public GameEngine(GameMapGenerator generator)
         {
@@ -19,11 +20,19 @@ namespace MineDotNet.Game
         public void StartNew(int width, int height, Coordinate startingPosition, double mineDensity)
         {
             GameMap = Generator.GenerateWithMineDensity(width, height, startingPosition, mineDensity);
+            if (startingPosition != null)
+            {
+                OpenCell(startingPosition);
+            }
         }
 
         public void StartNew(int width, int height, Coordinate startingPosition, int mineCount)
         {
             GameMap = Generator.GenerateWithMineCount(width, height, startingPosition, mineCount);
+            if (startingPosition != null)
+            {
+                OpenCell(startingPosition);
+            }
         }
 
         public void SetFlag(Coordinate coordinate, CellFlag flag)
@@ -41,7 +50,25 @@ namespace MineDotNet.Game
                 }
             }
             cell.Flag = flag;
+        }
 
+        public void ToggleFlag(Coordinate coordinate)
+        {
+            var cell = GameMap[coordinate];
+            switch (cell.Flag)
+            {
+                case CellFlag.None:
+                    SetFlag(coordinate, CellFlag.HasMine);
+                    break;
+                case CellFlag.HasMine:
+                    SetFlag(coordinate, CellFlag.None);
+                    break;
+                case CellFlag.NotSure:
+                    SetFlag(coordinate, CellFlag.HasMine);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
         public bool OpenCell(Coordinate coordinate)
@@ -68,5 +95,7 @@ namespace MineDotNet.Game
             }
             return true;
         }
+
+
     }
 }

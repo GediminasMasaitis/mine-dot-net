@@ -14,10 +14,24 @@ using MineDotNet.Common;
 
 namespace MineDotNet.GUI
 {
-    class DisplayService
+    public class CellClickEventArgs : EventArgs
+    {
+        public CellClickEventArgs(Coordinate coordinate, MouseButtons buttons)
+        {
+            Coordinate = coordinate;
+            Buttons = buttons;
+        }
+
+        public Coordinate Coordinate { get; }
+        public MouseButtons Buttons { get; }
+    }
+
+    public delegate void CellClickEventHandler(object sender, CellClickEventArgs args);
+
+    class DisplayService : IDisposable
     {
         public bool DrawCoordinates { get; set; }
-        public PictureBox Target { get; set; }
+        public PictureBox Target { get; }
         public TextMapVisualizer Visualizer { get; set; }
 
         public IList<SolidBrush> Brushes { get; }
@@ -29,8 +43,10 @@ namespace MineDotNet.GUI
         private IDictionary<int, Image> ResizedHintTextures { get; set; }
         private IDictionary<CellState, Image> ResizedStateTextures { get; set; }
         private IDictionary<CellFlag, Image> ResizedFlagTextures { get; set; }
-        private int CurrentTextureWidth { get; set; }
-        private int CurrentTextureHeight { get; set; }
+        private int CurrentCellWidth { get; set; }
+        private int CurrentCellHeight { get; set; }
+
+        public event CellClickEventHandler CellClick;
 
         public DisplayService(PictureBox target, int colorCount, TextMapVisualizer visualizer)
         {
@@ -69,6 +85,26 @@ namespace MineDotNet.GUI
             Brushes = colors.Select(x => new SolidBrush(x)).ToList();
 
             EmptyBrush = new SolidBrush(Color.FromArgb(100, 100, 100));
+            Target.MouseClick += TargetOnClick;
+        }
+
+        protected void OnCellClick(CellClickEventArgs args)
+        {
+            CellClick?.Invoke(this, args);
+        }
+
+        private void TargetOnClick(object sender, MouseEventArgs eventArgs)
+        {
+            if (CurrentCellWidth <= 0 || CurrentCellHeight <= 0)
+            {
+                return;
+            }
+
+            var x = eventArgs.Location.Y/CurrentCellWidth;
+            var y = eventArgs.Location.X/CurrentCellHeight;
+            var coord = new Coordinate(x,y);
+            var args = new CellClickEventArgs(coord, eventArgs.Button);
+            OnCellClick(args);
         }
 
         public void TryLoadAssets()
@@ -139,7 +175,7 @@ namespace MineDotNet.GUI
 
         private void RescaleTiles(int width, int height)
         {
-            if (CurrentTextureWidth == width && CurrentTextureHeight == height)
+            if (CurrentCellWidth == width && CurrentCellHeight == height)
             {
                 return;
             }
@@ -159,8 +195,8 @@ namespace MineDotNet.GUI
             {
                 ResizedFlagTextures[texture.Key] = ResizeImage(texture.Value, width, height);
             }
-            CurrentTextureWidth = width;
-            CurrentTextureHeight = height;
+            CurrentCellWidth = width;
+            CurrentCellHeight = height;
         }
 
         private void DisplayCell(Graphics graphics, Cell cell, int x, int y, int width, int height, Brush textBrush)
@@ -269,6 +305,11 @@ namespace MineDotNet.GUI
             }
             Target.Image = bmp;
             //Target.Invalidate();
+        }
+
+        public void Dispose()
+        {
+            Target.MouseClick -= TargetOnClick;
         }
     }
 }

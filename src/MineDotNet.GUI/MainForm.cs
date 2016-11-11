@@ -27,6 +27,8 @@ namespace MineDotNet.GUI
 
         private DisplayService Display { get; set; }
 
+        private GameEngine CurrentManualGameEngine { get; set; }
+        private double MineDensity => MineDensityTrackBar.Value/(double) 100;
         public MainForm() : this(new Map[0])
         {
         }
@@ -49,7 +51,7 @@ namespace MineDotNet.GUI
             MapTextBoxes[0] = Map0TextBox;
 
             Display = new DisplayService(MainPictureBox, MapCount, Visualizer);
-            
+            Display.CellClick += DisplayOnCellClick;
 
             var offsetX = 170;
             var offsetY = 0;
@@ -98,6 +100,41 @@ namespace MineDotNet.GUI
             
             Display.TryLoadAssets();
             Display.DisplayMaps(allMaps.ToArray());
+        }
+
+        private void DisplayOnCellClick(object sender, CellClickEventArgs args)
+        {
+            if (CurrentManualGameEngine == null)
+            {
+                return;
+            }
+            if ((args.Buttons & MouseButtons.Right) != 0)
+            {
+                if (!CurrentManualGameEngine.GameStarted)
+                {
+                    return;
+                }
+                CurrentManualGameEngine.ToggleFlag(args.Coordinate);
+            }
+            else if((args.Buttons & MouseButtons.Left) != 0)
+            {
+                if (!CurrentManualGameEngine.GameStarted)
+                {
+                    CurrentManualGameEngine.StartNew(8,8,args.Coordinate, MineDensity);
+                }
+                else
+                {
+                    var success = CurrentManualGameEngine.OpenCell(args.Coordinate);
+                    if (!success)
+                    {
+                        MessageBox.Show("Boom " + args.Coordinate);
+                        return;
+                    }
+                }
+            }
+            var regularMap = CurrentManualGameEngine.GameMap.ToRegularMap();
+            MapTextBoxes[0].Text = Visualizer.VisualizeToString(regularMap);
+            Display.DisplayMaps(new[] {regularMap});
         }
 
         private static void AiOnDebug(string s)
@@ -164,8 +201,7 @@ namespace MineDotNet.GUI
             var random = new Random();
             var generator = new GameMapGenerator(random);
             var engine = new GameEngine(generator);
-            var density = MineDensityTrackBar.Value/(double) 100;
-            engine.StartNew(16, 16, new Coordinate(8, 8), density);
+            engine.StartNew(16, 16, new Coordinate(8, 8), MineDensity);
             while (true)
             {
                 var regularMap = engine.GameMap.ToRegularMap();
@@ -213,13 +249,15 @@ namespace MineDotNet.GUI
             MineDensityLabel.Text = $"Mine density: {MineDensityTrackBar.Value}%";
         }
 
-        private GameEngine CurrentGameEngine { get; set; }
+        
 
         private void ManualPlayButton_Click(object sender, EventArgs e)
         {
             var random = new Random();
             var generator = new GameMapGenerator(random);
-            CurrentGameEngine = new GameEngine(generator);
+            CurrentManualGameEngine = new GameEngine(generator);
+            var emptyMap = new Map(8, 8, null, true, CellState.Filled);
+            Display.DisplayMaps(new[] {emptyMap});
         }
     }
 }

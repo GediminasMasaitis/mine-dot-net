@@ -43,7 +43,7 @@ namespace MineDotNet.Game
             if (startingPosition != null)
             {
                 coordinates.Remove(startingPosition);
-                map[startingPosition].State = CellState.Empty;
+                //map[startingPosition].State = CellState.Empty;
             }
             Shuffle(coordinates);
 
