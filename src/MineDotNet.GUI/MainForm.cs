@@ -29,6 +29,8 @@ namespace MineDotNet.GUI
 
         private GameEngine CurrentManualGameEngine { get; set; }
         private double MineDensity => MineDensityTrackBar.Value/(double) 100;
+        private int Width => (int)WidthNumericUpDown.Value;
+        private int Height => (int)HeightNumericUpDown.Value;
         public MainForm() : this(new Map[0])
         {
         }
@@ -120,7 +122,7 @@ namespace MineDotNet.GUI
             {
                 if (!CurrentManualGameEngine.GameStarted)
                 {
-                    CurrentManualGameEngine.StartNew(8,8,args.Coordinate, MineDensity);
+                    CurrentManualGameEngine.StartNew(Width, Height, args.Coordinate, MineDensity);
                 }
                 else
                 {
@@ -201,7 +203,7 @@ namespace MineDotNet.GUI
             var random = new Random();
             var generator = new GameMapGenerator(random);
             var engine = new GameEngine(generator);
-            engine.StartNew(16, 16, new Coordinate(8, 8), MineDensity);
+            engine.StartNew(Width, Height, new Coordinate(8, 8), MineDensity);
             while (true)
             {
                 var regularMap = engine.GameMap.ToRegularMap();
@@ -256,7 +258,7 @@ namespace MineDotNet.GUI
             var random = new Random();
             var generator = new GameMapGenerator(random);
             CurrentManualGameEngine = new GameEngine(generator);
-            var emptyMap = new Map(8, 8, null, true, CellState.Filled);
+            var emptyMap = new Map(Width, Height, null, true, CellState.Filled);
             Display.DisplayMaps(new[] {emptyMap});
         }
     }

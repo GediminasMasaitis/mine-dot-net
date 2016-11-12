@@ -85,7 +85,7 @@ namespace MineDotNet.GUI
             Brushes = colors.Select(x => new SolidBrush(x)).ToList();
 
             EmptyBrush = new SolidBrush(Color.FromArgb(100, 100, 100));
-            Target.MouseClick += TargetOnClick;
+            Target.MouseUp += TargetOnClick;
         }
 
         protected void OnCellClick(CellClickEventArgs args)
@@ -96,6 +96,10 @@ namespace MineDotNet.GUI
         private void TargetOnClick(object sender, MouseEventArgs eventArgs)
         {
             if (CurrentCellWidth <= 0 || CurrentCellHeight <= 0)
+            {
+                return;
+            }
+            if (!Target.Bounds.Contains(eventArgs.Location))
             {
                 return;
             }

@@ -6,7 +6,7 @@ using MineDotNet.Common;
 
 namespace MineDotNet.AI.Guessers
 {
-    class LowestProbabilityGuesser
+    public class LowestProbabilityGuesser : IGuesser
     {
         public SolverResult Guess(IMap map, IDictionary<Coordinate, SolverResult> solverResults)
         {

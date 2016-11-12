@@ -37,8 +37,14 @@
             this.MineDensityTrackBar = new System.Windows.Forms.TrackBar();
             this.MineDensityLabel = new System.Windows.Forms.Label();
             this.ManualPlayButton = new System.Windows.Forms.Button();
+            this.WidthLabel = new System.Windows.Forms.Label();
+            this.WidthNumericUpDown = new System.Windows.Forms.NumericUpDown();
+            this.HeightNumericUpDown = new System.Windows.Forms.NumericUpDown();
+            this.HeightLabel = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.MainPictureBox)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.MineDensityTrackBar)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.WidthNumericUpDown)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.HeightNumericUpDown)).BeginInit();
             this.SuspendLayout();
             // 
             // MainPictureBox
@@ -97,7 +103,7 @@
             // AutoPlayButton
             // 
             this.AutoPlayButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.AutoPlayButton.Location = new System.Drawing.Point(524, 145);
+            this.AutoPlayButton.Location = new System.Drawing.Point(524, 218);
             this.AutoPlayButton.Name = "AutoPlayButton";
             this.AutoPlayButton.Size = new System.Drawing.Size(110, 23);
             this.AutoPlayButton.TabIndex = 25;
@@ -108,7 +114,7 @@
             // MineDensityTrackBar
             // 
             this.MineDensityTrackBar.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.MineDensityTrackBar.Location = new System.Drawing.Point(519, 94);
+            this.MineDensityTrackBar.Location = new System.Drawing.Point(519, 167);
             this.MineDensityTrackBar.Maximum = 100;
             this.MineDensityTrackBar.Name = "MineDensityTrackBar";
             this.MineDensityTrackBar.Size = new System.Drawing.Size(115, 45);
@@ -120,7 +126,7 @@
             // 
             this.MineDensityLabel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.MineDensityLabel.AutoSize = true;
-            this.MineDensityLabel.Location = new System.Drawing.Point(533, 126);
+            this.MineDensityLabel.Location = new System.Drawing.Point(533, 199);
             this.MineDensityLabel.Name = "MineDensityLabel";
             this.MineDensityLabel.Size = new System.Drawing.Size(92, 13);
             this.MineDensityLabel.TabIndex = 27;
@@ -129,7 +135,7 @@
             // ManualPlayButton
             // 
             this.ManualPlayButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.ManualPlayButton.Location = new System.Drawing.Point(524, 174);
+            this.ManualPlayButton.Location = new System.Drawing.Point(524, 247);
             this.ManualPlayButton.Name = "ManualPlayButton";
             this.ManualPlayButton.Size = new System.Drawing.Size(110, 23);
             this.ManualPlayButton.TabIndex = 28;
@@ -137,12 +143,82 @@
             this.ManualPlayButton.UseVisualStyleBackColor = true;
             this.ManualPlayButton.Click += new System.EventHandler(this.ManualPlayButton_Click);
             // 
+            // WidthLabel
+            // 
+            this.WidthLabel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.WidthLabel.AutoSize = true;
+            this.WidthLabel.Location = new System.Drawing.Point(533, 116);
+            this.WidthLabel.Name = "WidthLabel";
+            this.WidthLabel.Size = new System.Drawing.Size(38, 13);
+            this.WidthLabel.TabIndex = 29;
+            this.WidthLabel.Text = "Width:";
+            // 
+            // WidthNumericUpDown
+            // 
+            this.WidthNumericUpDown.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.WidthNumericUpDown.Location = new System.Drawing.Point(577, 114);
+            this.WidthNumericUpDown.Maximum = new decimal(new int[] {
+            200,
+            0,
+            0,
+            0});
+            this.WidthNumericUpDown.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.WidthNumericUpDown.Name = "WidthNumericUpDown";
+            this.WidthNumericUpDown.Size = new System.Drawing.Size(48, 20);
+            this.WidthNumericUpDown.TabIndex = 30;
+            this.WidthNumericUpDown.Value = new decimal(new int[] {
+            8,
+            0,
+            0,
+            0});
+            // 
+            // HeightNumericUpDown
+            // 
+            this.HeightNumericUpDown.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.HeightNumericUpDown.Location = new System.Drawing.Point(577, 140);
+            this.HeightNumericUpDown.Maximum = new decimal(new int[] {
+            200,
+            0,
+            0,
+            0});
+            this.HeightNumericUpDown.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.HeightNumericUpDown.Name = "HeightNumericUpDown";
+            this.HeightNumericUpDown.Size = new System.Drawing.Size(48, 20);
+            this.HeightNumericUpDown.TabIndex = 32;
+            this.HeightNumericUpDown.Value = new decimal(new int[] {
+            8,
+            0,
+            0,
+            0});
+            // 
+            // HeightLabel
+            // 
+            this.HeightLabel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.HeightLabel.AutoSize = true;
+            this.HeightLabel.Location = new System.Drawing.Point(530, 142);
+            this.HeightLabel.Name = "HeightLabel";
+            this.HeightLabel.Size = new System.Drawing.Size(41, 13);
+            this.HeightLabel.TabIndex = 31;
+            this.HeightLabel.Text = "Height:";
+            // 
             // MainForm
             // 
             this.AcceptButton = this.ShowMapsButton;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(641, 755);
+            this.Controls.Add(this.HeightNumericUpDown);
+            this.Controls.Add(this.HeightLabel);
+            this.Controls.Add(this.WidthNumericUpDown);
+            this.Controls.Add(this.WidthLabel);
             this.Controls.Add(this.ManualPlayButton);
             this.Controls.Add(this.MineDensityLabel);
             this.Controls.Add(this.MineDensityTrackBar);
@@ -156,6 +232,8 @@
             this.Text = "Mine viewer";
             ((System.ComponentModel.ISupportInitialize)(this.MainPictureBox)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.MineDensityTrackBar)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.WidthNumericUpDown)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.HeightNumericUpDown)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -172,6 +250,10 @@
         private System.Windows.Forms.TrackBar MineDensityTrackBar;
         private System.Windows.Forms.Label MineDensityLabel;
         private System.Windows.Forms.Button ManualPlayButton;
+        private System.Windows.Forms.Label WidthLabel;
+        private System.Windows.Forms.NumericUpDown WidthNumericUpDown;
+        private System.Windows.Forms.NumericUpDown HeightNumericUpDown;
+        private System.Windows.Forms.Label HeightLabel;
     }
 }
 
