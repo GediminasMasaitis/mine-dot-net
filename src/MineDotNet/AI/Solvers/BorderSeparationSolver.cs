@@ -1,11 +1,8 @@
 ﻿using System;
-using System.CodeDom;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using MineDotNet.Common;
 using MineDotNet.Etc;
@@ -21,24 +18,6 @@ namespace MineDotNet.AI.Solvers
             Settings = settings ?? new BorderSeparationSolverSettings();
         }
 
-#if DEBUG
-        public event Action<string> Debug;
-#endif
-
-        private void OnDebug(string str)
-        {
-#if DEBUG
-            Debug?.Invoke(str);
-#endif
-        }
-
-        private void OnDebugLine(string str)
-        {
-#if DEBUG
-            OnDebug(str + Environment.NewLine);
-#endif
-        }
-
         public IDictionary<Coordinate, SolverResult> Solve(IMap givenMap)
         {
             // We prepare some intial data we will work with.
@@ -51,6 +30,7 @@ namespace MineDotNet.AI.Solvers
             map.BuildNeighbourCache();
             var allProbabilities = new Dictionary<Coordinate, double>();
             var allVerdicts = new Dictionary<Coordinate, bool>();
+            var borders = new List<Border>();
 
             // We first attempt trivial solving.
             // If it's all the user wants, we return immediately.
@@ -66,16 +46,13 @@ namespace MineDotNet.AI.Solvers
 
             // We find a set of all border cells - the common border.
             var commonBorder = FindCommonBorder(map);
-            OnDebugLine($"Common border calculated, found {commonBorder.Cells.Count} cells");
 
             // We separate the common border into multiple, non-connecting borders, which can be solved independently.
-            var originalBorders = SeparateBorders(commonBorder, map).OrderBy(x => x.Cells.Count).ToList();
-            OnDebugLine($"Common border split into {originalBorders.Count} separate borders.");
-
-            var borders = new List<Border>();
+            var originalBorderSequence = SeparateBorders(commonBorder, map).OrderBy(x => x.Cells.Count);
+            
             // We iterate over each border, and attempt to solve it,
             // then copy the border's verdicts and probabilities
-            foreach (var border in originalBorders)
+            foreach (var border in originalBorderSequence)
             {
                 var newBorders = SolveBorder(border, map, true);
                 borders.AddRange(newBorders);
@@ -101,7 +78,6 @@ namespace MineDotNet.AI.Solvers
 
             // We get the final results, and return
             var finalResults = GetFinalResults(allProbabilities, allVerdicts);
-            OnDebugLine("Found " + allVerdicts.Count + " guaranteed moves.");
             return finalResults;
         }
 
@@ -247,8 +223,6 @@ namespace MineDotNet.AI.Solvers
 
         private IList<Border> SolveBorder(Border border, BorderSeparationSolverMap map, bool allowPartialBorderSolving)
         {
-            OnDebugLine("Solving " + border.Cells.Count + " cell border");
-
             if (Settings.PartialBorderSolving)
             {
                 // If the border is too big, we attempt solving by partial borders.
@@ -282,7 +256,6 @@ namespace MineDotNet.AI.Solvers
             // We find all possible valid combinations for this border. If we didn't find any,
             // this means the map is invalid.
             border.ValidCombinations = FindValidBorderCellCombinations(map, border);
-            OnDebugLine("Found " + border.ValidCombinations.Count + " valid combinations");
             if (border.ValidCombinations.Count == 0)
             {
                 // TODO Must be invalid map... Handle somehow
@@ -316,7 +289,6 @@ namespace MineDotNet.AI.Solvers
 
         private void TrySolveBorderByPartialBorders(Border border, BorderSeparationSolverMap map)
         {
-            OnDebugLine($"Attempting to solve border via partial borders with max partial border size {Settings.MaxPartialBorderSize}");
             IList<PartialBorderData> checkedPartialBorders = new List<PartialBorderData>();
             for (var i = 0; i < border.Cells.Count; i++)
             {
@@ -615,7 +587,6 @@ namespace MineDotNet.AI.Solvers
                 throw new InvalidDataException($"Border with {borderLength} cells is too large, maximum {maxSize} cells allowed");
             }
             var totalCombinations = 1 << borderLength;
-            OnDebugLine("Attempting " + (1 << border.Cells.Count) + " combinations");
             var allRemainingCellsInBorder = map.UndecidedCount == borderLength;
             var validPredictions = new ConcurrentBag<IDictionary<Coordinate, bool>>();
             var emptyCells = map.AllCells.Where(x => x.State == CellState.Empty).ToList();

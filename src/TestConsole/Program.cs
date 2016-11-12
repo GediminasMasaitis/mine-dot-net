@@ -74,9 +74,6 @@ namespace TestConsole
             Console.WriteLine();
 
             var solver = new BorderSeparationSolver();
-#if DEBUG
-            solver.Debug += AiOnDebug;
-#endif
 
             var verdicts = solver.Solve(map);
             Console.WriteLine();
@@ -86,13 +83,6 @@ namespace TestConsole
             }
             Console.WriteLine("Press any key to close...");
             
-        }
-
-        private static void AiOnDebug(string s)
-        {
-            Console.ForegroundColor = ConsoleColor.Gray;
-            Console.Write(s);
-            Console.ResetColor();
         }
     }
 }

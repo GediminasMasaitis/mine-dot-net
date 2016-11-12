@@ -40,9 +40,6 @@ namespace MineDotNet.GUI
             InitializeComponent();
 
             var aggregateSolver = new BorderSeparationSolver();
-#if DEBUG
-            aggregateSolver.Debug += AiOnDebug;
-#endif
             Solver = aggregateSolver;
 
             Parser = new TextMapParser();
@@ -139,10 +136,6 @@ namespace MineDotNet.GUI
             Display.DisplayMaps(new[] {regularMap});
         }
 
-        private static void AiOnDebug(string s)
-        {
-            Debug.Write(s);
-        }
         private void ShowMapsButton_Click(object sender, EventArgs e)
         {
             var maps = GetMapsFromTextBoxes();
