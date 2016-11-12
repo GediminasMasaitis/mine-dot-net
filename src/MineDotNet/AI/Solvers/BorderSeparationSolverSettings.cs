@@ -29,9 +29,9 @@
 
             PartialBorderSolving = true;
             BorderResplitting = true;
-            PartialBorderSolveFrom = 20;
-            GiveUpFrom = 30;
-            MaxPartialBorderSize = 15;
+            PartialBorderSolveFrom = 18;
+            GiveUpFrom = 20;
+            MaxPartialBorderSize = 14;
             SetPartiallyCalculatedProbabilities = true;
         }
     }
