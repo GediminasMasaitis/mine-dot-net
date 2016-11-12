@@ -122,7 +122,7 @@ namespace MineDotNet.GUI
             {
                 if (!CurrentManualGameEngine.GameStarted)
                 {
-                    CurrentManualGameEngine.StartNew(Width, Height, args.Coordinate, MineDensity);
+                    CurrentManualGameEngine.StartNew(Width, Height, args.Coordinate, true, MineDensity);
                 }
                 else
                 {
@@ -203,7 +203,7 @@ namespace MineDotNet.GUI
             var random = new Random();
             var generator = new GameMapGenerator(random);
             var engine = new GameEngine(generator);
-            engine.StartNew(Width, Height, new Coordinate(8, 8), MineDensity);
+            engine.StartNew(Width, Height, new Coordinate(Width/2, Height/2), true, MineDensity);
             while (true)
             {
                 var regularMap = engine.GameMap.ToRegularMap();

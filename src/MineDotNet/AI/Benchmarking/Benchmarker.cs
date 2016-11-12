@@ -36,7 +36,7 @@ namespace MineDotNet.AI.Benchmarking
             for (var i = 0; i < testsToRun; i++)
             {
                 var engine = new GameEngine(generator);
-                engine.StartNew(width, height, startingPos, mineDensity);
+                engine.StartNew(width, height, startingPos, true, mineDensity);
                 Engines.Add(engine);
             }
         }

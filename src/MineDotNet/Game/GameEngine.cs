@@ -17,18 +17,18 @@ namespace MineDotNet.Game
             Generator = generator;
         }
 
-        public void StartNew(int width, int height, Coordinate startingPosition, double mineDensity)
+        public void StartNew(int width, int height, Coordinate startingPosition, bool guaranteeOpening, double mineDensity)
         {
-            GameMap = Generator.GenerateWithMineDensity(width, height, startingPosition, mineDensity);
+            GameMap = Generator.GenerateWithMineDensity(width, height, startingPosition, guaranteeOpening, mineDensity);
             if (startingPosition != null)
             {
                 OpenCell(startingPosition);
             }
         }
 
-        public void StartNew(int width, int height, Coordinate startingPosition, int mineCount)
+        public void StartNew(int width, int height, Coordinate startingPosition, bool guaranteeOpening, int mineCount)
         {
-            GameMap = Generator.GenerateWithMineCount(width, height, startingPosition, mineCount);
+            GameMap = Generator.GenerateWithMineCount(width, height, startingPosition, guaranteeOpening, mineCount);
             if (startingPosition != null)
             {
                 OpenCell(startingPosition);

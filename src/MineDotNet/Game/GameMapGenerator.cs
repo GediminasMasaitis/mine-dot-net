@@ -14,7 +14,7 @@ namespace MineDotNet.Game
             Random = random ?? new Random();
         }
 
-        public GameMap GenerateWithMineDensity(int width, int height, Coordinate startingPosition, double mineDensity)
+        public GameMap GenerateWithMineDensity(int width, int height, Coordinate startingPosition, bool guaranteeOpening, double mineDensity)
         {
             if (mineDensity < 0 || mineDensity > 1)
             {
@@ -22,11 +22,11 @@ namespace MineDotNet.Game
             }
             var area = width*height;
             var count = (int)(area*mineDensity);
-            var map = GenerateWithMineCount(width, height, startingPosition, count);
+            var map = GenerateWithMineCount(width, height, startingPosition, guaranteeOpening, count);
             return map;
         }
 
-        public GameMap GenerateWithMineCount(int width, int height, Coordinate startingPosition, int mineCount)
+        public GameMap GenerateWithMineCount(int width, int height, Coordinate startingPosition, bool guaranteeOpening, int mineCount)
         {
             var coordinates = new List<Coordinate>();
             for (var i = 0; i < width; i++)
@@ -43,6 +43,14 @@ namespace MineDotNet.Game
             if (startingPosition != null)
             {
                 coordinates.Remove(startingPosition);
+                if (guaranteeOpening)
+                {
+                    var startingNeighbours = map.CalculateNeighboursOf(startingPosition);
+                    foreach (var startingNeighbour in startingNeighbours)
+                    {
+                        coordinates.Remove(startingNeighbour.Coordinate);
+                    }
+                }
                 //map[startingPosition].State = CellState.Empty;
             }
             Shuffle(coordinates);
