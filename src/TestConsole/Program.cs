@@ -11,6 +11,7 @@ using MineDotNet.AI.Benchmarking;
 using MineDotNet.AI.Guessers;
 using MineDotNet.AI.Solvers;
 using MineDotNet.Common;
+using MineDotNet.Game;
 
 namespace TestConsole
 {
@@ -18,9 +19,57 @@ namespace TestConsole
     {
         static void Main(string[] args)
         {
+            //TestMatrixSolving();
             //SolveMapFromFile();
-            BenchmarkSolver();
+            //BenchmarkSolver();
+            TestGaussianSolving();
             Console.ReadKey();
+        }
+
+        private static void TestMatrixSolving()
+        {
+            var matrixSolving = new GaussianSolvingService();
+            //var matrix = matrixSolving.GetMatrixFromMap(map);
+
+            //var matrix = new int[][]
+            //{
+            //    new int[] {1, 1, 0, 1},
+            //    new int[] {1, 1, 1, 2},
+            //    new int[] {0, 1, 1, 1},
+            //};
+
+            //var matrix = new int[][]
+            //{
+            //    new int[] {1, 1, 0, 0, 0, 1},
+            //    new int[] {1, 1, 1, 0, 0, 2},
+            //    new int[] {0, 1, 1, 1, 1, 3},
+            //};
+
+
+            var matrix = new int[][]
+            {
+                new int[] {1,1,1,0,0,0,0,0,0,0,0,0,1},
+                new int[] {0,1,1,1,0,0,0,0,0,0,0,0,2},
+                new int[] {0,0,1,1,1,0,0,0,0,0,0,0,1},
+                new int[] {0,0,0,1,1,1,0,0,0,0,0,0,2},
+                new int[] {0,0,0,0,1,1,1,0,0,0,0,0,1},
+                new int[] {0,0,0,0,0,1,1,1,1,1,0,0,2},
+                new int[] {0,0,0,0,0,0,0,0,1,1,1,0,1},
+                new int[] {0,0,0,0,0,0,0,0,0,1,1,1,2},
+                new int[] {0,0,0,0,0,0,0,0,0,0,1,1,1},
+            };
+
+            //var matrix = new int[][]
+            //{
+            //    new int[] {1, 1, 0, 0, 0, 1},
+            //    new int[] {1, 1, 1, 0, 0, 2},
+            //    new int[] {0, 1, 1, 1, 0, 2},
+            //    new int[] {0, 0, 1, 1, 1, 2},
+            //    new int[] {0, 0, 0, 1, 1, 1},
+            //    new int[] {1, 1, 1, 1, 1, 3},
+            //};
+
+            matrixSolving.ReduceMatrix(ref matrix);
         }
 
         private static void BenchmarkSolver()
@@ -28,9 +77,10 @@ namespace TestConsole
             var solver = new BorderSeparationSolver();
             var guesser = new LowestProbabilityGuesser();
             var testsToRun = 500;
-            solver.Settings.OnlyTrivialSolving = true;
-            solver.Settings.PartialBorderSolving = true;
-            solver.Settings.SolveByMineCount = false;
+            solver.Settings.SolveTrivial = false;
+            solver.Settings.StopAfterTrivialSolving = false;
+            solver.Settings.SolveGaussian = true;
+            solver.Settings.StopAfterGaussianSolving = true;
             solver.Settings.StopOnNoMineVerdict = true;
             var benchmarker = new Benchmarker();
             var benchmarkSequence = benchmarker.BenchmarkMultipleDensities(solver, guesser, 16, 16, 0.01, 0.35, 0.01, testsToRun);
@@ -82,7 +132,33 @@ namespace TestConsole
                 Console.WriteLine(verdict.Value.ToString());
             }
             Console.WriteLine("Press any key to close...");
+        }
+
+        private static void TestGaussianSolving()
+        {
+            var guesser = new LowestProbabilityGuesser();
+
+            var solver = new BorderSeparationSolver();
+            solver.Settings.SolveTrivial = false;
+            solver.Settings.StopAfterTrivialSolving = false;
+            solver.Settings.SolveGaussian = true;
+            solver.Settings.StopAfterGaussianSolving = true;
+
+            var secondarySolver = new BorderSeparationSolver();
+            secondarySolver.Settings.PartialBorderSolving = false;
+            secondarySolver.Settings.GiveUpFrom = 30;
             
+            var benchmarker = new Benchmarker();
+            benchmarker.OnMissingResult += (map, results) =>
+            {
+                var mapStr = new TextMapVisualizer().VisualizeToString(map);
+                Console.WriteLine(mapStr);
+                foreach (var result in results)
+                {
+                    Console.WriteLine(result.Value);
+                }
+            };
+            var benchmarkResults = benchmarker.BenchmarkMultipleDensities(solver, guesser, 5,5, 0.01, 0.4, 0.01, 20, secondarySolver).Select(x => x.Entries.ToList()).ToList();
         }
     }
 }

@@ -10,33 +10,10 @@ using MineDotNet.Game;
 
 namespace MineDotNet.AI.Benchmarking
 {
-    public class BenchmarkEntry
-    {
-        public BenchmarkEntry()
-        {
-            SolvingDuarations = new List<TimeSpan>();
-        }
-
-        public GameMap GameMap { get; set; }
-        public IList<TimeSpan> SolvingDuarations { get; set; }
-        public TimeSpan TotalDuration { get; set; }
-        public bool Solved { get; set; }
-    }
-
-    public class BenchmarkDensityGroup
-    {
-        public BenchmarkDensityGroup(IEnumerable<BenchmarkEntry> entries, double density)
-        {
-            Density = density;
-            Entries = entries;
-        }
-
-        public double Density { get; }
-        public IEnumerable<BenchmarkEntry> Entries { get; }
-    }
-
     public class Benchmarker
     {
+        public event Action<Map, IDictionary<Coordinate, SolverResult>> OnMissingResult;
+
         private IList<GameEngine> InitEngines(int width, int height, double mineDensity, int testsToRun)
         {
             return InitEngines(width, height, (int)(width * height / mineDensity), testsToRun);
@@ -57,28 +34,28 @@ namespace MineDotNet.AI.Benchmarking
             return engines;
         }
 
-        public BenchmarkDensityGroup Benchmark(ISolver solver, IGuesser guesser, int width, int height, int mineCount, int testsToRun)
+        public BenchmarkDensityGroup Benchmark(ISolver solver, IGuesser guesser, int width, int height, int mineCount, int testsToRun, ISolver secondarySolver = null)
         {
             var engines = InitEngines(width, height, mineCount, testsToRun);
-            var entries = engines.Select(x => BenchmarkEngine(x, solver, guesser));
+            var entries = engines.Select(x => BenchmarkEngine(x, solver, guesser, secondarySolver));
             var group = new BenchmarkDensityGroup(entries, mineCount/(double) (width*height));
             return group;
         }
 
-        public BenchmarkDensityGroup Benchmark(ISolver solver, IGuesser guesser, int width, int height, double density, int testsToRun)
+        public BenchmarkDensityGroup Benchmark(ISolver solver, IGuesser guesser, int width, int height, double density, int testsToRun, ISolver secondarySolver = null)
         {
-            return Benchmark(solver, guesser, width, height, (int) (width*height*density), testsToRun);
+            return Benchmark(solver, guesser, width, height, (int) (width*height*density), testsToRun, secondarySolver);
         }
 
-        public IEnumerable<BenchmarkDensityGroup> BenchmarkMultipleDensities(ISolver solver, IGuesser guesser, int width, int height, double minDensity, double maxDensity, double densityInterval, int testsToRun)
+        public IEnumerable<BenchmarkDensityGroup> BenchmarkMultipleDensities(ISolver solver, IGuesser guesser, int width, int height, double minDensity, double maxDensity, double densityInterval, int testsToRun, ISolver secondarySolver = null)
         {
             for (var currentDensity = minDensity; currentDensity <= maxDensity; currentDensity += densityInterval)
             {
-                yield return Benchmark(solver, guesser, width, height, currentDensity, testsToRun);
+                yield return Benchmark(solver, guesser, width, height, currentDensity, testsToRun, secondarySolver);
             }
         }
 
-        private BenchmarkEntry BenchmarkEngine(GameEngine engine, ISolver solver, IGuesser guesser)
+        private BenchmarkEntry BenchmarkEngine(GameEngine engine, ISolver solver, IGuesser guesser, ISolver secondarySolver)
         {
             var entry = new BenchmarkEntry();
             entry.GameMap = engine.GameMap;
@@ -89,6 +66,15 @@ namespace MineDotNet.AI.Benchmarking
                 sw.Restart();
                 var solverResults = solver.Solve(map);
                 sw.Stop();
+                if (secondarySolver != null)
+                {
+                    var secondarySolverResults = secondarySolver.Solve(map);
+                    var missingResults = secondarySolverResults.Where(x => x.Value.Verdict.HasValue && !solverResults.ContainsKey(x.Key)).ToDictionary(x => x.Key, x => x.Value);
+                    if (missingResults.Count > 0)
+                    {
+                        OnMissingResult?.Invoke(map, missingResults);
+                    }
+                }
                 entry.SolvingDuarations.Add(sw.Elapsed);
                 entry.TotalDuration += sw.Elapsed;
                 var resultsWithVerdicts = solverResults.Where(x => x.Value.Verdict.HasValue).ToDictionary(x => x.Key, x => x.Value);

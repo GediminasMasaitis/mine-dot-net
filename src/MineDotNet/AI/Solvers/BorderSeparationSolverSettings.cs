@@ -2,9 +2,14 @@
 {
     public class BorderSeparationSolverSettings
     {
-        public bool OnlyTrivialSolving { get; set; }
         public bool StopOnNoMineVerdict { get; set; }
         public bool StopOnAnyVerdict { get; set; }
+
+        public bool SolveTrivial { get; set; }
+        public bool StopAfterTrivialSolving { get; set; }
+
+        public bool SolveGaussian { get; set; }
+        public bool StopAfterGaussianSolving { get; set; }
 
         public bool IgnoreMineCountCompletely { get; set; }
         public bool SolveByMineCount { get; set; }
@@ -19,9 +24,14 @@
 
         public BorderSeparationSolverSettings()
         {
-            OnlyTrivialSolving = false;
             StopOnNoMineVerdict = false;
             StopOnAnyVerdict = false;
+
+            SolveTrivial = true;
+            StopAfterTrivialSolving = false;
+
+            SolveGaussian = false;
+            StopAfterGaussianSolving = false;
 
             IgnoreMineCountCompletely = false;
             SolveByMineCount = true;

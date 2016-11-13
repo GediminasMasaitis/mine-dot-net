@@ -57,6 +57,17 @@ namespace MineDotNet.Game
             }
             return new Map(cellCopy, RemainingMineCount);
         }
+
+        public GameMap Clone()
+        {
+            var cellCopy = AllCells.Select(x => new GameCell(x.Coordinate, x.HasMine, x.State, x.Flag, x.Hint)).ToList();
+            var map = new GameMap(Width, Height, RemainingMineCount);
+            foreach (var cell in cellCopy)
+            {
+                map[cell.Coordinate] = cell;
+            }
+            return map;
+        }
     }
 
 }

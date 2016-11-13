@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using MineDotNet.Common;
 using MineDotNet.Etc;
@@ -34,14 +37,59 @@ namespace MineDotNet.AI.Solvers
 
             // We first attempt trivial solving.
             // If it's all the user wants, we return immediately.
-            SolveTrivial(map, allVerdicts);
-            if (Settings.OnlyTrivialSolving)
+
+           
+            if (Settings.SolveTrivial)
             {
-                return GetFinalResults(null, allVerdicts);
+                SolveTrivial(map, allVerdicts);
+                if (Settings.StopAfterTrivialSolving || ShouldStopSolving(allVerdicts))
+                {
+                    return GetFinalResults(null, allVerdicts);
+                }
             }
-            if (ShouldStopSolving(allVerdicts))
+
+            if (Settings.SolveGaussian)
             {
-                return GetFinalResults(null, allVerdicts);
+                var gaussianSolvingService = new GaussianSolvingService();
+                
+
+                var parameters = new List<MatrixReductionParameters>
+                {
+                    new MatrixReductionParameters(true),
+                    new MatrixReductionParameters(false, true, false, true, true),
+                    new MatrixReductionParameters(false, true, true, true, true),
+                    new MatrixReductionParameters(false, false, false, true, true),
+                    new MatrixReductionParameters(false, false, true, true, true),
+                    new MatrixReductionParameters(false, true, false, false, true),
+                    new MatrixReductionParameters(false, true, false, true, false),
+                    new MatrixReductionParameters(false, true, true, true, false),
+                };
+
+                var sync = new object();
+                //Parallel.ForEach(parameters, p =>
+                //parameters.ForEach(p =>
+                {
+                    var gaussianVerdicts = new Dictionary<Coordinate, bool>();
+                    var coordinates = map.AllCells.Where(x => x.State == CellState.Filled && x.Flag != CellFlag.HasMine).Select(x => x.Coordinate).ToList();
+                    //var coordinates = commonBorder.Cells.Select(x => x.Coordinate).ToList();
+                    var matrix = gaussianSolvingService.GetMatrixFromMap(map, coordinates, true);
+                    gaussianSolvingService.ReduceMatrix(ref matrix, parameters[3]);
+                    gaussianSolvingService.SetVerdictsFromMatrix(ref coordinates, ref matrix, gaussianVerdicts);
+                    lock (sync)
+                    {
+                        foreach (var verdict in gaussianVerdicts)
+                        {
+                            allVerdicts[verdict.Key] = verdict.Value;
+                        }
+                    }
+                }//);
+
+                
+                
+                if (Settings.StopAfterGaussianSolving || ShouldStopSolving(allVerdicts))
+                {
+                    return GetFinalResults(null, allVerdicts);
+                }
             }
 
             // We find a set of all border cells - the common border.
@@ -813,5 +861,9 @@ namespace MineDotNet.AI.Solvers
             }
             return results;
         }
+
+        
+
+        
     }
 }

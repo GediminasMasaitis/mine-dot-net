@@ -41,10 +41,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AI\AI.cs" />
+    <Compile Include="AI\Benchmarking\BenchmarkDensityGroup.cs" />
+    <Compile Include="AI\Benchmarking\BenchmarkEntry.cs" />
     <Compile Include="AI\Benchmarking\Benchmarker.cs" />
     <Compile Include="AI\Guessers\IGuesser.cs" />
     <Compile Include="AI\Solvers\Border.cs" />
     <Compile Include="AI\Solvers\BorderSeparationSolverSettings.cs" />
+    <Compile Include="AI\Solvers\GaussianSolvingService.cs" />
+    <Compile Include="AI\Solvers\MatrixReductionParameters.cs" />
     <Compile Include="Etc\Maths.cs" />
     <Compile Include="Etc\MultiCartesianExtension.cs" />
     <Compile Include="AI\Solvers\SolverResult.cs" />
