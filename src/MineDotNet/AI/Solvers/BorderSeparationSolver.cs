@@ -50,42 +50,7 @@ namespace MineDotNet.AI.Solvers
 
             if (Settings.SolveGaussian)
             {
-                var gaussianSolvingService = new GaussianSolvingService();
-                
-
-                var parameters = new List<MatrixReductionParameters>
-                {
-                    new MatrixReductionParameters(true),
-                    new MatrixReductionParameters(false, true, false, true, true),
-                    new MatrixReductionParameters(false, true, true, true, true),
-                    new MatrixReductionParameters(false, false, false, true, true),
-                    new MatrixReductionParameters(false, false, true, true, true),
-                    new MatrixReductionParameters(false, true, false, false, true),
-                    new MatrixReductionParameters(false, true, false, true, false),
-                    new MatrixReductionParameters(false, true, true, true, false),
-                };
-
-                var sync = new object();
-                //Parallel.ForEach(parameters, p =>
-                //parameters.ForEach(p =>
-                {
-                    var gaussianVerdicts = new Dictionary<Coordinate, bool>();
-                    var coordinates = (IList<Coordinate>)map.AllCells.Where(x => x.State == CellState.Filled && x.Flag != CellFlag.HasMine).Select(x => x.Coordinate).ToList();
-                    //var coordinates = commonBorder.Cells.Select(x => x.Coordinate).ToList();
-                    var matrix = gaussianSolvingService.GetMatrixFromMap(map, coordinates, true);
-                    gaussianSolvingService.ReduceMatrix(ref matrix, parameters[3]);
-                    gaussianSolvingService.SetVerdictsFromMatrix(ref coordinates, ref matrix, gaussianVerdicts);
-                    lock (sync)
-                    {
-                        foreach (var verdict in gaussianVerdicts)
-                        {
-                            allVerdicts[verdict.Key] = verdict.Value;
-                        }
-                    }
-                }//);
-
-                
-                
+                SolveGaussian(map, allVerdicts);
                 if (Settings.StopAfterGaussianSolving || ShouldStopSolving(allVerdicts))
                 {
                     return GetFinalResults(null, allVerdicts);
@@ -127,6 +92,53 @@ namespace MineDotNet.AI.Solvers
             // We get the final results, and return
             var finalResults = GetFinalResults(allProbabilities, allVerdicts);
             return finalResults;
+        }
+
+        private void SolveGaussian(BorderSeparationSolverMap map, Dictionary<Coordinate, bool> allVerdicts)
+        {
+            var gaussianSolvingService = new GaussianSolvingService();
+
+            var parameters = new List<MatrixReductionParameters>
+            {
+                new MatrixReductionParameters(true),
+                new MatrixReductionParameters(false, true, false, true, true),
+                new MatrixReductionParameters(false, true, true, true, true),
+                new MatrixReductionParameters(false, false, false, true, true),
+                new MatrixReductionParameters(false, false, true, true, true),
+                new MatrixReductionParameters(false, true, false, false, true),
+                new MatrixReductionParameters(false, false, true, false, true),
+                new MatrixReductionParameters(false, true, false, true, false),
+                new MatrixReductionParameters(false, true, true, true, false),
+            };
+
+            
+            var coordinates = (IList<Coordinate>) map.AllCells.Where(x => x.State == CellState.Filled && x.Flag != CellFlag.HasMine).Select(x => x.Coordinate).ToList();
+            //var coordinates = commonBorder.Cells.Select(x => x.Coordinate).ToList();
+            var matrix = gaussianSolvingService.GetMatrixFromMap(map, coordinates, true);
+            var sync = new object();
+            var gaussianResults = new Dictionary<Coordinate, bool>();
+            //parameters.ForEach(p =>
+            Parallel.ForEach(parameters, p =>
+            {
+                var localMatrix = gaussianSolvingService.CloneMatrix(matrix);
+                var localCoordinates = (IList<Coordinate>) coordinates.ToList();
+                gaussianSolvingService.ReduceMatrix(ref localMatrix, p);
+                var roundVerdicts = new Dictionary<Coordinate, bool>();
+                gaussianSolvingService.SetVerdictsFromMatrix(ref localCoordinates, ref localMatrix, roundVerdicts);
+                lock (sync)
+                {
+                    foreach (var verdict in roundVerdicts)
+                    {
+                        gaussianResults[verdict.Key] = verdict.Value;
+                    }
+                }
+            });
+
+            foreach (var verdict in gaussianResults)
+            {
+                allVerdicts[verdict.Key] = verdict.Value;
+            }
+            SetCellsByVerdicts(map, gaussianResults);
         }
 
         private bool ShouldStopSolving(IDictionary<Coordinate, bool> allVerdicts)

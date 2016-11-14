@@ -232,26 +232,24 @@ namespace MineDotNet.AI.Solvers
                     }
                 }
 
-                matrix = matrix.Where(x => Array.FindIndex(x, y => y != 0) != -1).OrderBy(x => Array.FindIndex(x, y => y != 0)).ToList();
+                //matrix = matrix.Where(x => Array.FindIndex(x, y => y != 0) != -1).OrderBy(x => Array.FindIndex(x, y => y != 0)).ToList();
             }
 
-            
-            //var rowList = new List<int[]>();
-            //foreach (var row in matrix)
-            //{
-            //    var rows = SeparateRow(row).ToList();
-            //    if (rows.Count > 1)
-            //    {
-            //        splitsMade = true;
-            //    }
-            //    rowList.AddRange(rows);
-            //}
+            var rowList = new List<int[]>();
+            foreach (var row in matrix)
+            {
+                var rows = SeparateRow(row).ToList();
+                if (rows.Count > 1)
+                {
+                    splitsMade = true;
+                }
+                rowList.AddRange(rows);
+            }
 
-
-            //matrix = rowList.Where(x => Array.FindIndex(x, y => y != 0) != -1).OrderBy(x => Array.FindIndex(x, y => y != 0)).ToArray();
-//#if DEBUG
-//            Debug.WriteLine(MatrixToString(matrix));
-//#endif
+            matrix = rowList.Where(x => Array.FindIndex(x, y => y != 0) != -1).OrderBy(x => Array.FindIndex(x, y => y != 0)).ToList();
+            //#if DEBUG
+            //            Debug.WriteLine(MatrixToString(matrix));
+            //#endif
 
             if (splitsMade)
             {
@@ -353,6 +351,11 @@ namespace MineDotNet.AI.Solvers
                 sb.AppendLine(matrix[i][matrix[i].Length-1].ToString(CultureInfo.InvariantCulture).PadLeft(3, ' '));
             }
             return sb.ToString();
+        }
+
+        public IList<int[]> CloneMatrix(IList<int[]> matrix)
+        {
+            return matrix.Select(x => (int[]) x.Clone()).ToList();
         }
     }
 }

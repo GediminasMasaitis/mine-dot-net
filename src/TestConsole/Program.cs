@@ -21,8 +21,8 @@ namespace TestConsole
         {
             //TestMatrixSolving();
             //SolveMapFromFile();
-            //BenchmarkSolver();
-            TestGaussianSolving();
+            BenchmarkSolver();
+            //TestGaussianSolving();
             Console.ReadKey();
         }
 

@@ -11,9 +11,6 @@ namespace MineDotNet.AI
         public static IDictionary<Coordinate, SolverResult> Solve(IMap map)
         {
             var solver = new BorderSeparationSolver();
-            solver.Settings.SolveTrivial = false;
-            solver.Settings.SolveGaussian = true;
-            solver.Settings.StopAfterGaussianSolving = true;
             var guesser = new LowestProbabilityGuesser();
             var solverResults = solver.Solve(map);
             if (solverResults.Any(x => x.Value.Verdict.HasValue))

@@ -27,10 +27,10 @@
             StopOnNoMineVerdict = false;
             StopOnAnyVerdict = false;
 
-            SolveTrivial = true;
+            SolveTrivial = false;
             StopAfterTrivialSolving = false;
 
-            SolveGaussian = false;
+            SolveGaussian = true;
             StopAfterGaussianSolving = false;
 
             IgnoreMineCountCompletely = false;
