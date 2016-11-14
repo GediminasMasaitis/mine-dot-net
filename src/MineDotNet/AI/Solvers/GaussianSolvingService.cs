@@ -11,7 +11,7 @@ namespace MineDotNet.AI.Solvers
 {
     public class GaussianSolvingService
     {
-        public int[][] GetMatrixFromMap(IMap map, IList<Coordinate> coordinates, bool allUndecidedCoordinatesProvided)
+        public IList<int[]> GetMatrixFromMap(IMap map, IList<Coordinate> coordinates, bool allUndecidedCoordinatesProvided)
         {
             var hintCoords = new HashSet<Coordinate>();
             var indices = new Dictionary<Coordinate, int>();
@@ -49,10 +49,10 @@ namespace MineDotNet.AI.Solvers
                 row[row.Length - 1] = map.RemainingMineCount.Value;
                 matrix.Add(row);
             }
-            return matrix.ToArray();
+            return matrix;
         }
 
-        public void SetVerdictsFromMatrix(ref List<Coordinate> coordinates, ref int[][] matrix, IDictionary<Coordinate, bool> allVerdicts)
+        public void SetVerdictsFromMatrix(ref IList<Coordinate> coordinates, ref IList<int[]> matrix, IDictionary<Coordinate, bool> allVerdicts)
         {
             var remainingMatrix = new List<int[]>();
             var indicesToRemove = new HashSet<int>();
@@ -108,15 +108,16 @@ namespace MineDotNet.AI.Solvers
 
 
 
-        public void ReduceMatrix(ref int[][] matrix, MatrixReductionParameters parameters = null)
+        public void ReduceMatrix(ref IList<int[]> matrix, MatrixReductionParameters parameters = null)
         {
+            var splitsMade = false;
             parameters = parameters ?? new MatrixReductionParameters();
             if (!parameters.SkipReduction)
             {
 #if DEBUG
                 Debug.WriteLine(MatrixToString(matrix));
 #endif
-                var rows = matrix.Length;
+                var rows = matrix.Count;
                 var cols = matrix[0].Length;
 
                 var rowsRemaining = new HashSet<int>(Enumerable.Range(0, rows));
@@ -192,6 +193,18 @@ namespace MineDotNet.AI.Solvers
 
                     for (var i = 0; i < rows; i++)
                     {
+                        var newRows = SeparateRow(matrix[i]).ToList();
+                        if (newRows.Count > 1)
+                        {
+                            splitsMade = true;
+                            matrix.RemoveAt(i);
+                            foreach (var newRow in newRows)
+                            {
+                                matrix.Insert(i, newRow);
+                            }
+                            rows += newRows.Count - 1;
+                            //i--;
+                        }
                         if (i == row)
                         {
                             continue;
@@ -203,92 +216,112 @@ namespace MineDotNet.AI.Solvers
                             {
                                 matrix[i][j] -= matrix[row][j]*num;
                             }
+                            var newRowsAgain = SeparateRow(matrix[i]).ToList();
+                            if (newRowsAgain.Count > 1)
+                            {
+                                splitsMade = true;
+                                matrix.RemoveAt(i);
+                                foreach (var newRow in newRowsAgain)
+                                {
+                                    matrix.Insert(i, newRow);
+                                }
+                                rows += newRowsAgain.Count - 1;
+                                i += newRowsAgain.Count - 1;
+                            }
                         }
                     }
                 }
 
-                matrix = matrix.Where(x => Array.FindIndex(x, y => y != 0) != -1).OrderBy(x => Array.FindIndex(x, y => y != 0)).ToArray();
+                matrix = matrix.Where(x => Array.FindIndex(x, y => y != 0) != -1).OrderBy(x => Array.FindIndex(x, y => y != 0)).ToList();
             }
 
-            var splitsMade = false;
-            var rowList = new List<int[]>();
-            foreach (var row in matrix)
-            {
-                var constantIndex = row.Length - 1;
-                var constant = row[constantIndex];
-
-                /*if (constant < 0)
-                {
-                    for (var i = 0; i < row.Length; i++)
-                    {
-                        row[i] = -row[i];
-                    }
-                }*/
-
-                var positiveSum = 0;
-                var negativeSum = 0;
-                for (int i = 0; i < row.Length - 1; i++)
-                {
-                    var num = row[i];
-                    if (num > 0)
-                    {
-                        positiveSum += num;
-                    }
-                    else
-                    {
-                        negativeSum += num;
-                    }
-                }
-
-                if (positiveSum == 1 && negativeSum == 0)
-                {
-                    rowList.Add(row);
-                }
-                else if (constant == positiveSum || constant == negativeSum)
-                {
-                    int forPositive;
-                    int forNegative;
-                    if (constant == positiveSum)
-                    {
-                        forPositive = 1;
-                        forNegative = 0;
-                    }
-                    else
-                    {
-                        forPositive = 0;
-                        forNegative = 1;
-                    }
-                    for (var i = 0; i < row.Length - 1; i++)
-                    {
-                        if (row[i] != 0)
-                        {
-                            var newRow = new int[row.Length];
-                            newRow[i] = 1;
-                            newRow[constantIndex] = row[i] > 0 ? forPositive : forNegative;
-                            rowList.Add(newRow);
-                        }
-                    }
-                    splitsMade = true;
-                }
-                else
-                {
-                    rowList.Add(row);
-                }
-            }
+            
+            //var rowList = new List<int[]>();
+            //foreach (var row in matrix)
+            //{
+            //    var rows = SeparateRow(row).ToList();
+            //    if (rows.Count > 1)
+            //    {
+            //        splitsMade = true;
+            //    }
+            //    rowList.AddRange(rows);
+            //}
 
 
-            matrix = rowList.Where(x => Array.FindIndex(x, y => y != 0) != -1).OrderBy(x => Array.FindIndex(x, y => y != 0)).ToArray();
-            //matrix = rowList.ToArray();
+            //matrix = rowList.Where(x => Array.FindIndex(x, y => y != 0) != -1).OrderBy(x => Array.FindIndex(x, y => y != 0)).ToArray();
 //#if DEBUG
 //            Debug.WriteLine(MatrixToString(matrix));
 //#endif
+
             if (splitsMade)
             {
                 ReduceMatrix(ref matrix, parameters);
             }
         }
 
-        //private IList<>
+        private IEnumerable<int[]> SeparateRow(int[] row)
+        {
+            var constantIndex = row.Length - 1;
+            var constant = row[constantIndex];
+
+            /*if (constant < 0)
+            {
+                for (var i = 0; i < row.Length; i++)
+                {
+                    row[i] = -row[i];
+                }
+            }*/
+
+            var positiveSum = 0;
+            var negativeSum = 0;
+            for (int i = 0; i < row.Length - 1; i++)
+            {
+                var num = row[i];
+                if (num > 0)
+                {
+                    positiveSum += num;
+                }
+                else
+                {
+                    negativeSum += num;
+                }
+            }
+
+            if (positiveSum == 1 && negativeSum == 0)
+            {
+                yield return row;
+            }
+            else if (constant == positiveSum || constant == negativeSum)
+            {
+                int forPositive;
+                int forNegative;
+                if (constant == positiveSum)
+                {
+                    forPositive = 1;
+                    forNegative = 0;
+                }
+                else
+                {
+                    forPositive = 0;
+                    forNegative = 1;
+                }
+                for (var i = 0; i < row.Length - 1; i++)
+                {
+                    if (row[i] != 0)
+                    {
+                        var newRow = new int[row.Length];
+                        newRow[i] = 1;
+                        newRow[constantIndex] = row[i] > 0 ? forPositive : forNegative;
+                        yield return newRow;
+                    }
+                }
+                //splitsMade = true;
+            }
+            else
+            {
+                yield return row;
+            }
+        }
 
 
         private bool KindaEquals(double d, double e) => Math.Abs(d - e) < 0.0000001;

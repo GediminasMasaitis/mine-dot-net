@@ -70,7 +70,7 @@ namespace MineDotNet.AI.Solvers
                 //parameters.ForEach(p =>
                 {
                     var gaussianVerdicts = new Dictionary<Coordinate, bool>();
-                    var coordinates = map.AllCells.Where(x => x.State == CellState.Filled && x.Flag != CellFlag.HasMine).Select(x => x.Coordinate).ToList();
+                    var coordinates = (IList<Coordinate>)map.AllCells.Where(x => x.State == CellState.Filled && x.Flag != CellFlag.HasMine).Select(x => x.Coordinate).ToList();
                     //var coordinates = commonBorder.Cells.Select(x => x.Coordinate).ToList();
                     var matrix = gaussianSolvingService.GetMatrixFromMap(map, coordinates, true);
                     gaussianSolvingService.ReduceMatrix(ref matrix, parameters[3]);
