@@ -105,7 +105,7 @@ namespace MineDotNet.AI.Solvers
                 new MatrixReductionParameters(false, true, true, true, true),
                 new MatrixReductionParameters(false, false, false, true, true),
                 new MatrixReductionParameters(false, false, true, true, true),
-                new MatrixReductionParameters(false, true, false, false, true),
+                //new MatrixReductionParameters(false, true, false, false, true),
                 new MatrixReductionParameters(false, false, true, false, true),
                 new MatrixReductionParameters(false, true, false, true, false),
                 new MatrixReductionParameters(false, true, true, true, false),

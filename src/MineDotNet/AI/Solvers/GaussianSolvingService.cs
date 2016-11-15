@@ -193,18 +193,18 @@ namespace MineDotNet.AI.Solvers
 
                     for (var i = 0; i < rows; i++)
                     {
-                        var newRows = SeparateRow(matrix[i]).ToList();
-                        if (newRows.Count > 1)
-                        {
-                            splitsMade = true;
-                            matrix.RemoveAt(i);
-                            foreach (var newRow in newRows)
-                            {
-                                matrix.Insert(i, newRow);
-                            }
-                            rows += newRows.Count - 1;
-                            //i--;
-                        }
+                        //var newRows = SeparateRow(matrix[i]).ToList();
+                        //if (newRows.Count > 1)
+                        //{
+                        //    splitsMade = true;
+                        //    matrix.RemoveAt(i);
+                        //    foreach (var newRow in newRows)
+                        //    {
+                        //        matrix.Insert(i, newRow);
+                        //    }
+                        //    rows += newRows.Count - 1;
+                        //    i += newRows.Count - 1;
+                        //}
                         if (i == row)
                         {
                             continue;
@@ -216,18 +216,18 @@ namespace MineDotNet.AI.Solvers
                             {
                                 matrix[i][j] -= matrix[row][j]*num;
                             }
-                            var newRowsAgain = SeparateRow(matrix[i]).ToList();
-                            if (newRowsAgain.Count > 1)
-                            {
-                                splitsMade = true;
-                                matrix.RemoveAt(i);
-                                foreach (var newRow in newRowsAgain)
-                                {
-                                    matrix.Insert(i, newRow);
-                                }
-                                rows += newRowsAgain.Count - 1;
-                                i += newRowsAgain.Count - 1;
-                            }
+                            //var newRowsAgain = SeparateRow(matrix[i]).ToList();
+                            //if (newRowsAgain.Count > 1)
+                            //{
+                            //    splitsMade = true;
+                            //    matrix.RemoveAt(i);
+                            //    foreach (var newRow in newRowsAgain)
+                            //    {
+                            //        matrix.Insert(i, newRow);
+                            //    }
+                            //    rows += newRowsAgain.Count - 1;
+                            //    i += newRowsAgain.Count - 1;
+                            //}
                         }
                     }
                 }
@@ -236,8 +236,9 @@ namespace MineDotNet.AI.Solvers
             }
 
             var rowList = new List<int[]>();
-            foreach (var row in matrix)
+            for (int i = 0; i < matrix.Count; i++)
             {
+                var row = matrix[i];
                 var rows = SeparateRow(row).ToList();
                 if (rows.Count > 1)
                 {
