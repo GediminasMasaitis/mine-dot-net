@@ -52,8 +52,27 @@ namespace MineDotNet.AI.Solvers
             return matrix;
         }
 
+        public class ArrayEqualityComparer<T> : IEqualityComparer<T[]>
+        {
+            public bool Equals(T[] x, T[] y)
+            {
+                return x.SequenceEqual(y);
+            }
+
+            public int GetHashCode(T[] obj)
+            {
+                int hash = 19;
+                foreach (var o in obj)
+                {
+                    hash = hash * 31 + o.GetHashCode();
+                }
+                return hash;
+            }
+        }
+
         public void SetVerdictsFromMatrix(ref IList<Coordinate> coordinates, ref IList<int[]> matrix, IDictionary<Coordinate, bool> allVerdicts)
         {
+            
             var remainingMatrix = new List<int[]>();
             var indicesToRemove = new HashSet<int>();
             foreach (var row in matrix)
@@ -108,8 +127,17 @@ namespace MineDotNet.AI.Solvers
 
 
 
-        public void ReduceMatrix(ref IList<int[]> matrix, MatrixReductionParameters parameters = null)
+        public void ReduceMatrix(ref IList<Coordinate> coordinates, ref IList<int[]> matrix, IDictionary<Coordinate, bool> allVerdicts, MatrixReductionParameters parameters = null)
         {
+            if (matrix.Count == 0)
+            {
+                return;
+            }
+            matrix = matrix.Where(x => Array.FindIndex(x, y => y != 0) != -1).Distinct(new ArrayEqualityComparer<int>()).OrderBy(x => Array.FindIndex(x, y => y != 0)).ToList();
+            if (matrix.Count == 0)
+            {
+                return;
+            }
             var splitsMade = false;
             parameters = parameters ?? new MatrixReductionParameters();
             if (!parameters.SkipReduction)
@@ -234,31 +262,69 @@ namespace MineDotNet.AI.Solvers
 
                 //matrix = matrix.Where(x => Array.FindIndex(x, y => y != 0) != -1).OrderBy(x => Array.FindIndex(x, y => y != 0)).ToList();
             }
-
+            var cellsToRemove = new List<RowSeparationResult>();
             var rowList = new List<int[]>();
             for (int i = 0; i < matrix.Count; i++)
             {
                 var row = matrix[i];
-                var rows = SeparateRow(row).ToList();
-                if (rows.Count > 1)
+                var rowResults = SeparateRow(row).ToList();
+                if (rowResults.Count > 0)
                 {
-                    splitsMade = true;
+                    //splitsMade = true;
+                    cellsToRemove.AddRange(rowResults);
                 }
-                rowList.AddRange(rows);
+                else
+                {
+                    rowList.Add(row);
+                }
             }
-
+            var columnsToRemove = new HashSet<int>(cellsToRemove.Select(x => x.ColumnIndex));
+            foreach (var separationResult in cellsToRemove)
+            {
+                var col = separationResult.ColumnIndex;
+                for (int i = 0; i < matrix.Count; i++)
+                {
+                    var num = matrix[i][col];
+                    if (num != 0)
+                    {
+                        //matrix[i][col] -= matrix[row][col]*num;
+                        matrix[i][matrix[0].Length-1] -= separationResult.Constant * num;
+                    }
+                }
+                allVerdicts[coordinates[col]] = separationResult.Constant == 1;
+            }
+            for (int i = 0; i < rowList.Count; i++)
+            {
+                rowList[i] = rowList[i].Where((x, index) => !columnsToRemove.Contains(index)).ToArray();
+            }
             matrix = rowList.Where(x => Array.FindIndex(x, y => y != 0) != -1).OrderBy(x => Array.FindIndex(x, y => y != 0)).ToList();
+            coordinates = coordinates.Where((x, i) => !columnsToRemove.Contains(i)).ToList();
             //#if DEBUG
             //            Debug.WriteLine(MatrixToString(matrix));
             //#endif
-
+            if (matrix.Count == 0)
+            {
+                return;
+            }
             if (splitsMade)
             {
-                ReduceMatrix(ref matrix, parameters);
+                ReduceMatrix(ref coordinates, ref matrix, allVerdicts, parameters);
             }
         }
 
-        private IEnumerable<int[]> SeparateRow(int[] row)
+        private struct RowSeparationResult
+        {
+            public RowSeparationResult(int columnIndex, int constant)
+            {
+                ColumnIndex = columnIndex;
+                Constant = constant;
+            }
+
+            public int ColumnIndex { get; }
+            public int Constant { get; }
+        }
+
+        private IEnumerable<RowSeparationResult> SeparateRow(int[] row)
         {
             var constantIndex = row.Length - 1;
             var constant = row[constantIndex];
@@ -276,6 +342,10 @@ namespace MineDotNet.AI.Solvers
             for (int i = 0; i < row.Length - 1; i++)
             {
                 var num = row[i];
+                if (num == 0)
+                {
+                    continue;
+                }
                 if (num > 0)
                 {
                     positiveSum += num;
@@ -286,11 +356,7 @@ namespace MineDotNet.AI.Solvers
                 }
             }
 
-            if (positiveSum == 1 && negativeSum == 0)
-            {
-                yield return row;
-            }
-            else if (constant == positiveSum || constant == negativeSum)
+            if (constant == positiveSum || constant == negativeSum)
             {
                 int forPositive;
                 int forNegative;
@@ -308,17 +374,11 @@ namespace MineDotNet.AI.Solvers
                 {
                     if (row[i] != 0)
                     {
-                        var newRow = new int[row.Length];
-                        newRow[i] = 1;
-                        newRow[constantIndex] = row[i] > 0 ? forPositive : forNegative;
-                        yield return newRow;
+                        var newConstant = row[i] > 0 ? forPositive : forNegative;
+                        yield return new RowSeparationResult(i, newConstant);
                     }
                 }
                 //splitsMade = true;
-            }
-            else
-            {
-                yield return row;
             }
         }
 

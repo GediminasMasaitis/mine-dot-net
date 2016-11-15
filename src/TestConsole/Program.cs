@@ -69,7 +69,7 @@ namespace TestConsole
             //    new int[] {1, 1, 1, 1, 1, 3},
             //};
 
-            matrixSolving.ReduceMatrix(ref matrix);
+            //matrixSolving.ReduceMatrix(ref matrix);
         }
 
         private static void BenchmarkSolver()

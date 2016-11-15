@@ -117,14 +117,14 @@ namespace MineDotNet.AI.Solvers
             var matrix = gaussianSolvingService.GetMatrixFromMap(map, coordinates, true);
             var sync = new object();
             var gaussianResults = new Dictionary<Coordinate, bool>();
-            //parameters.ForEach(p =>
-            Parallel.ForEach(parameters, p =>
+            parameters.ForEach(p =>
+            //Parallel.ForEach(parameters, p =>
             {
                 var localMatrix = gaussianSolvingService.CloneMatrix(matrix);
                 var localCoordinates = (IList<Coordinate>) coordinates.ToList();
-                gaussianSolvingService.ReduceMatrix(ref localMatrix, p);
                 var roundVerdicts = new Dictionary<Coordinate, bool>();
-                gaussianSolvingService.SetVerdictsFromMatrix(ref localCoordinates, ref localMatrix, roundVerdicts);
+                gaussianSolvingService.ReduceMatrix(ref localCoordinates, ref localMatrix, roundVerdicts, p);
+                //gaussianSolvingService.SetVerdictsFromMatrix(ref localCoordinates, ref localMatrix, roundVerdicts);
                 lock (sync)
                 {
                     foreach (var verdict in roundVerdicts)
