@@ -89,9 +89,88 @@ namespace MineDotNet.AI.Solvers
                 SolveMapByMineCounts(map, commonBorder, borders, allProbabilities, allVerdicts);
             }
 
+            var allHintProbabilities = new Dictionary<Coordinate, IDictionary<int, double>>();
+            CalculateAllHintPossibilities(map, allProbabilities, allVerdicts, allHintProbabilities);
+
             // We get the final results, and return
-            var finalResults = GetFinalResults(allProbabilities, allVerdicts);
+            var finalResults = GetFinalResults(allProbabilities, allVerdicts, allHintProbabilities);
             return finalResults;
+        }
+
+        private void CalculateAllHintPossibilities(IMap map, IDictionary<Coordinate, double> probabilities, IDictionary<Coordinate, bool> verdicts, IDictionary<Coordinate, IDictionary<int, double>> allHintProbabilities)
+        {
+            foreach (var cell in map.AllCells.Where(x => x.State == CellState.Filled && x.Flag != CellFlag.HasMine))
+            {
+                var coord = cell.Coordinate;
+                var guaranteedMines = 0;
+                var neighbourProbabilitySum = 0d;
+                var hintProbabilities = new Dictionary<int, double>();
+                var hintSyncs = new Dictionary<int, object>();
+                for (int i = 0; i <= 8; i++)
+                {
+                    hintProbabilities[i] = 0;
+                    hintSyncs[i] = new object();
+                }
+                allHintProbabilities[coord] = hintProbabilities;
+                var preliminaryNeighbours = map.NeighbourCache[coord].ByState[CellState.Filled];
+                var neighbours = new List<Coordinate>();
+                foreach (var neighbour in preliminaryNeighbours)
+                {
+                    if (neighbour.Flag == CellFlag.HasMine)
+                    {
+                        guaranteedMines++;
+                        continue;
+                    }
+                    var neighbourCoord = neighbour.Coordinate;
+                    /*bool neighbourVerdict;
+                    if (verdicts.TryGetValue(neighbourCoord, out neighbourVerdict))
+                    {
+                        if (neighbourVerdict)
+                        {
+                            guaranteedMines++;
+                        }
+                        continue;
+                    }*/
+                    double neighbourMineProbability;
+                    if (!probabilities.TryGetValue(neighbourCoord, out neighbourMineProbability))
+                    {
+                        continue;
+                    }
+                    neighbourProbabilitySum += neighbourMineProbability;
+                    neighbours.Add(neighbour.Coordinate);
+                }
+                if (neighbours.Count == 0)
+                {
+
+                    hintProbabilities[guaranteedMines] = 1;
+                    continue;
+                }
+                var possibleCombinations = 1 << neighbours.Count;
+                var combinationSequence = Enumerable.Range(0, possibleCombinations);
+                combinationSequence.ForEach(combination =>
+                {
+                    var totalProbability = 1d;
+                    var totalMines = guaranteedMines;
+                    for (int i = 0; i < neighbours.Count; i++)
+                    {
+                        var neighbour = neighbours[i];
+                        var hasMine = (combination & (1 << i)) > 0;
+                        if (hasMine)
+                        {
+                            totalProbability *= probabilities[neighbour];
+                            totalMines++;
+                        }
+                        else
+                        {
+                            totalProbability *= 1d-probabilities[neighbour];
+                        }
+                    }
+                    lock (hintSyncs[totalMines])
+                    {
+                        hintProbabilities[totalMines] += totalProbability;
+                    }
+                });
+            }
         }
 
         private void SolveGaussian(BorderSeparationSolverMap map, Dictionary<Coordinate, bool> allVerdicts)
@@ -854,7 +933,7 @@ namespace MineDotNet.AI.Solvers
             }
         }
 
-        private IDictionary<Coordinate, SolverResult> GetFinalResults(IDictionary<Coordinate, double> probabilities, IDictionary<Coordinate, bool> verdicts)
+        private IDictionary<Coordinate, SolverResult> GetFinalResults(IDictionary<Coordinate, double> probabilities, IDictionary<Coordinate, bool> verdicts, IDictionary<Coordinate, IDictionary<int, double>> hintProbabilities = null)
         {
             var results = new Dictionary<Coordinate, SolverResult>();
             if (probabilities != null)
@@ -868,7 +947,20 @@ namespace MineDotNet.AI.Solvers
             {
                 foreach (var verdict in verdicts)
                 {
-                    results[verdict.Key] = new SolverResult(verdict.Key, verdict.Value ? 1 : 0, verdict.Value);
+                    var solverResult = new SolverResult(verdict.Key, verdict.Value ? 1 : 0, verdict.Value);
+                    results[verdict.Key] = solverResult;
+                }
+            }
+            if (hintProbabilities != null)
+            {
+                foreach (var hintProbability in hintProbabilities)
+                {
+                    SolverResult result;
+                    if (!results.TryGetValue(hintProbability.Key, out result))
+                    {
+                        continue;
+                    }
+                    result.HintProbabilities = hintProbability.Value;
                 }
             }
             return results;

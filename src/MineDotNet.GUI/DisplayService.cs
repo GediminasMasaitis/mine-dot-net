@@ -287,13 +287,23 @@ namespace MineDotNet.GUI
                         if (DrawCoordinates)
                         {
                             var posStr = $"[{i};{j}]";
-                            graphics.DrawString(posStr, debugTextFont, textBrush, j*cellWidth, i*cellHeight);
+                            graphics.DrawString(posStr, debugTextFont, textBrush, j*cellWidth, i*cellHeight + cellHeight - 15);
                         }
                         SolverResult result;
                         if (results.TryGetValue(cell.Coordinate, out result))
                         {
-                            var probabilityStr = result.Probability.ToString("##0.00%");
-                            graphics.DrawString(probabilityStr, debugTextFont, textBrush, j*cellWidth, i*cellHeight + cellHeight - 15);
+                            var probabilityStr = $"m:{result.Probability:000.00%}";
+                            graphics.DrawString(probabilityStr, debugTextFont, textBrush, j*cellWidth, i*cellHeight);
+                            if (result.HintProbabilities != null)
+                            {
+                                var heightOffset = 0;
+                                foreach (var resultHintProbability in result.HintProbabilities)
+                                {
+                                    heightOffset += 15;
+                                    var hintProbabilityStr = $"{resultHintProbability.Key}:{resultHintProbability.Value:000.00%}";
+                                    graphics.DrawString(hintProbabilityStr, debugTextFont, textBrush, j * cellWidth, i * cellHeight + heightOffset);
+                                }
+                            }
                         }
                     }
 

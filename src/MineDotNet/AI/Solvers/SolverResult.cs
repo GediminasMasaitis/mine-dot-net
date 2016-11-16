@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using MineDotNet.Common;
 
 namespace MineDotNet.AI.Solvers
@@ -13,6 +14,7 @@ namespace MineDotNet.AI.Solvers
 
         public Coordinate Coordinate { get; }
         public double Probability { get; set; }
+        public IDictionary<int, double> HintProbabilities { get; set; }
         public bool? Verdict { get; set; }
 
         public override string ToString()
