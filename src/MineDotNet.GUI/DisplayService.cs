@@ -14,20 +14,6 @@ using MineDotNet.Common;
 
 namespace MineDotNet.GUI
 {
-    public class CellClickEventArgs : EventArgs
-    {
-        public CellClickEventArgs(Coordinate coordinate, MouseButtons buttons)
-        {
-            Coordinate = coordinate;
-            Buttons = buttons;
-        }
-
-        public Coordinate Coordinate { get; }
-        public MouseButtons Buttons { get; }
-    }
-
-    public delegate void CellClickEventHandler(object sender, CellClickEventArgs args);
-
     class DisplayService : IDisposable
     {
         public bool DrawCoordinates { get; set; }
@@ -293,7 +279,7 @@ namespace MineDotNet.GUI
                         SolverResult result;
                         if (results.TryGetValue(cell.Coordinate, out result))
                         {
-                            var probabilityStr = $"m:{result.Probability:000.00%}";
+                            var probabilityStr = $"{result.Probability:##0.00%}";
                             graphics.DrawString(probabilityStr, debugTextFont, textBrush, j*cellWidth, i*cellHeight);
                             if (result.HintProbabilities != null)
                             {

@@ -35,7 +35,8 @@ namespace MineDotNet.GUI
         {
         }
 
-        public MainForm(IList<Map> maps)
+        public MainForm(IList<Map> maps
+            )
         {
             InitializeComponent();
 

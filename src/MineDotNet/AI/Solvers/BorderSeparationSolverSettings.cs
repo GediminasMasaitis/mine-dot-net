@@ -15,6 +15,8 @@
         public bool SolveByMineCount { get; set; }
         public bool SolveNonBorderCells { get; set; }
 
+        public bool SolveHintProbabilities { get; set; }
+
         public bool PartialBorderSolving { get; set; }
         public bool BorderResplitting { get; set; }
         public int PartialBorderSolveFrom { get; set; }
@@ -36,6 +38,8 @@
             IgnoreMineCountCompletely = false;
             SolveByMineCount = true;
             SolveNonBorderCells = true;
+
+            SolveHintProbabilities = true;
 
             PartialBorderSolving = true;
             BorderResplitting = true;
