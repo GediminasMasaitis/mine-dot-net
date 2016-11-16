@@ -4,6 +4,7 @@ namespace MineDotNet.Common
     {
         None,
         HasMine,
+        DoesntHaveMine,
         NotSure
     }
 }

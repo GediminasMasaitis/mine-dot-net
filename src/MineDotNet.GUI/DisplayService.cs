@@ -260,6 +260,7 @@ namespace MineDotNet.GUI
             RescaleTiles(cellHeight, cellWidth);
 
             var debugTextFont = new Font(FontFamily.GenericMonospace, 8, FontStyle.Bold);
+            var hintProbabilityTextFont = new Font(FontFamily.GenericMonospace, 6, FontStyle.Bold);
 
             var borderIncrement = (cellWidth/2 - 5)/maps.Length;
 
@@ -296,12 +297,12 @@ namespace MineDotNet.GUI
                             graphics.DrawString(probabilityStr, debugTextFont, textBrush, j*cellWidth, i*cellHeight);
                             if (result.HintProbabilities != null)
                             {
-                                var heightOffset = 0;
+                                var heightOffset = 2;
                                 foreach (var resultHintProbability in result.HintProbabilities)
                                 {
-                                    heightOffset += 15;
+                                    heightOffset += 8;
                                     var hintProbabilityStr = $"{resultHintProbability.Key}:{resultHintProbability.Value:000.00%}";
-                                    graphics.DrawString(hintProbabilityStr, debugTextFont, textBrush, j * cellWidth, i * cellHeight + heightOffset);
+                                    graphics.DrawString(hintProbabilityStr, hintProbabilityTextFont, textBrush, j * cellWidth, i * cellHeight + heightOffset);
                                 }
                             }
                         }

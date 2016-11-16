@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -11,6 +12,11 @@ namespace MineDotNet.Common
 {
     public static class Debugging
     {
+        internal static void Visualize(IMap mainMap)
+        {
+            Visualize(mainMap, (IEnumerable<Coordinate>[])null);
+        }
+
         internal static void Visualize(IMap mainMap, params Border[] borders)
         {
             Visualize(mainMap, borders.Select(x => x.Cells.Select(y => y.Coordinate)).ToArray());
@@ -42,14 +48,18 @@ namespace MineDotNet.Common
             var visualizer = new TextMapVisualizer();
             var maps = new List<IMap>();
             maps.Add(mainMap);
-            foreach (var region in regions)
+            if (regions != null)
             {
-                var maskMap = new Map(mainMap.Width, mainMap.Height, null, true);
-                foreach (var coordinate in region)
+                foreach (var region in regions)
                 {
-                    maskMap[coordinate].State = CellState.Filled;;
+                    var maskMap = new Map(mainMap.Width, mainMap.Height, null, true);
+                    foreach (var coordinate in region)
+                    {
+                        maskMap[coordinate].State = CellState.Filled;
+                        ;
+                    }
+                    maps.Add(maskMap);
                 }
-                maps.Add(maskMap);
             }
             var parameterStr = maps.Select(x => visualizer.VisualizeToString(x).Replace(Environment.NewLine, ";")).Aggregate((x, n) => x + " " + n);
             var startInfo = new ProcessStartInfo(visualizerPath);

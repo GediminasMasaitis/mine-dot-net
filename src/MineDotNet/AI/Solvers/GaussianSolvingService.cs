@@ -28,7 +28,7 @@ namespace MineDotNet.AI.Solvers
             {
                 var hintCell = hintCells[i];
                 var remainingHint = hintCell.Hint - map.NeighbourCache[hintCell.Coordinate].ByFlag[CellFlag.HasMine].Count;
-                var undecidedNeighbours = map.NeighbourCache[hintCell.Coordinate].ByState[CellState.Filled].Where(x => x.Flag != CellFlag.HasMine);
+                var undecidedNeighbours = map.NeighbourCache[hintCell.Coordinate].ByState[CellState.Filled].Where(x => x.Flag != CellFlag.HasMine && x.Flag != CellFlag.DoesntHaveMine);
                 var row = new int[coordinates.Count + 1];
                 foreach (var undecidedNeighbour in undecidedNeighbours)
                 {
