@@ -81,6 +81,12 @@ namespace MineDotNet.AI.Solvers
             }
 
             var allHintProbabilities = new Dictionary<Coordinate, IDictionary<int, double>>();
+            foreach (var cell in map.AllCells)
+            {
+                var hints = Enumerable.Range(0, 9).ToDictionary(x => x, x => 0d);
+                hints[0] = 1d;
+                allHintProbabilities[cell.Coordinate] = hints;
+            }
             // If requested, we do additional solving based on the remaining mine count
             if (Settings.SolveByMineCount)
             {
@@ -343,7 +349,7 @@ namespace MineDotNet.AI.Solvers
                 var exactMineCount = bordersWithExactMineCount.Sum(x => x.MaxMineCount);
                 var exactBorderSize = bordersWithExactMineCount.Sum(x => x.Cells.Count);
                 var exactNonMineCount = exactBorderSize - exactMineCount;
-                GetVariableMineCountBordersProbabilities(bordersWithVariableMineCount, map.RemainingMineCount.Value, map.UndecidedCount, nonBorderCells.Count, exactMineCount, exactNonMineCount, allProbabilities, nonBorderMineCountProbabilities);
+                GetVariableMineCountBordersProbabilities(map, bordersWithVariableMineCount, map.RemainingMineCount.Value, map.UndecidedCount, nonBorderCells.Count, exactMineCount, exactNonMineCount, allProbabilities, nonBorderMineCountProbabilities, allHintProbabilities);
             }
 
             // If requested, we calculate the probabilities of mines in non-border cells, and copy them over.
@@ -353,6 +359,11 @@ namespace MineDotNet.AI.Solvers
                 foreach (var probability in nonBorderProbabilities)
                 {
                     allProbabilities[probability.Key] = probability.Value;
+                    //IDictionary<int, double> hintProbabilities = new Dictionary<int, double>();
+                    //hintProbabilities[0] = 1 - probability.Value;
+                    //hintProbabilities[1] = probability.Value;
+                    //var neighbourHintProbabilities = map.NeighbourCache[probability.Key].AllNeighbours.ToDictionary(x => x.Coordinate, x => hintProbabilities);
+                    //InsertHintProbabilities(allHintProbabilities, neighbourHintProbabilities);
                 }
             }
 
@@ -844,7 +855,7 @@ namespace MineDotNet.AI.Solvers
             }
         }
 
-        private void GetVariableMineCountBordersProbabilities(IList<Border> borders, int minesRemaining, int undecidedCellsRemaining, int nonBorderCellCount, int minesElsewhere, int nonMineCountElsewhere, IDictionary<Coordinate, double> targetProbabilities, IDictionary<int, double> nonBorderMineCountProbabilities)
+        private void GetVariableMineCountBordersProbabilities(IMap map, IList<Border> borders, int minesRemaining, int undecidedCellsRemaining, int nonBorderCellCount, int minesElsewhere, int nonMineCountElsewhere, IDictionary<Coordinate, double> targetProbabilities, IDictionary<int, double> nonBorderMineCountProbabilities, IDictionary<Coordinate, IDictionary<int, double>> allHintProbabilities)
         {
             var alreadyFoundMines = borders.Sum(x => x.Verdicts.Count(y => y.Value));
             var minMinesInNonBorder = minesRemaining - minesElsewhere - borders.Sum(x => x.MaxMineCount) + alreadyFoundMines;
@@ -867,13 +878,17 @@ namespace MineDotNet.AI.Solvers
                 nonBorderMineCounts[i] = 0;
             }
             var totalCombinationLength = borders.Sum(x => x.Cells.Count);
-            var counts = borders.SelectMany(x => x.Cells).ToDictionary(x => x.Coordinate, x => 0d);
-            var countLocks = counts.ToDictionary(x => x.Key, x => new object());
+            var mineCounts = borders.SelectMany(x => x.Cells).ToDictionary(x => x.Coordinate, x => 0d);
+            var countLocks = mineCounts.ToDictionary(x => x.Key, x => new object());
             var commonLock = new object();
             //double totalValidCombinations = 0;
             var cartesianSequence = borders.Select(x => x.ValidCombinations).MultiCartesian();
-            Parallel.ForEach(cartesianSequence, combinationArr =>
-            //cartesianSequence.ForEach(combinationArr =>
+            //var neighbourHintCounts = new Dictionary<Coordinate, IDictionary<int, double>>();
+            var neighbourHintMineCounts = map.AllCells.ToDictionary(x => x.Coordinate, x => (IDictionary<int, double>)Enumerable.Range(0,9).ToDictionary(y => y, y => 0d));
+            var neighbourHintTotalCounts = map.AllCells.ToDictionary(x => x.Coordinate, x => (IDictionary<int, double>)Enumerable.Range(0, 9).ToDictionary(y => y, y => 0d));
+            var neighbourHintLocks = neighbourHintTotalCounts.ToDictionary(x => x.Key, x => new object());
+            //Parallel.ForEach(cartesianSequence, combinationArr =>
+            cartesianSequence.ForEach(combinationArr =>
             {
                 var minePredictionCount = combinationArr.SelectMany(x => x).Count(x => x.Value);
                 var minesInNonBorder = minesRemaining - minesElsewhere - minePredictionCount;
@@ -885,29 +900,54 @@ namespace MineDotNet.AI.Solvers
                 {
                     return;
                 }
-                var ratio = ratios[minesInNonBorder];
+                var weight = ratios[minesInNonBorder];
                 lock (commonLock)
                 {
                     //totalValidCombinations += ratio;
-                    nonBorderMineCounts[minesInNonBorder] += ratio;
+                    nonBorderMineCounts[minesInNonBorder] += weight;
                 }
                 var isValid = IsPredictionValidByMineCount(minePredictionCount, totalCombinationLength, minesRemaining, undecidedCellsRemaining, minesElsewhere, nonMineCountElsewhere);
                 if (!isValid)
                 {
                     throw new Exception("temp");
                 }
+                var neighbourMineCounts = new Dictionary<Coordinate, int>();
+                var borderCellsAroundNeighbours = new Dictionary<Coordinate, int>();
                 foreach (var combination in combinationArr)
                 {
                     foreach (var verdict in combination)
                     {
+                        var neighbours = map.NeighbourCache[verdict.Key].AllNeighbours;
+                        foreach (var neighbour in neighbours)
+                        {
+                            int existingCount;
+                            borderCellsAroundNeighbours.TryGetValue(neighbour.Coordinate, out existingCount);
+                            borderCellsAroundNeighbours[neighbour.Coordinate] = existingCount + 1;
+                        }
                         if (verdict.Value)
                         {
+                            foreach (var neighbour in neighbours)
+                            {
+                                int existingCount;
+                                neighbourMineCounts.TryGetValue(neighbour.Coordinate, out existingCount);
+                                neighbourMineCounts[neighbour.Coordinate] = existingCount + 1;
+                            }
                             lock (countLocks[verdict.Key])
                             {
-                                counts[verdict.Key] += ratio;
+                                mineCounts[verdict.Key] += weight;
                             }
                         }
                     }
+                    foreach (var neighbourMineCount in neighbourMineCounts)
+                    {
+                        var totalCellCount = borderCellsAroundNeighbours[neighbourMineCount.Key];
+                        lock (neighbourHintLocks[neighbourMineCount.Key])
+                        {
+                            neighbourHintMineCounts[neighbourMineCount.Key][neighbourMineCount.Value] += weight;
+                            neighbourHintTotalCounts[neighbourMineCount.Key][neighbourMineCount.Value] += totalCellCount*weight;
+                        }
+                    }
+
                 }
             });
             var totalValidCombinations = nonBorderMineCounts.Values.Sum();
@@ -915,10 +955,68 @@ namespace MineDotNet.AI.Solvers
             {
                 nonBorderMineCountProbabilities[nonBorderMineCount.Key] = nonBorderMineCount.Value/totalValidCombinations;
             }
-            foreach (var count in counts)
+            foreach (var count in mineCounts)
             {
+                var coord = count.Key;
                 var probability = count.Value / totalValidCombinations;
-                targetProbabilities[count.Key] = probability;
+                targetProbabilities[coord] = probability;
+            }
+            var neighbourHintProbabilities = new Dictionary<Coordinate, IDictionary<int, double>>();
+            foreach (var count in neighbourHintMineCounts)
+            {
+                var coord = count.Key;
+                var totalCounts = neighbourHintMineCounts[count.Key];
+                var totalCount = totalCounts.Values.Sum();
+                if (totalCount < 0.000000001d)
+                {
+                    continue;
+                }
+                neighbourHintProbabilities[coord] = count.Value.ToDictionary(x => x.Key, x => x.Value / totalCount);
+            }
+            InsertHintProbabilities(allHintProbabilities, neighbourHintProbabilities);
+        }
+
+        private void InsertHintProbabilities(IDictionary<Coordinate, IDictionary<int, double>> allParentHintProbabilities, Coordinate coord, IDictionary<int, double> otherHintProbabilities)
+        {
+            IDictionary<int, double> parentHintProbabilities;
+            if (!allParentHintProbabilities.TryGetValue(coord, out parentHintProbabilities))
+            {
+                allParentHintProbabilities[coord] = otherHintProbabilities;
+                return;
+            }
+            //var parentHintProbabilities = allParentHintProbabilities[otherHintProbabilities.Key];
+            var newHintProbabilities = Enumerable.Range(0, 9).ToDictionary(x => x, x => 0d);
+            //foreach (var parentHintProbability in parentHintProbabilities)
+            for(var i = 0; i <= 8; i++)
+            {
+                double parentHintProbability;
+                parentHintProbabilities.TryGetValue(i, out parentHintProbability);
+                //foreach (var otherHintProbability in otherHintProbabilities)
+                for(var j = 0; j <= 8; j++)
+                {
+                    double otherHintProbability;
+                    otherHintProbabilities.TryGetValue(j, out otherHintProbability);
+                    var newHint = i + j;
+                    var newProbability = parentHintProbability * otherHintProbability;
+                    if (newHint > 8)
+                    {
+                        if (newProbability > 0.000000001)
+                        {
+                            throw new Exception("This shouldn't happen");
+                        }
+                        continue;
+                    }
+                    newHintProbabilities[newHint] += newProbability;
+                }
+            }
+            allParentHintProbabilities[coord] = newHintProbabilities;
+        }
+
+        private void InsertHintProbabilities(IDictionary<Coordinate, IDictionary<int, double>> allParentHintProbabilities, IDictionary<Coordinate, IDictionary<int, double>> allOtherHintProbabilities)
+        {
+            foreach (var otherHintProbabilities in allOtherHintProbabilities)
+            {
+                InsertHintProbabilities(allParentHintProbabilities, otherHintProbabilities.Key, otherHintProbabilities.Value);
             }
         }
 
