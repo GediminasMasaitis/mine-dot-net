@@ -21,9 +21,31 @@ namespace TestConsole
         {
             //TestMatrixSolving();
             //SolveMapFromFile();
-            BenchmarkSolver();
+            //BenchmarkSolver();
+            SolveMapFromFile();
             //TestGaussianSolving();
             Console.ReadKey();
+        }
+
+        private static void TimeIt(Action a, string name = null)
+        {
+            name = name ?? "That";
+            var sw = new Stopwatch();
+            sw.Start();
+            a.Invoke();
+            sw.Stop();
+            Console.WriteLine($"{name} took {sw.Elapsed.TotalMilliseconds:#.000} ms.");
+        }
+
+        private static T TimeItReturning<T>(Func<T> a, string name = null)
+        {
+            name = name ?? "That";
+            var sw = new Stopwatch();
+            sw.Start();
+            var result = a.Invoke();
+            sw.Stop();
+            Console.WriteLine($"{name} took {sw.Elapsed.TotalMilliseconds:#.000} ms.");
+            return result;
         }
 
         private static void TestMatrixSolving()
@@ -113,7 +135,7 @@ namespace TestConsole
         {
             var parser = new TextMapParser();
             Map map;
-            using (var file = File.OpenRead("map.txt"))
+            using (var file = File.OpenRead("C:/Temp/test_map.txt"))
             {
                 map = parser.Parse(file);
             }
@@ -123,9 +145,16 @@ namespace TestConsole
             Console.WriteLine(mapStr);
             Console.WriteLine();
 
-            var solver = new BorderSeparationSolver();
+            var settings = new BorderSeparationSolverSettings();
+            settings.SolveTrivial = false;
+            settings.SolveGaussian = false;
+            settings.SolveHintProbabilities = false;
+            settings.SolveNonBorderCells = false;
+            settings.PartialBorderSolving = false;
+            var solver = new BorderSeparationSolver(settings);
 
-            var verdicts = solver.Solve(map);
+            var verdicts = TimeItReturning(() => solver.Solve(map));
+
             Console.WriteLine();
             foreach (var verdict in verdicts)
             {

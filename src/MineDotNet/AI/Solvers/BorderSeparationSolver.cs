@@ -750,9 +750,23 @@ namespace MineDotNet.AI.Solvers
             var totalCombinations = 1 << borderLength;
             var allRemainingCellsInBorder = map.UndecidedCount == borderLength;
             var validPredictions = new ConcurrentBag<IDictionary<Coordinate, bool>>();
-            var emptyCells = map.AllCells.Where(x => x.State == CellState.Empty).ToList();
+            var emptyCellSet = new HashSet<Coordinate>();
+            var cellIndices = new Dictionary<Coordinate, int>();
+            for (var i = 0; i < border.Cells.Count; i++)
+            {
+                var cell = border.Cells[i];
+                cellIndices[cell.Coordinate] = i;
+                foreach (var neighbour in map.NeighbourCache[cell.Coordinate].ByState[CellState.Empty])
+                {
+                    emptyCellSet.Add(neighbour.Coordinate);
+                }
+            }
+            emptyCellSet.IntersectWith(border.Cells.SelectMany(x => map.NeighbourCache[x.Coordinate].ByState[CellState.Empty].Select(y => y.Coordinate)));
+            var emptyCells = emptyCellSet.Select(x => map[x]).ToList();//map.AllCells.Where(x => x.State == CellState.Empty).ToList();
             var combos = Enumerable.Range(0, totalCombinations);
+            
             Parallel.ForEach(combos, combo =>
+            //Debugging.ForEach(combos, combo =>
             {
                 var bitsSet = SWAR(combo);
                 if (map.RemainingMineCount.HasValue)
@@ -767,16 +781,29 @@ namespace MineDotNet.AI.Solvers
                         return;
                     }
                 }
-                var predictions = new Dictionary<Coordinate, bool>(borderLength);
-                for (var j = 0; j < borderLength; j++)
-                {
-                    var coord = border.Cells[j].Coordinate;
-                    var hasMine = (combo & (1 << j)) > 0;
-                    predictions[coord] = hasMine;
-                }
-                var valid = IsPredictionValid(map, predictions, emptyCells);
+                //var predictions = new Dictionary<Coordinate, bool>(borderLength);
+                //for (var j = 0; j < borderLength; j++)
+                //{
+                //    var coord = border.Cells[j].Coordinate;
+                //    var hasMine = (combo & (1 << j)) > 0;
+                //    predictions[coord] = hasMine;
+                //}
+                //var valid = IsPredictionValid(map, predictions, emptyCells);
+                //if (valid)
+                //{
+                //    validPredictions.Add(predictions);
+                //}
+
+                var valid = IsPredictionValid2(map, border, combo, emptyCells, cellIndices);
                 if (valid)
                 {
+                    var predictions = new Dictionary<Coordinate, bool>(borderLength);
+                    for (var j = 0; j < borderLength; j++)
+                    {
+                        var coord = border.Cells[j].Coordinate;
+                        var hasMine = (combo & (1 << j)) > 0;
+                        predictions[coord] = hasMine;
+                    }
                     validPredictions.Add(predictions);
                 }
             });
@@ -835,6 +862,55 @@ namespace MineDotNet.AI.Solvers
                     return false;
                 if (foundUnknownCell)
                     continue;
+                if (cell.Hint != neighboursWithMine)
+                    return false;
+            }
+            return true;
+        }
+
+        private bool IsPredictionValid2(IMap map, Border border, int prediction, IList<Cell> emptyCells, IDictionary<Coordinate, int> cellIndices)
+        {
+            foreach (var cell in emptyCells)
+            {
+                var neighboursWithMine = 0;
+                var neighboursWithoutMine = 0;
+                var filledNeighbours = map.NeighbourCache[cell.Coordinate].ByState[CellState.Filled];
+                foreach (var neighbour in filledNeighbours)
+                {
+                    switch (neighbour.Flag)
+                    {
+                        case CellFlag.HasMine:
+                            neighboursWithMine++;
+                            break;
+                        case CellFlag.DoesntHaveMine:
+                            neighboursWithoutMine++;
+                            break;
+                        default:
+                            //int i;
+                            //for (i = 0; i < border.Cells.Count; i++)
+                            //{
+                            //    if (neighbour.Coordinate == border.Cells[i].Coordinate)
+                            //    {
+                            //        break;
+                            //    }
+                            //}
+                            int i = cellIndices[neighbour.Coordinate];
+                            bool verdict = (prediction & (1 << i)) > 0;
+                            if (verdict)
+                            {
+                                neighboursWithMine++;
+                            }
+                            else
+                            {
+                                neighboursWithoutMine++;
+                            }
+                            break;
+                    }
+                }
+                if (neighboursWithMine > cell.Hint)
+                    return false;
+                if (filledNeighbours.Count - neighboursWithoutMine < cell.Hint)
+                    return false;
                 if (cell.Hint != neighboursWithMine)
                     return false;
             }
