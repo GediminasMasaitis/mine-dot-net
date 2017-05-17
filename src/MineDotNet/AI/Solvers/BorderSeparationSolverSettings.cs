@@ -32,20 +32,20 @@
             SolveTrivial = false;
             StopAfterTrivialSolving = false;
 
-            SolveGaussian = true;
+            SolveGaussian = false;
             StopAfterGaussianSolving = false;
 
             IgnoreMineCountCompletely = false;
             SolveByMineCount = true;
             SolveNonBorderCells = true;
 
-            SolveHintProbabilities = true;
+            SolveHintProbabilities = false;
 
             PartialBorderSolving = true;
             BorderResplitting = true;
-            PartialBorderSolveFrom = 18;
-            GiveUpFrom = 20;
-            MaxPartialBorderSize = 14;
+            PartialBorderSolveFrom = 19;
+            GiveUpFrom = 22;
+            MaxPartialBorderSize = 17;
             SetPartiallyCalculatedProbabilities = true;
         }
     }

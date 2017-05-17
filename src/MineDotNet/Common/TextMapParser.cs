@@ -56,6 +56,9 @@ namespace MineDotNet.Common
                         case '!':
                             cell = new Cell(i, j, CellState.Filled, CellFlag.HasMine, 0);
                             break;
+                        case 'v':
+                            cell = new Cell(i, j, CellState.Filled, CellFlag.DoesntHaveMine, 0);
+                            break;
                         case 'X':
                             cell = new Cell(i, j, CellState.Wall, CellFlag.None, 0);
                             break;

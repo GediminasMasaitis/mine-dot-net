@@ -56,7 +56,6 @@ namespace MineDotNet.Common
                     foreach (var coordinate in region)
                     {
                         maskMap[coordinate].State = CellState.Filled;
-                        ;
                     }
                     maps.Add(maskMap);
                 }
