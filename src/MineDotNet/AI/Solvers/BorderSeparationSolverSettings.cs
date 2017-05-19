@@ -33,14 +33,14 @@
             SolveTrivial = false;
             StopAfterTrivialSolving = false;
 
-            SolveGaussian = true;
+            SolveGaussian = false;
             StopAfterGaussianSolving = false;
 
             IgnoreMineCountCompletely = false;
             SolveByMineCount = true;
             SolveNonBorderCells = true;
 
-            SolveHintProbabilities = true;
+            SolveHintProbabilities = false;
 
             PartialBorderSolving = true;
             BorderResplitting = true;

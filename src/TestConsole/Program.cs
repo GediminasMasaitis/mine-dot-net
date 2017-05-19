@@ -146,10 +146,11 @@ namespace TestConsole
             Console.WriteLine();
 
             var settings = new BorderSeparationSolverSettings();
+            settings.GiveUpFrom = 28;
             settings.SolveTrivial = false;
-            settings.SolveGaussian = false;
-            settings.SolveHintProbabilities = false;
-            settings.SolveNonBorderCells = false;
+            settings.SolveGaussian = true;
+            //settings.SolveHintProbabilities = false;
+            //settings.SolveNonBorderCells = false;
             settings.PartialBorderSolving = false;
             var solver = new BorderSeparationSolver(settings);
 

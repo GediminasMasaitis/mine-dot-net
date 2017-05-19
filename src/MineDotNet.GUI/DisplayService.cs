@@ -123,6 +123,12 @@ namespace MineDotNet.GUI
                 FlagTextures[CellFlag.HasMine] = Image.FromFile(flagPath);
             }
 
+            var antiFlagPath = $@"{path}\antiflag.png";
+            if(File.Exists(flagPath))
+            {
+                FlagTextures[CellFlag.DoesntHaveMine] = Image.FromFile(antiFlagPath);
+            }
+
             var unknownPath = $@"{path}\unknown.png";
             if (File.Exists(unknownPath))
             {

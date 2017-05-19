@@ -60,6 +60,8 @@ namespace MineDotNet.Common
                             return "#";
                         case CellFlag.HasMine:
                             return "!";
+                        case CellFlag.DoesntHaveMine:
+                            return "v";
                         case CellFlag.NotSure:
                             return "?";
                         default:
