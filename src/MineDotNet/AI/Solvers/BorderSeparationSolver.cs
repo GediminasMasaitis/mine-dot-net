@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using MineDotNet.Common;
 using MineDotNet.Etc;
@@ -415,7 +416,7 @@ namespace MineDotNet.AI.Solvers
 
             // We find all possible valid combinations for this border. If we didn't find any,
             // this means the map is invalid.
-            border.ValidCombinations = FindValidBorderCellCombinations(map, border);
+            border.ValidCombinations = FindValidBorderCellCombinationsNew(map, border);
             if (border.ValidCombinations.Count == 0)
             {
                 // TODO Must be invalid map... Handle somehow
@@ -739,10 +740,196 @@ namespace MineDotNet.AI.Solvers
             }
         }
 
+        byte[] GetCombinationSearchMap(BorderSeparationSolverMap originalMap, Border border)
+        {
+            
+            var emptyPtsSet = new HashSet<Coordinate>();
+            var cellIndices = new int[originalMap.Cells.Length];
+            for(var i = 0; i < border.Cells.Count; i++)
+            {
+                var c = border.Cells[i];
+                cellIndices[c.Coordinate.X * originalMap.Height + c.Coordinate.Y] = i;
+                var entry = originalMap.NeighbourCache[c.Coordinate].ByState[CellState.Empty];
+                foreach(var cell in entry)
+                {
+                    emptyPtsSet.Add(cell.Coordinate);
+                }
+            }
+            var emptyPtCount = (byte)emptyPtsSet.Count;
+            var m = new List<byte>(emptyPtCount * 9);
+            foreach(var emptyPt in emptyPtsSet)
+            {
+                var c = originalMap[emptyPt];
+                var entry = originalMap.NeighbourCache[c.Coordinate];
+                var filledNeighbours = entry.ByState[CellState.Filled];
+
+                var headerByte = (byte)((c.Hint << 4) | filledNeighbours.Count);
+                m.Add(headerByte);
+
+                for(var j = 0; j< 8; j++)
+                {
+                    if(j<filledNeighbours.Count)
+                    {
+                        var neighbour = filledNeighbours[j];
+                        var cellIndex = cellIndices[neighbour.Coordinate.X * originalMap.Height + neighbour.Coordinate.Y];
+                        var neighbourByte = (byte)(cellIndex << 2);
+                        neighbourByte |= (byte)neighbour.Flag;
+                        m.Add(neighbourByte);
+                    }
+                    else
+                    {
+                        m.Add(0xFF);
+                    }
+                }
+            }
+            var mArr = m.ToArray();
+            return mArr;
+        }
+
+        private IList<IDictionary<Coordinate, bool>> FindValidBorderCellCombinationsNew(BorderSeparationSolverMap solverMap, Border border)
+        {
+            var borderLength = border.Cells.Count;
+            Console.WriteLine(borderLength);
+            var total = (uint)(1 << borderLength);
+            var results = new List<uint>();
+            var m = GetCombinationSearchMap(solverMap, border);
+            var mapSize = (byte)(m.Length / 9);
+            var allRemainingCellsInBorder = solverMap.UndecidedCount == borderLength;
+            //cout << "Border size: " << border_length << endl;
+            //cout << "All remaining mines in border" << endl;
+            if (borderLength  >= Settings.MultithreadFrom)
+            {
+                ThrValidatePredictions(mapSize, m, results, total);
+            }
+            else
+            {
+                ValidatePredictions(mapSize, m, results, 0, total, null);
+            }
+            var validPredictions = new List<IDictionary<Coordinate, bool>>();
+            foreach (var prediction in results)
+            {
+                if (prediction == -1)
+                {
+                    break;
+                }
+                if (solverMap.RemainingMineCount > 0)
+                {
+                    var bitsSet = SWAR(prediction);
+                    if (bitsSet > solverMap.RemainingMineCount)
+                    {
+                        continue;
+                    }
+                    if (allRemainingCellsInBorder && bitsSet != solverMap.RemainingMineCount)
+                    {
+                        continue;
+                    }
+                }
+                var predictions = new Dictionary<Coordinate, bool>();
+                for (int j = 0; j < borderLength; j++)
+                {
+                    var pt = border.Cells[j].Coordinate;
+                    var hasMine = (prediction & (1 << j)) > 0;
+                    predictions[pt] = hasMine;
+                }
+                validPredictions.Add(predictions);
+            }
+            return validPredictions;
+        }
+
+        private void ThrValidatePredictions(byte mapSize, byte[] m, List<uint> results, uint total)
+        {
+            var threadCount = Environment.ProcessorCount;
+            var threadLoad = (uint)(total / threadCount);
+            var threads = new List<Thread>();
+            var sync = new object();
+            for (uint i = 0; i < threadCount; i++)
+            {
+                uint min = threadLoad * i;
+                uint max = min + threadLoad;
+                if (i == threadCount - 1)
+                {
+                    max = total;
+                }
+
+                var thr = new Thread(() =>
+                {
+                    ValidatePredictions(mapSize, m, results, min, max, sync);
+                });
+
+                thr.IsBackground = true;
+                thr.Start();
+                threads.Add(thr);
+
+            }
+
+            foreach (var thr in threads)
+            {
+                thr.Join();
+            }
+        }
+
+        private void ValidatePredictions(byte mapSize, byte[] m, List<uint> results, uint min, uint max, object sync)
+        {
+            for (uint prediction = min; prediction < max; prediction++)
+            {
+                bool predictionValid = true;
+                for (byte i = 0; i < mapSize; i++)
+                {
+                    byte neighboursWithMine = 0;
+                    ushort headerOffset = (ushort)(i * 9);
+                    byte header = m[headerOffset];
+                    byte neighbourCount = (byte)(header & 0x0F);
+                    byte hint = (byte)(header >> 4);
+                    for (byte j = 1; j <= neighbourCount; j++)
+                    {
+                        byte neighbour = m[headerOffset + j];
+                        byte flag = (byte)(neighbour & 0x03);
+                        switch (flag)
+                        {
+                            case 1:
+                                ++neighboursWithMine;
+                                break;
+                            case 2:
+                                break;
+                            default:
+                            {
+                                if ((prediction & (1 << (neighbour >> 2))) != 0)
+                                {
+                                    ++neighboursWithMine;
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+                    if (neighboursWithMine != hint)
+                    {
+                        predictionValid = false;
+                        break;
+                    }
+                }
+
+                if (predictionValid)
+                {
+                    if (sync != null)
+                    {
+                        lock (sync)
+                        {
+                            results.Add(prediction);
+                        }
+                    }
+                    else
+                    {
+                        results.Add(prediction);
+                    }
+                }
+            }
+        }
+
         private IList<IDictionary<Coordinate, bool>> FindValidBorderCellCombinations(BorderSeparationSolverMap map, Border border)
         {
             var borderLength = border.Cells.Count;
-            const int maxSize = 31;
+            const int maxSize = 30;
             if (borderLength > maxSize)
             {
                 throw new InvalidDataException($"Border with {borderLength} cells is too large, maximum {maxSize} cells allowed");
@@ -761,6 +948,7 @@ namespace MineDotNet.AI.Solvers
                     emptyCellSet.Add(neighbour.Coordinate);
                 }
             }
+            Console.WriteLine(borderLength);
             emptyCellSet.IntersectWith(border.Cells.SelectMany(x => map.NeighbourCache[x.Coordinate].ByState[CellState.Empty].Select(y => y.Coordinate)));
             var emptyCells = emptyCellSet.Select(x => map[x]).ToList();//map.AllCells.Where(x => x.State == CellState.Empty).ToList();
             var combos = Enumerable.Range(0, totalCombinations);
@@ -768,7 +956,7 @@ namespace MineDotNet.AI.Solvers
             Parallel.ForEach(combos, combo =>
             //Debugging.ForEach(combos, combo =>
             {
-                var bitsSet = SWAR(combo);
+                var bitsSet = SWAR((uint)combo);
                 if (map.RemainingMineCount.HasValue)
                 {
                     if (bitsSet > map.RemainingMineCount.Value)
@@ -784,7 +972,7 @@ namespace MineDotNet.AI.Solvers
                 //var predictions = new Dictionary<Coordinate, bool>(borderLength);
                 //for (var j = 0; j < borderLength; j++)
                 //{
-                //    var coord = border.Cells[j].Coordinate;
+                //    var coord = border[j].Coordinate;
                 //    var hasMine = (combo & (1 << j)) > 0;
                 //    predictions[coord] = hasMine;
                 //}
@@ -810,7 +998,7 @@ namespace MineDotNet.AI.Solvers
             return validPredictions.ToList();
         }
 
-        private int SWAR(int i)
+        private uint SWAR(uint i)
         {
             i = i - ((i >> 1) & 0x55555555);
             i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
@@ -889,7 +1077,7 @@ namespace MineDotNet.AI.Solvers
                             //int i;
                             //for (i = 0; i < border.Cells.Count; i++)
                             //{
-                            //    if (neighbour.Coordinate == border.Cells[i].Coordinate)
+                            //    if (neighbour.Coordinate == border[i].Coordinate)
                             //    {
                             //        break;
                             //    }

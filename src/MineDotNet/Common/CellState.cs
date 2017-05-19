@@ -1,9 +1,9 @@
 namespace MineDotNet.Common
 {
-    public enum CellState
+    public enum CellState : byte
     {
-        Empty,
-        Filled,
-        Wall
+        Empty = 0,
+        Filled = 1,
+        Wall = 2
     }
 }

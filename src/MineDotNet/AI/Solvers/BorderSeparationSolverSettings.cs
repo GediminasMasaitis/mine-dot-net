@@ -23,6 +23,7 @@
         public int GiveUpFrom { get; set; }
         public int MaxPartialBorderSize { get; set; }
         public bool SetPartiallyCalculatedProbabilities { get; set; }
+        public int MultithreadFrom { get; set; }
 
         public BorderSeparationSolverSettings()
         {
@@ -44,9 +45,11 @@
             PartialBorderSolving = true;
             BorderResplitting = true;
             PartialBorderSolveFrom = 18;
-            GiveUpFrom = 20;
+            GiveUpFrom = 31;
             MaxPartialBorderSize = 14;
             SetPartiallyCalculatedProbabilities = true;
+
+            MultithreadFrom = 20;
         }
     }
 }

@@ -1,10 +1,10 @@
 namespace MineDotNet.Common
 {
-    public enum CellFlag
+    public enum CellFlag : byte
     {
-        None,
-        HasMine,
-        DoesntHaveMine,
-        NotSure
+        None = 0,
+        HasMine = 1,
+        DoesntHaveMine = 2,
+        NotSure = 3
     }
 }
