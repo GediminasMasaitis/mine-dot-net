@@ -15,6 +15,8 @@ namespace MineDotNet.AI.Solvers
         public bool GaussianStopAlways { get; set; } = false;
 
         public bool SeparationSolve { get; set; } = true;
+        public bool SeparationOrderBordersBySize { get; set; } = true;
+        public bool SeparationOrderBordersBySizeDescending { get; set; } = false;
         public bool SeparationSingleBorderStopOnNoMineVerdict { get; set; } = true;
         public bool SeparationSingleBorderStopOnAnyVerdict { get; set; } = false;
         public bool SeparationSingleBorderStopAlways { get; set; } = false;
@@ -25,8 +27,8 @@ namespace MineDotNet.AI.Solvers
         public bool PartialAllStopOnNoMineVerdict { get; set; } = true;
         public bool PartialAllStopOnAnyVerdict { get; set; } = false;
         public bool PartialStopAlways { get; set; } = false;
-        public int PartialSolveFromSize { get; set; } = 20;
-        public int PartialOptimalSize { get; set; } = 18;
+        public int PartialSolveFromSize { get; set; } = 24;
+        public int PartialOptimalSize { get; set; } = 14;
         public bool PartialSetProbabilityGuesses { get; set; } = true;
 
         public bool ResplitOnPartialVerdict { get; set; } = true;
@@ -41,9 +43,9 @@ namespace MineDotNet.AI.Solvers
         // TODO
         public bool ValidCombinationSearchOpenCl { get; set; } = true;
         public bool ValidCombinationSearchOpenClAllowLoopBreak { get; set; } = true;
-        public int ValidCombinationSearchOpenClUseFromSize { get; set; } = 18;
+        public int ValidCombinationSearchOpenClUseFromSize { get; set; } = 17;
         public int ValidCombinationSearchOpenClMaxBatchSize { get; set; } = 20;
-        public int ValidCombinationSearchOpenClPlatformID { get; set; } = 0;
+        public int ValidCombinationSearchOpenClPlatformID { get; set; } = 1;
         public int ValidCombinationSearchOpenClDeviceID { get; set; } = 0;
 
         public bool ValidCombinationSearchMultithread { get; set; } = true;
@@ -78,6 +80,10 @@ namespace MineDotNet.AI.Solvers
 
         [MarshalAs(UnmanagedType.U1)]
         public bool SeparationSolve;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool SeparationOrderBordersBySize;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool SeparationOrderBordersBySizeDescending;
         [MarshalAs(UnmanagedType.U1)]
         public bool SeparationSingleBorderStopOnNoMineVerdict;
         [MarshalAs(UnmanagedType.U1)]
@@ -149,6 +155,8 @@ namespace MineDotNet.AI.Solvers
             GaussianStopAlways = originalSettings.GaussianStopAlways;
 
             SeparationSolve = originalSettings.SeparationSolve;
+            SeparationOrderBordersBySize = originalSettings.SeparationOrderBordersBySize;
+            SeparationOrderBordersBySizeDescending = originalSettings.SeparationOrderBordersBySizeDescending;
             SeparationSingleBorderStopOnNoMineVerdict = originalSettings.SeparationSingleBorderStopOnNoMineVerdict;
             SeparationSingleBorderStopOnAnyVerdict = originalSettings.SeparationSingleBorderStopOnAnyVerdict;
             SeparationSingleBorderStopAlways = originalSettings.SeparationSingleBorderStopAlways;

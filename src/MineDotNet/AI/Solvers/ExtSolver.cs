@@ -51,6 +51,7 @@ namespace MineDotNet.AI.Solvers
         public IDictionary<Coordinate, SolverResult> Solve(IMap map)
         {
             var str = Visualizer.VisualizeToString(map);
+            str = str.Replace("\r", string.Empty);
             var buffer_size = map.Width * map.Height;
             var structSize = Marshal.SizeOf(typeof(ExtSolverResult));
             var buffer = Marshal.AllocHGlobal(structSize * buffer_size);

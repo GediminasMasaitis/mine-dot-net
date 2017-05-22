@@ -117,15 +117,27 @@ namespace TestConsole
         private static void BenchmarkSolver()
         {
             var settings = new BorderSeparationSolverSettings();
-            settings.TrivialSolve = true;
-            settings.GaussianSolve = true;
+            //settings.TrivialSolve = false;
+            //settings.GaussianSolve = false;
+            //settings.PartialSolve = false;
+            //settings.MineCountIgnoreCompletely = true;
             settings.GuessIfNoNoMineVerdict = false;
+            //settings.GiveUpFromSize = 25;
+            //settings.SeparationSingleBorderStopOnNoMineVerdict = false;
             var solver = new ExtSolver(settings);
             var secondarySolver = new BorderSeparationSolver(settings);
             var guesser = new LowestProbabilityGuesser();
             var testsToRun = 500;
             var visualizer = new TextMapVisualizer();
             var benchmarker = new Benchmarker();
+            benchmarker.AfterBenchmark += entry =>
+            {
+                if (entry.Index % 50 != 0)
+                {
+                    return;
+                }
+                Console.WriteLine($"{entry.Index:0000}: {entry.Solved}");
+            };
             benchmarker.MissingFromPrimary += (map, results) =>
             {
                 Console.WriteLine("Missing from primary");
@@ -147,9 +159,12 @@ namespace TestConsole
                 }
             };
             var benchmarkSequence = benchmarker.BenchmarkMultipleDensities(solver, guesser, 16, 16, 0.01, 0.35, 0.01, testsToRun);
+            //var benchmarkSequence = benchmarker.BenchmarkMultipleDensities(solver, guesser, 16, 16, 0.01, 0.35, 0.01, testsToRun, secondarySolver);
             var csv = new StringBuilder();
-            var csvpath = @"C:\temp\benchmark.csv";
+            var csvpath = @"C:\Temp\benchmark.csv";
+            var infopath = @"C:\Temp\info.txt";
             File.Delete(csvpath);
+            File.Delete(infopath);
             foreach (var densityGroup in benchmarkSequence)
             {
                 //var i = 1;
@@ -163,12 +178,16 @@ namespace TestConsole
                 var averageTime = new TimeSpan((long)entries.Select(x => x.TotalDuration.Ticks).Average());
                 var averageSteps = entries.Average(x => x.SolvingDuarations.Count);
                 File.AppendAllText(csvpath, $"{densityGroup.Density};{testsToRun};{successRate};{averageSteps};{averageTime.TotalMilliseconds:0.000}{Environment.NewLine}");
-                Console.WriteLine($"Density: {densityGroup.Density:##0.00%}");
-                Console.WriteLine($"Tests ran: {testsToRun}");
-                Console.WriteLine($"Success rate: {successRate:##0.00%}");
-                Console.WriteLine($"Average steps: {averageSteps}");
-                Console.WriteLine($"Average time: {averageTime.TotalMilliseconds:0.000}");
-                Console.WriteLine();
+                var sb = new StringBuilder();
+                sb.AppendLine($"Density: {densityGroup.Density:##0.00%}");
+                sb.AppendLine($"Tests ran: {testsToRun}");
+                sb.AppendLine($"Success rate: {successRate:##0.00%}");
+                sb.AppendLine($"Average steps: {averageSteps}");
+                sb.AppendLine($"Average time: {averageTime.TotalMilliseconds:0.000}");
+                sb.AppendLine();
+                var str = sb.ToString();
+                Console.Write(str);
+                File.AppendAllText(infopath, str);
             }
             Console.WriteLine("Benchmarks complete.");
         }
@@ -189,11 +208,13 @@ namespace TestConsole
 
             var settings = new BorderSeparationSolverSettings();
             settings.TrivialSolve = false;
-            settings.GaussianSolve = true;
-            settings.GaussianStopAlways = true;
+            settings.GaussianSolve = false;
+            settings.PartialSolve = false;
+            settings.MineCountIgnoreCompletely = true;
             settings.GuessIfNoNoMineVerdict = false;
-            var solver = new ExtSolver(settings);
-            //var solver = new BorderSeparationSolver(settings);
+            settings.GiveUpFromSize = 25;
+            //var solver = new ExtSolver(settings);
+            var solver = new BorderSeparationSolver(settings);
 
             var verdicts = TimeItReturning(() => solver.Solve(map));
 

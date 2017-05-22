@@ -39,12 +39,15 @@ namespace MineDotNet.AI.Benchmarking
         public BenchmarkDensityGroup Benchmark(ISolver solver, IGuesser guesser, int width, int height, int mineCount, int testsToRun, ISolver secondarySolver = null)
         {
             var engines = InitEngines(width, height, mineCount, testsToRun);
-            var entries = engines.Select(x =>
+            var entries = new List<BenchmarkEntry>();
+            for (var i = 0; i < engines.Count; i++)
             {
-                var result = BenchmarkEngine(x, solver, guesser, secondarySolver);
-                AfterBenchmark?.Invoke(result);
-                return result;
-            });
+                var gameEngine = engines[i];
+                var entry = BenchmarkEngine(gameEngine, solver, guesser, secondarySolver);
+                entry.Index = i;
+                AfterBenchmark?.Invoke(entry);
+                entries.Add(entry);
+            }
             var group = new BenchmarkDensityGroup(entries, mineCount/(double) (width*height));
             return group;
         }

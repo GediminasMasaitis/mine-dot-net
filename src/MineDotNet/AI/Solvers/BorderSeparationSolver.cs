@@ -66,7 +66,15 @@ namespace MineDotNet.AI.Solvers
             var commonBorder = FindCommonBorder(map);
 
             // We separate the common border into multiple, non-connecting borders, which can be solved independently.
-            var originalBorderSequence = SeparateBorders(commonBorder, map).OrderBy(x => x.Cells.Count);
+            var originalBorderSequence = SeparateBorders(commonBorder, map);
+            if (Settings.SeparationOrderBordersBySize)
+            {
+                originalBorderSequence = originalBorderSequence.OrderBy(x => x.Cells.Count);
+            }
+            else if (Settings.SeparationOrderBordersBySizeDescending)
+            {
+                originalBorderSequence = originalBorderSequence.OrderByDescending(x => x.Cells.Count);
+            }
 
             // We iterate over each border, and attempt to solve it,
             // then copy the border's verdicts and probabilities
@@ -795,7 +803,7 @@ namespace MineDotNet.AI.Solvers
         private IList<IDictionary<Coordinate, bool>> FindValidBorderCellCombinationsNew(BorderSeparationSolverMap solverMap, Border border)
         {
             var borderLength = border.Cells.Count;
-            Console.WriteLine(borderLength);
+            //Console.WriteLine(borderLength);
             var total = (uint)(1 << borderLength);
             var results = new List<uint>();
             var m = GetCombinationSearchMap(solverMap, border);
