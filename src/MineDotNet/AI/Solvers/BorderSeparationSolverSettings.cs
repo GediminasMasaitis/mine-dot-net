@@ -9,7 +9,7 @@ namespace MineDotNet.AI.Solvers
         public bool TrivialStopOnAnyVerdict { get; set; } = false;
         public bool TrivialStopAlways { get; set; } = false;
 
-        public bool GaussianSolve { get; set; } = false;
+        public bool GaussianSolve { get; set; } = true;
         public bool GaussianStopOnNoMineVerdict { get; set; } = true;
         public bool GaussianStopOnAnyVerdict { get; set; } = false;
         public bool GaussianStopAlways { get; set; } = false;
@@ -24,7 +24,7 @@ namespace MineDotNet.AI.Solvers
         public bool PartialSingleStopOnAnyVerdict { get; set; } = false;
         public bool PartialAllStopOnNoMineVerdict { get; set; } = true;
         public bool PartialAllStopOnAnyVerdict { get; set; } = false;
-        public bool PartialStopAlways { get; set; } = true;
+        public bool PartialStopAlways { get; set; } = false;
         public int PartialSolveFromSize { get; set; } = 20;
         public int PartialOptimalSize { get; set; } = 18;
         public bool PartialSetProbabilityGuesses { get; set; } = true;
@@ -43,7 +43,7 @@ namespace MineDotNet.AI.Solvers
         public bool ValidCombinationSearchOpenClAllowLoopBreak { get; set; } = true;
         public int ValidCombinationSearchOpenClUseFromSize { get; set; } = 18;
         public int ValidCombinationSearchOpenClMaxBatchSize { get; set; } = 20;
-        public int ValidCombinationSearchOpenClPlatformID { get; set; } = 1;
+        public int ValidCombinationSearchOpenClPlatformID { get; set; } = 0;
         public int ValidCombinationSearchOpenClDeviceID { get; set; } = 0;
 
         public bool ValidCombinationSearchMultithread { get; set; } = true;

@@ -12,7 +12,9 @@ namespace MineDotNet.AI.Benchmarking
 {
     public class Benchmarker
     {
-        public event Action<Map, IDictionary<Coordinate, SolverResult>> OnMissingResult;
+        public event Action<Map, IDictionary<Coordinate, SolverResult>> MissingFromPrimary;
+        public event Action<Map, IDictionary<Coordinate, SolverResult>> MissingFromSecondary;
+        public event Action<BenchmarkEntry> AfterBenchmark;
 
         private IList<GameEngine> InitEngines(int width, int height, double mineDensity, int testsToRun)
         {
@@ -37,7 +39,12 @@ namespace MineDotNet.AI.Benchmarking
         public BenchmarkDensityGroup Benchmark(ISolver solver, IGuesser guesser, int width, int height, int mineCount, int testsToRun, ISolver secondarySolver = null)
         {
             var engines = InitEngines(width, height, mineCount, testsToRun);
-            var entries = engines.Select(x => BenchmarkEngine(x, solver, guesser, secondarySolver));
+            var entries = engines.Select(x =>
+            {
+                var result = BenchmarkEngine(x, solver, guesser, secondarySolver);
+                AfterBenchmark?.Invoke(result);
+                return result;
+            });
             var group = new BenchmarkDensityGroup(entries, mineCount/(double) (width*height));
             return group;
         }
@@ -59,6 +66,7 @@ namespace MineDotNet.AI.Benchmarking
         {
             var entry = new BenchmarkEntry();
             entry.GameMap = engine.GameMap;
+            entry.MineCount = entry.GameMap.RemainingMineCount.Value;
             var sw = new Stopwatch();
             while (true)
             {
@@ -69,10 +77,15 @@ namespace MineDotNet.AI.Benchmarking
                 if (secondarySolver != null)
                 {
                     var secondarySolverResults = secondarySolver.Solve(map);
-                    var missingResults = secondarySolverResults.Where(x => x.Value.Verdict.HasValue && !solverResults.ContainsKey(x.Key)).ToDictionary(x => x.Key, x => x.Value);
-                    if (missingResults.Count > 0)
+                    var missingPrimaryResults = secondarySolverResults.Where(x => x.Value.Verdict.HasValue && !solverResults.ContainsKey(x.Key)).ToDictionary(x => x.Key, x => x.Value);
+                    var missingSecondaryResults = solverResults.Where(x => x.Value.Verdict.HasValue && !secondarySolverResults.ContainsKey(x.Key)).ToDictionary(x => x.Key, x => x.Value);
+                    if (missingPrimaryResults.Count > 0)
                     {
-                        OnMissingResult?.Invoke(map, missingResults);
+                        MissingFromPrimary?.Invoke(map, missingPrimaryResults);
+                    }
+                    if (missingSecondaryResults.Count > 0)
+                    {
+                        MissingFromSecondary?.Invoke(map, missingSecondaryResults);
                     }
                 }
                 entry.SolvingDuarations.Add(sw.Elapsed);

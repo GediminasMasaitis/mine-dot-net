@@ -31,6 +31,7 @@ namespace MineDotNet.AI.Solvers
             map.BuildNeighbourCache();
             var allProbabilities = new Dictionary<Coordinate, double>();
             var allVerdicts = new Dictionary<Coordinate, bool>();
+            var allHintProbabilities = new Dictionary<Coordinate, IDictionary<int, double>>();
             var borders = new List<Border>();
 
             // We first attempt trivial solving.
@@ -55,8 +56,8 @@ namespace MineDotNet.AI.Solvers
                 }
             }
 
-            var allHintProbabilities = new Dictionary<Coordinate, IDictionary<int, double>>();
-            if (Settings.SeparationSolve)
+            
+            if (!Settings.SeparationSolve)
             {
                 return GetFinalResults(allProbabilities, allVerdicts, allHintProbabilities);
             }
