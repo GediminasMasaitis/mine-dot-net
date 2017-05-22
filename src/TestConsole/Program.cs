@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Media;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using MineDotNet.AI;
@@ -17,12 +18,19 @@ namespace TestConsole
 {
     class Program
     {
+        [DllImport("minedotcpp.dll", EntryPoint = "init_solver")]
+        static extern void InitSolver(ExternalBorderSeparationSolverSettings settings);
+    
         static void Main(string[] args)
         {
+            var settings = new BorderSeparationSolverSettings();
+            var extSettings = new ExternalBorderSeparationSolverSettings(settings);
+            InitSolver(extSettings);
+            
             //TestMatrixSolving();
             //SolveMapFromFile();
             //BenchmarkSolver();
-            SolveMapFromFile();
+            //SolveMapFromFile();
             //TestGaussianSolving();
             Console.ReadKey();
         }
@@ -99,11 +107,9 @@ namespace TestConsole
             var solver = new BorderSeparationSolver();
             var guesser = new LowestProbabilityGuesser();
             var testsToRun = 500;
-            solver.Settings.SolveTrivial = false;
-            solver.Settings.StopAfterTrivialSolving = false;
-            solver.Settings.SolveGaussian = true;
-            solver.Settings.StopAfterGaussianSolving = true;
-            solver.Settings.StopOnNoMineVerdict = true;
+            solver.Settings.TrivialSolve = false;
+            solver.Settings.GaussianSolve = true;
+            solver.Settings.GaussianStopAlways = true;
             var benchmarker = new Benchmarker();
             var benchmarkSequence = benchmarker.BenchmarkMultipleDensities(solver, guesser, 16, 16, 0.01, 0.35, 0.01, testsToRun);
             var csv = new StringBuilder();
@@ -146,12 +152,12 @@ namespace TestConsole
             Console.WriteLine();
 
             var settings = new BorderSeparationSolverSettings();
-            settings.GiveUpFrom = 28;
-            settings.SolveTrivial = false;
-            settings.SolveGaussian = true;
+            settings.GiveUpFromSize = 28;
+            settings.TrivialSolve = false;
+            settings.GaussianSolve = true;
             //settings.SolveHintProbabilities = false;
             //settings.SolveNonBorderCells = false;
-            settings.PartialBorderSolving = false;
+            settings.PartialSolve = false;
             var solver = new BorderSeparationSolver(settings);
 
             var verdicts = TimeItReturning(() => solver.Solve(map));
@@ -169,14 +175,13 @@ namespace TestConsole
             var guesser = new LowestProbabilityGuesser();
 
             var solver = new BorderSeparationSolver();
-            solver.Settings.SolveTrivial = false;
-            solver.Settings.StopAfterTrivialSolving = false;
-            solver.Settings.SolveGaussian = true;
-            solver.Settings.StopAfterGaussianSolving = true;
+            solver.Settings.TrivialSolve = false;
+            solver.Settings.GaussianSolve = true;
+            solver.Settings.GaussianStopAlways = true;
 
             var secondarySolver = new BorderSeparationSolver();
-            secondarySolver.Settings.PartialBorderSolving = false;
-            secondarySolver.Settings.GiveUpFrom = 30;
+            secondarySolver.Settings.PartialSolve = false;
+            secondarySolver.Settings.GiveUpFromSize = 30;
             
             var benchmarker = new Benchmarker();
             benchmarker.OnMissingResult += (map, results) =>

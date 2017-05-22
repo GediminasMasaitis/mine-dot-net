@@ -1,55 +1,192 @@
-﻿namespace MineDotNet.AI.Solvers
+﻿using System.Runtime.InteropServices;
+
+namespace MineDotNet.AI.Solvers
 {
     public class BorderSeparationSolverSettings
     {
-        public bool StopOnNoMineVerdict { get; set; }
-        public bool StopOnAnyVerdict { get; set; }
+        public bool TrivialSolve { get; set; } = true;
+        public bool TrivialStopOnNoMineVerdict { get; set; } = true;
+        public bool TrivialStopOnAnyVerdict { get; set; } = false;
+        public bool TrivialStopAlways { get; set; } = false;
 
-        public bool SolveTrivial { get; set; }
-        public bool StopAfterTrivialSolving { get; set; }
+        public bool GaussianSolve { get; set; } = false;
+        public bool GaussianStopOnNoMineVerdict { get; set; } = true;
+        public bool GaussianStopOnAnyVerdict { get; set; } = false;
+        public bool GaussianStopAlways { get; set; } = false;
 
-        public bool SolveGaussian { get; set; }
-        public bool StopAfterGaussianSolving { get; set; }
+        public bool SeparationSolve { get; set; } = true;
+        public bool SeparationSingleBorderStopOnNoMineVerdict { get; set; } = true;
+        public bool SeparationSingleBorderStopOnAnyVerdict { get; set; } = false;
+        public bool SeparationSingleBorderStopAlways { get; set; } = false;
 
-        public bool IgnoreMineCountCompletely { get; set; }
-        public bool SolveByMineCount { get; set; }
-        public bool SolveNonBorderCells { get; set; }
+        public bool PartialSolve { get; set; } = true;
+        public bool PartialSingleStopOnNoMineVerdict { get; set; } = false;
+        public bool PartialSingleStopOnAnyVerdict { get; set; } = false;
+        public bool PartialAllStopOnNoMineVerdict { get; set; } = true;
+        public bool PartialAllStopOnAnyVerdict { get; set; } = false;
+        public bool PartialStopAlways { get; set; } = true;
+        public int PartialSolveFromSize { get; set; } = 20;
+        public int PartialOptimalSize { get; set; } = 18;
+        public bool PartialSetProbabilityGuesses { get; set; } = true;
 
-        public bool SolveHintProbabilities { get; set; }
+        public bool ResplitOnPartialVerdict { get; set; } = true;
+        public bool ResplitOnCompleteVerdict { get; set; } = false;
 
-        public bool PartialBorderSolving { get; set; }
-        public bool BorderResplitting { get; set; }
-        public int PartialBorderSolveFrom { get; set; }
-        public int GiveUpFrom { get; set; }
-        public int MaxPartialBorderSize { get; set; }
-        public bool SetPartiallyCalculatedProbabilities { get; set; }
-        public int MultithreadFrom { get; set; }
+        public bool MineCountIgnoreCompletely { get; set; } = false;
+        public bool MineCountSolve { get; set; } = true;
+        public bool MineCountSolveNonBorder { get; set; } = true;
 
-        public BorderSeparationSolverSettings()
+        public int GiveUpFromSize { get; set; } = 28;
+
+        // TODO
+        public bool ValidCombinationSearchOpenCl { get; set; } = true;
+        public bool ValidCombinationSearchOpenClAllowLoopBreak { get; set; } = true;
+        public int ValidCombinationSearchOpenClUseFromSize { get; set; } = 18;
+        public int ValidCombinationSearchOpenClMaxBatchSize { get; set; } = 20;
+        public int ValidCombinationSearchOpenClPlatformID { get; set; } = 1;
+        public int ValidCombinationSearchOpenClDeviceID { get; set; } = 0;
+
+        public bool ValidCombinationSearchMultithread { get; set; } = true;
+        public int ValidCombinationSearchMultithreadUseFromSize { get; set; } = 22; //2097152
+
+        public int VariableMineCountBordersProbabilitiesMultithreadUseFrom { get; set; } = 65536;
+
+        public bool GuessIfNoNoMineVerdict { get; set; } = true;
+        public bool GuessIfNoVerdict { get; set; } = false;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+    public struct ExternalBorderSeparationSolverSettings
+    {
+        [MarshalAs(UnmanagedType.U1)]
+        public bool TrivialSolve;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool TrivialStopOnNoMineVerdict;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool TrivialStopOnAnyVerdict;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool TrivialStopAlways;
+
+        [MarshalAs(UnmanagedType.U1)]
+        public bool GaussianSolve;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool GaussianStopOnNoMineVerdict;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool GaussianStopOnAnyVerdict;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool GaussianStopAlways;
+
+        [MarshalAs(UnmanagedType.U1)]
+        public bool SeparationSolve;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool SeparationSingleBorderStopOnNoMineVerdict;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool SeparationSingleBorderStopOnAnyVerdict;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool SeparationSingleBorderStopAlways;
+
+        [MarshalAs(UnmanagedType.U1)]
+        public bool PartialSolve;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool PartialSingleStopOnNoMineVerdict;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool PartialSingleStopOnAnyVerdict;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool PartialAllStopOnNoMineVerdict;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool PartialAllStopOnAnyVerdict;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool PartialStopAlways;
+        public int PartialSolveFromSize;
+        public int PartialOptimalSize;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool PartialSetProbabilityGuesses;
+
+        [MarshalAs(UnmanagedType.U1)]
+        public bool ResplitOnPartialVerdict;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool ResplitOnCompleteVerdict;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool MineCountIgnoreCompletely;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool MineCountSolve;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool MineCountSolveNonBorder;
+
+        public int GiveUpFromSize;
+
+        // TODO
+        [MarshalAs(UnmanagedType.U1)]
+        public bool ValidCombinationSearchOpenCl;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool ValidCombinationSearchOpenClAllowLoopBreak;
+        public int ValidCombinationSearchOpenClUseFromSize;
+        public int ValidCombinationSearchOpenClMaxBatchSize;
+        public int ValidCombinationSearchOpenClPlatformID;
+        public int ValidCombinationSearchOpenClDeviceID;
+
+        [MarshalAs(UnmanagedType.U1)]
+        public bool ValidCombinationSearchMultithread;
+        public int ValidCombinationSearchMultithreadUseFromSize; //2097152
+
+        public int VariableMineCountBordersProbabilitiesMultithreadUseFrom;
+
+        [MarshalAs(UnmanagedType.U1)]
+        public bool GuessIfNoNoMineVerdict;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool GuessIfNoVerdict;
+
+        public ExternalBorderSeparationSolverSettings(BorderSeparationSolverSettings originalSettings)
         {
-            StopOnNoMineVerdict = false;
-            StopOnAnyVerdict = false;
+            TrivialSolve = originalSettings.TrivialSolve;
+            TrivialStopOnNoMineVerdict = originalSettings.TrivialStopOnNoMineVerdict;
+            TrivialStopOnAnyVerdict = originalSettings.TrivialStopOnAnyVerdict;
+            TrivialStopAlways = originalSettings.TrivialStopAlways;
 
-            SolveTrivial = false;
-            StopAfterTrivialSolving = false;
+            GaussianSolve = originalSettings.GaussianSolve;
+            GaussianStopOnNoMineVerdict = originalSettings.GaussianStopOnNoMineVerdict;
+            GaussianStopOnAnyVerdict = originalSettings.GaussianStopOnAnyVerdict;
+            GaussianStopAlways = originalSettings.GaussianStopAlways;
 
-            SolveGaussian = false;
-            StopAfterGaussianSolving = false;
+            SeparationSolve = originalSettings.SeparationSolve;
+            SeparationSingleBorderStopOnNoMineVerdict = originalSettings.SeparationSingleBorderStopOnNoMineVerdict;
+            SeparationSingleBorderStopOnAnyVerdict = originalSettings.SeparationSingleBorderStopOnAnyVerdict;
+            SeparationSingleBorderStopAlways = originalSettings.SeparationSingleBorderStopAlways;
 
-            IgnoreMineCountCompletely = false;
-            SolveByMineCount = true;
-            SolveNonBorderCells = true;
+            PartialSolve = originalSettings.PartialSolve;
+            PartialSingleStopOnNoMineVerdict = originalSettings.PartialSingleStopOnNoMineVerdict;
+            PartialSingleStopOnAnyVerdict = originalSettings.PartialSingleStopOnAnyVerdict;
+            PartialAllStopOnNoMineVerdict = originalSettings.PartialAllStopOnNoMineVerdict;
+            PartialAllStopOnAnyVerdict = originalSettings.PartialAllStopOnAnyVerdict;
+            PartialStopAlways = originalSettings.PartialStopAlways;
+            PartialSolveFromSize = originalSettings.PartialSolveFromSize;
+            PartialOptimalSize = originalSettings.PartialOptimalSize;
+            PartialSetProbabilityGuesses = originalSettings.PartialSetProbabilityGuesses;
 
-            SolveHintProbabilities = false;
+            ResplitOnPartialVerdict = originalSettings.ResplitOnPartialVerdict;
+            ResplitOnCompleteVerdict = originalSettings.ResplitOnCompleteVerdict;
 
-            PartialBorderSolving = true;
-            BorderResplitting = true;
-            PartialBorderSolveFrom = 18;
-            GiveUpFrom = 31;
-            MaxPartialBorderSize = 14;
-            SetPartiallyCalculatedProbabilities = true;
+            MineCountIgnoreCompletely = originalSettings.MineCountIgnoreCompletely;
+            MineCountSolve = originalSettings.MineCountSolve;
+            MineCountSolveNonBorder = originalSettings.MineCountSolveNonBorder;
 
-            MultithreadFrom = 20;
+            GiveUpFromSize = originalSettings.GiveUpFromSize;
+
+            // TODO
+            ValidCombinationSearchOpenCl = originalSettings.ValidCombinationSearchOpenCl;
+            ValidCombinationSearchOpenClAllowLoopBreak = originalSettings.ValidCombinationSearchOpenClAllowLoopBreak;
+            ValidCombinationSearchOpenClUseFromSize = originalSettings.ValidCombinationSearchOpenClUseFromSize;
+            ValidCombinationSearchOpenClMaxBatchSize = originalSettings.ValidCombinationSearchOpenClMaxBatchSize;
+            ValidCombinationSearchOpenClPlatformID = originalSettings.ValidCombinationSearchOpenClPlatformID;
+            ValidCombinationSearchOpenClDeviceID = originalSettings.ValidCombinationSearchOpenClDeviceID;
+
+            ValidCombinationSearchMultithread = originalSettings.ValidCombinationSearchMultithread;
+            ValidCombinationSearchMultithreadUseFromSize = originalSettings.ValidCombinationSearchMultithreadUseFromSize; //2097152
+
+            VariableMineCountBordersProbabilitiesMultithreadUseFrom = originalSettings.VariableMineCountBordersProbabilitiesMultithreadUseFrom;
+
+            GuessIfNoNoMineVerdict = originalSettings.GuessIfNoNoMineVerdict;
+            GuessIfNoVerdict = originalSettings.GuessIfNoVerdict;
         }
     }
 }

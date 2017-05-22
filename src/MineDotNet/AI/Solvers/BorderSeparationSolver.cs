@@ -24,7 +24,7 @@ namespace MineDotNet.AI.Solvers
             // We prepare some intial data we will work with.
             // It's important to deep copy the cells, in order to not modify the original map.
             var map = new BorderSeparationSolverMap(givenMap);
-            if(Settings.IgnoreMineCountCompletely)
+            if(Settings.MineCountIgnoreCompletely)
             {
                 map.RemainingMineCount = null;
             }
@@ -37,22 +37,28 @@ namespace MineDotNet.AI.Solvers
             // If it's all the user wants, we return immediately.
             //Settings.SolveGaussian = false;
 
-            if(Settings.SolveTrivial)
+            if(Settings.TrivialSolve)
             {
                 SolveTrivial(map, allVerdicts);
-                if(Settings.StopAfterTrivialSolving || ShouldStopSolving(allVerdicts))
+                if(ShouldStopSolving(allVerdicts, Settings.TrivialStopOnNoMineVerdict, Settings.TrivialStopOnAnyVerdict, Settings.TrivialStopAlways))
                 {
                     return GetFinalResults(null, allVerdicts);
                 }
             }
 
-            if(Settings.SolveGaussian)
+            if(Settings.GaussianSolve)
             {
                 SolveGaussian(map, allVerdicts);
-                if(Settings.StopAfterGaussianSolving || ShouldStopSolving(allVerdicts))
+                if(ShouldStopSolving(allVerdicts, Settings.GaussianStopOnNoMineVerdict, Settings.GaussianStopOnAnyVerdict, Settings.GaussianStopAlways))
                 {
                     return GetFinalResults(null, allVerdicts);
                 }
+            }
+
+            var allHintProbabilities = new Dictionary<Coordinate, IDictionary<int, double>>();
+            if (Settings.SeparationSolve)
+            {
+                return GetFinalResults(allProbabilities, allVerdicts, allHintProbabilities);
             }
 
             // We find a set of all border cells - the common border.
@@ -75,13 +81,13 @@ namespace MineDotNet.AI.Solvers
                 {
                     allProbabilities[probability.Key] = probability.Value;
                 }
-                if(ShouldStopSolving(allVerdicts))
+                if(ShouldStopSolving(allVerdicts, Settings.SeparationSingleBorderStopOnNoMineVerdict, Settings.SeparationSingleBorderStopOnAnyVerdict, Settings.SeparationSingleBorderStopAlways))
                 {
                     return GetFinalResults(null, allVerdicts);
                 }
             }
 
-            var allHintProbabilities = new Dictionary<Coordinate, IDictionary<int, double>>();
+            
             foreach(var cell in map.AllCells)
             {
                 var hints = Enumerable.Range(0, 9).ToDictionary(x => x, x => 0d);
@@ -89,7 +95,7 @@ namespace MineDotNet.AI.Solvers
                 allHintProbabilities[cell.Coordinate] = hints;
             }
             // If requested, we do additional solving based on the remaining mine count
-            if(Settings.SolveByMineCount)
+            if(Settings.MineCountSolve)
             {
                 SolveMapByMineCounts(map, commonBorder, borders, allProbabilities, allVerdicts, allHintProbabilities);
             }
@@ -98,8 +104,7 @@ namespace MineDotNet.AI.Solvers
             //CalculateAllHintPossibilities(map, allProbabilities, allVerdicts, allHintProbabilities);
 
             // We get the final results, and return
-            var finalResults = GetFinalResults(allProbabilities, allVerdicts, allHintProbabilities);
-            return finalResults;
+            return GetFinalResults(allProbabilities, allVerdicts, allHintProbabilities);
         }
 
         private void CalculateAllHintPossibilities(IMap map, IDictionary<Coordinate, double> probabilities, IDictionary<Coordinate, bool> verdicts, IDictionary<Coordinate, IDictionary<int, double>> allHintProbabilities)
@@ -225,9 +230,9 @@ namespace MineDotNet.AI.Solvers
             SetCellsByVerdicts(map, gaussianResults);
         }
 
-        private bool ShouldStopSolving(IDictionary<Coordinate, bool> allVerdicts)
+        private bool ShouldStopSolving(IDictionary<Coordinate, bool> allVerdicts, bool stopOnNoMineVerdict, bool stopOnAnyVerdict, bool stopAlways)
         {
-            return allVerdicts.Count > 0 && (Settings.StopOnAnyVerdict || (Settings.StopOnNoMineVerdict && allVerdicts.Any(x => !x.Value)));
+            return stopAlways || (allVerdicts.Count > 0 && (stopOnAnyVerdict || (stopOnNoMineVerdict && allVerdicts.Any(x => !x.Value))));
         }
 
         private void SolveTrivial(BorderSeparationSolverMap map, IDictionary<Coordinate, bool> allVerdicts)
@@ -354,7 +359,7 @@ namespace MineDotNet.AI.Solvers
             }
 
             // If requested, we calculate the probabilities of mines in non-border cells, and copy them over.
-            if(Settings.SolveNonBorderCells)
+            if(Settings.MineCountSolveNonBorder)
             {
                 var nonBorderProbabilities = GetNonBorderProbabilitiesByMineCount(map, allProbabilities, nonBorderCells);
                 foreach(var probability in nonBorderProbabilities)
@@ -384,20 +389,20 @@ namespace MineDotNet.AI.Solvers
 
         private IList<Border> SolveBorder(Border border, BorderSeparationSolverMap map, bool allowPartialBorderSolving)
         {
-            if(Settings.PartialBorderSolving)
+            if(Settings.PartialSolve)
             {
                 // If the border is too big, we attempt solving by partial borders.
-                if(allowPartialBorderSolving && border.Cells.Count > Settings.PartialBorderSolveFrom)
+                if(allowPartialBorderSolving && border.Cells.Count > Settings.PartialSolveFromSize)
                 {
                     TrySolveBorderByPartialBorders(border, map);
                 }
-                if(ShouldStopSolving(border.Verdicts))
+                if(ShouldStopSolving(border.Verdicts, Settings.PartialAllStopOnNoMineVerdict, Settings.PartialAllStopOnAnyVerdict, Settings.PartialStopAlways))
                 {
                     return new[] { border };
                 }
 
                 // If partial border solving found any guaranteed solutions, we can attempt to re-split the border.
-                if(Settings.BorderResplitting && border.Verdicts.Count > 0)
+                if(Settings.ResplitOnPartialVerdict && border.Verdicts.Count > 0)
                 {
                     var borders = TrySolveBorderByReseparating(border, map);
                     if(borders != null)
@@ -408,7 +413,7 @@ namespace MineDotNet.AI.Solvers
             }
 
             // If even after partial border solving the border is too big, we give up, and return.
-            if(border.Cells.Count > Settings.GiveUpFrom)
+            if(border.Cells.Count > Settings.GiveUpFromSize)
             {
                 border.SolvedFully = false;
                 return new[] { border };
@@ -481,13 +486,13 @@ namespace MineDotNet.AI.Solvers
                     }
                     border.Cells.RemoveAt(cellIndex);
                 }
-                if(border.Verdicts.Count > 0 && (Settings.StopOnAnyVerdict || (Settings.StopOnNoMineVerdict && border.Verdicts.Any(x => !x.Value))))
+                if(ShouldStopSolving(border.Verdicts, Settings.PartialSingleStopOnNoMineVerdict, Settings.PartialSingleStopOnAnyVerdict, false))
                 {
                     return;
                 }
                 checkedPartialBorders.Add(partialBorderData);
                 double partialProbability;
-                if(Settings.SetPartiallyCalculatedProbabilities && !partialBorder.Verdicts.ContainsKey(targetCoordinate) && partialBorder.Probabilities.TryGetValue(targetCoordinate, out partialProbability))
+                if(Settings.PartialSetProbabilityGuesses && !partialBorder.Verdicts.ContainsKey(targetCoordinate) && partialBorder.Probabilities.TryGetValue(targetCoordinate, out partialProbability))
                 {
                     border.Probabilities[targetCoordinate] = partialProbability;
                 }
@@ -642,13 +647,13 @@ namespace MineDotNet.AI.Solvers
             foreach(var cell in partialBorderSequence)
             {
                 partialBorderCells.Add(cell);
-                if(partialBorderCells.Count < Settings.MaxPartialBorderSize)
+                if(partialBorderCells.Count < Settings.PartialOptimalSize)
                 {
                     continue;
                 }
                 var partialBorderCandidate = new Border(partialBorderCells);
                 var partialMapCandidate = CalculatePartialMapAndTrimPartialBorder(partialBorderCandidate, map, allFlaggedCoordinates);
-                if(partialBorderCandidate.Cells.Count > Settings.MaxPartialBorderSize)
+                if(partialBorderCandidate.Cells.Count > Settings.PartialOptimalSize)
                 {
                     break;
                 }
@@ -797,7 +802,7 @@ namespace MineDotNet.AI.Solvers
             var allRemainingCellsInBorder = solverMap.UndecidedCount == borderLength;
             //cout << "Border size: " << border_length << endl;
             //cout << "All remaining mines in border" << endl;
-            if (borderLength  >= Settings.MultithreadFrom)
+            if (Settings.ValidCombinationSearchMultithread && borderLength >= Settings.ValidCombinationSearchMultithreadUseFromSize)
             {
                 ThrValidatePredictions(mapSize, m, results, total);
             }
