@@ -12,10 +12,11 @@ namespace MineDotNet.AI.Benchmarking
 {
     public class Benchmarker
     {
+        public event Action<Map, IDictionary<Coordinate, SolverResult>> SolverStep;
         public event Action<Map, IDictionary<Coordinate, SolverResult>> MissingFromPrimary;
         public event Action<Map, IDictionary<Coordinate, SolverResult>> MissingFromSecondary;
+        public event Action<BenchmarkEntry, BenchmarkEntry> OneSolverFailed;
         public event Action<BenchmarkEntry> AfterBenchmark;
-
         /*private IList<GameEngine> InitEngines(int width, int height, double mineDensity, int testsToRun)
         {
             return InitEngines(width, height, (int)(width * height / mineDensity), testsToRun);
@@ -47,7 +48,18 @@ namespace MineDotNet.AI.Benchmarking
             var i = 0;
             foreach (var map in maps)
             {
+                var originalMap = map.Clone();
                 var entry = BenchmarkMap(map, solver, guesser, secondarySolver);
+                entry.GameMap = originalMap;
+                if (secondarySolver != null)
+                {
+                    var secondaryMap = originalMap.Clone();
+                    var secondaryEntry = BenchmarkMap(secondaryMap, secondarySolver, guesser, null);
+                    if (entry.Solved != secondaryEntry.Solved)
+                    {
+                        OneSolverFailed?.Invoke(entry, secondaryEntry);
+                    }
+                }
                 entry.Index = i;
                 AfterBenchmark?.Invoke(entry);
                 entries.Add(entry);
@@ -70,7 +82,7 @@ namespace MineDotNet.AI.Benchmarking
             }
         }
 
-        private BenchmarkEntry BenchmarkMap(GameMap gameMap, ISolver solver, IGuesser guesser, ISolver secondarySolver)
+        public BenchmarkEntry BenchmarkMap(GameMap gameMap, ISolver solver, IGuesser guesser, ISolver secondarySolver)
         {
             var entry = new BenchmarkEntry();
             entry.GameMap = gameMap;
@@ -83,6 +95,7 @@ namespace MineDotNet.AI.Benchmarking
                 var map = gameMap.ToRegularMap();
                 sw.Restart();
                 var solverResults = solver.Solve(map);
+                SolverStep?.Invoke(map, solverResults);
                 sw.Stop();
                 if (secondarySolver != null)
                 {

@@ -38,10 +38,11 @@ namespace TestConsole
 
             Console.WriteLine(mapStr);*/
 
+            PlaySingleFromFile();
 
             //TestMatrixSolving();
             //SolveMapFromFile();
-            BenchmarkSolver();
+            //BenchmarkSolver();
             //SolveMapFromFile();
             //TestGaussianSolving();
             Console.ReadKey();
@@ -118,12 +119,15 @@ namespace TestConsole
         {
             var settings = new BorderSeparationSolverSettings();
             //settings.TrivialSolve = false;
-            //settings.GaussianSolve = false;
+            settings.GaussianSolve = false;
             //settings.PartialSolve = false;
             //settings.MineCountIgnoreCompletely = true;
             settings.GuessIfNoNoMineVerdict = false;
+            settings.MineCountSolve = false;
+            settings.MineCountSolveNonBorder = false;
+            settings.ValidCombinationSearchOpenClPlatformID = 0;
             //settings.GiveUpFromSize = 25;
-            //settings.SeparationSingleBorderStopOnNoMineVerdict = false;
+            settings.SeparationSingleBorderStopOnNoMineVerdict = false;
             var solver = new ExtSolver(settings);
             var secondarySolver = new BorderSeparationSolver(settings);
             var guesser = new LowestProbabilityGuesser();
@@ -158,8 +162,26 @@ namespace TestConsole
                     Console.WriteLine(result.Value);
                 }
             };
-            var benchmarkSequence = benchmarker.BenchmarkMultipleDensities(solver, guesser, 16, 16, 0.01, 0.35, 0.01, testsToRun);
-            //var benchmarkSequence = benchmarker.BenchmarkMultipleDensities(solver, guesser, 16, 16, 0.01, 0.35, 0.01, testsToRun, secondarySolver);
+            benchmarker.OneSolverFailed += (primaryEntry, secondaryEntry) =>
+            {
+                var gm = primaryEntry.GameMap;
+                foreach (var gameCell in gm.Cells)
+                {
+                    if (gameCell.State == CellState.Filled && !gameCell.HasMine)
+                    {
+                        gameCell.State = CellState.Empty;
+                    }
+                    else if (gameCell.HasMine)
+                    {
+                        gameCell.Flag = CellFlag.HasMine;
+                    }
+                }
+                var m = gm.ToRegularMap();
+                Console.WriteLine(new TextMapVisualizer().VisualizeToString(m));
+                Console.WriteLine("ONE SOLVER FAILED");
+            };
+            //var benchmarkSequence = benchmarker.BenchmarkMultipleDensities(solver, guesser, 16, 16, 0.2, 0.35, 0.01, testsToRun);
+            var benchmarkSequence = benchmarker.BenchmarkMultipleDensities(solver, guesser, 16, 16, 0.2, 0.35, 0.01, testsToRun, secondarySolver);
             var csv = new StringBuilder();
             var csvpath = @"C:\Temp\benchmark.csv";
             var infopath = @"C:\Temp\info.txt";
@@ -192,6 +214,55 @@ namespace TestConsole
             Console.WriteLine("Benchmarks complete.");
         }
 
+        private static void PlaySingleFromFile()
+        {
+            var parser = new TextMapParser();
+            Map map;
+            using (var file = File.OpenRead("C:/Temp/test_map.txt"))
+            {
+                map = parser.Parse(file);
+            }
+
+            var visualizer = new TextMapVisualizer();
+            var mapStr = visualizer.VisualizeToString(map);
+            Console.WriteLine(mapStr);
+            Console.WriteLine();
+
+
+
+            var settings = new BorderSeparationSolverSettings();
+            settings.GaussianSolve = false;
+            settings.GuessIfNoNoMineVerdict = false;
+            settings.MineCountSolve = false;
+            settings.MineCountSolveNonBorder = false;
+            settings.ValidCombinationSearchOpenClPlatformID = 0;
+            settings.SeparationSingleBorderStopOnNoMineVerdict = false;
+            settings.PartialSetProbabilityGuesses = false;
+            var solver = new ExtSolver(settings);
+            //var solver = new BorderSeparationSolver(settings);
+
+            var guesser = new LowestProbabilityGuesser();
+
+            var gm = GameMap.FromRegularMap(map);
+            var benchmarker = new Benchmarker();
+            benchmarker.SolverStep += (m, results) =>
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine(visualizer.VisualizeToString(m));
+                foreach (var verdict in results.OrderBy(x => x.Key.X).ThenBy(x => x.Key.Y))
+                {
+                    sb.AppendLine(verdict.Value.ToString());
+                }
+                var str = sb.ToString();
+                Console.Write(str);
+                File.AppendAllText(@"C:\Temp\steps.txt", str);
+            };
+            var result = benchmarker.BenchmarkMap(gm, solver, guesser, null);
+
+
+            Console.WriteLine("Press any key to close...");
+        }
+
         private static void SolveMapFromFile()
         {
             var parser = new TextMapParser();
@@ -207,19 +278,21 @@ namespace TestConsole
             Console.WriteLine();
 
             var settings = new BorderSeparationSolverSettings();
-            settings.TrivialSolve = false;
             settings.GaussianSolve = false;
-            settings.PartialSolve = false;
-            settings.MineCountIgnoreCompletely = true;
             settings.GuessIfNoNoMineVerdict = false;
-            settings.GiveUpFromSize = 25;
-            //var solver = new ExtSolver(settings);
-            var solver = new BorderSeparationSolver(settings);
+            settings.MineCountSolve = false;
+            settings.MineCountSolveNonBorder = false;
+            settings.ValidCombinationSearchOpenClPlatformID = 0;
+            settings.SeparationSingleBorderStopOnNoMineVerdict = false;
+            var solver = new ExtSolver(settings);
+            //var solver = new BorderSeparationSolver(settings);
 
-            var verdicts = TimeItReturning(() => solver.Solve(map));
+            var results = TimeItReturning(() => solver.Solve(map));
+
+            var verdictCount = results.Count(x => x.Value.Verdict.HasValue);
 
             Console.WriteLine();
-            foreach (var verdict in verdicts)
+            foreach (var verdict in results)
             {
                 Console.WriteLine(verdict.Value.ToString());
             }

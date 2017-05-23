@@ -64,6 +64,32 @@ namespace MineDotNet.Game
             var mineCount = DisplayMineCount ? RemainingMineCount : (int?)null;
             return new Map(cellCopy, mineCount);
         }
+
+        public GameMap Clone()
+        {
+            var cellCopy = AllCells.Select(x => new GameCell(x.Coordinate, x.HasMine, x.State, x.Flag, x.Hint)).ToList();
+            var map = new GameMap(Width, Height, RemainingMineCount, StartingPosition, GuaranteedOpening);
+            map.DisplayMineCount = DisplayMineCount;
+            foreach (var cell in cellCopy)
+            {
+                map[cell.Coordinate] = cell;
+            }
+            return map;
+        }
+
+        public static GameMap FromRegularMap(Map map)
+        {
+            var gm = new GameMap(map.Width, map.Height, map.RemainingMineCount.Value, new Coordinate(map.Width/2, map.Height/2), true);
+            for (var i = 0; i < gm.Width; i++)
+            {
+                for (var j = 0; j < gm.Height; j++)
+                {
+                    var cell = map.Cells[i, j];
+                    gm.Cells[i, j] = new GameCell(cell.Coordinate, cell.Flag == CellFlag.HasMine, CellState.Filled, CellFlag.None, cell.Hint);
+                }
+            }
+            return gm;
+        }
     }
 
 }
