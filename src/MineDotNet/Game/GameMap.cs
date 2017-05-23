@@ -10,11 +10,14 @@ namespace MineDotNet.Game
     {
         public int Width { get; }
         public int Height { get; }
-        public int? RemainingMineCount { get; set; }
+        public int RemainingMineCount { get; set; }
+        public bool DisplayMineCount { get; set; }
         public GameCell[,] Cells { get; private set; }
         public IEnumerable<GameCell> AllCells => Cells.Cast<GameCell>().Where(x => x != null);
+        public Coordinate StartingPosition { get; }
+        public bool GuaranteedOpening { get; }
 
-        public GameMap(int width, int height, int? remainingMineCount = null, bool createCells = false, CellState fillWithState = CellState.Empty)
+        public GameMap(int width, int height, int remainingMineCount, Coordinate startingPosition, bool guaranteedOpening, bool createCells = false, CellState fillWithState = CellState.Empty)
         {
             Width = width;
             Height = height;
@@ -28,6 +31,9 @@ namespace MineDotNet.Game
                 }
             }
             RemainingMineCount = remainingMineCount;
+            DisplayMineCount = true;
+            StartingPosition = startingPosition;
+            GuaranteedOpening = guaranteedOpening;
         }
 
         public GameCell this[Coordinate coordinate]
@@ -55,18 +61,8 @@ namespace MineDotNet.Game
             {
                 cell.Hint = 0;
             }
-            return new Map(cellCopy, RemainingMineCount);
-        }
-
-        public GameMap Clone()
-        {
-            var cellCopy = AllCells.Select(x => new GameCell(x.Coordinate, x.HasMine, x.State, x.Flag, x.Hint)).ToList();
-            var map = new GameMap(Width, Height, RemainingMineCount);
-            foreach (var cell in cellCopy)
-            {
-                map[cell.Coordinate] = cell;
-            }
-            return map;
+            var mineCount = DisplayMineCount ? RemainingMineCount : (int?)null;
+            return new Map(cellCopy, mineCount);
         }
     }
 

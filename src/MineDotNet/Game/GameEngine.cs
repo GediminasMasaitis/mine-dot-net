@@ -8,27 +8,30 @@ namespace MineDotNet.Game
 {
     public class GameEngine
     {
-        public GameMapGenerator Generator { get; set; }
         public GameMap GameMap { get; set; }
         public bool GameStarted => GameMap != null;
 
-        public GameEngine(GameMapGenerator generator)
+        public void Start(GameMap gameMap)
         {
-            Generator = generator;
+            GameMap = gameMap;
+            if (GameMap.StartingPosition != null)
+            {
+                OpenCell(GameMap.StartingPosition);
+            }
         }
 
-        public void StartNew(int width, int height, Coordinate startingPosition, bool guaranteeOpening, double mineDensity)
+        public void StartWithMineDensity(GameMapGenerator generator, int width, int height, Coordinate startingPosition, bool guaranteeOpening, double mineDensity)
         {
-            GameMap = Generator.GenerateWithMineDensity(width, height, startingPosition, guaranteeOpening, mineDensity);
+            GameMap = generator.GenerateWithMineDensity(width, height, startingPosition, guaranteeOpening, mineDensity);
             if (startingPosition != null)
             {
                 OpenCell(startingPosition);
             }
         }
 
-        public void StartNew(int width, int height, Coordinate startingPosition, bool guaranteeOpening, int mineCount)
+        public void StartWithMineCount(GameMapGenerator generator, int width, int height, Coordinate startingPosition, bool guaranteeOpening, int mineCount)
         {
-            GameMap = Generator.GenerateWithMineCount(width, height, startingPosition, guaranteeOpening, mineCount);
+            GameMap = generator.GenerateWithMineCount(width, height, startingPosition, guaranteeOpening, mineCount);
             if (startingPosition != null)
             {
                 OpenCell(startingPosition);
@@ -38,16 +41,13 @@ namespace MineDotNet.Game
         public void SetFlag(Coordinate coordinate, CellFlag flag)
         {
             var cell = GameMap[coordinate];
-            if (GameMap.RemainingMineCount.HasValue)
+            if (cell.Flag != CellFlag.HasMine && flag == CellFlag.HasMine)
             {
-                if (cell.Flag != CellFlag.HasMine && flag == CellFlag.HasMine)
-                {
-                    GameMap.RemainingMineCount--;
-                }
-                else if(cell.Flag == CellFlag.HasMine && flag != CellFlag.HasMine)
-                {
-                    GameMap.RemainingMineCount++;
-                }
+                GameMap.RemainingMineCount--;
+            }
+            else if(cell.Flag == CellFlag.HasMine && flag != CellFlag.HasMine)
+            {
+                GameMap.RemainingMineCount++;
             }
             cell.Flag = flag;
         }

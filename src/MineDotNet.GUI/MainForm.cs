@@ -27,6 +27,7 @@ namespace MineDotNet.GUI
 
         private DisplayService Display { get; set; }
 
+        private GameMapGenerator GameMapGenerator { get; set; }
         private GameEngine CurrentManualGameEngine { get; set; }
         private double MineDensity => MineDensityTrackBar.Value/(double) 100;
         private int Width => (int)WidthNumericUpDown.Value;
@@ -52,7 +53,8 @@ namespace MineDotNet.GUI
 
             Display = new DisplayService(MainPictureBox, MapCount, Visualizer);
             Display.CellClick += DisplayOnCellClick;
-
+            var random = new Random();
+            GameMapGenerator = new GameMapGenerator(random);
             var offsetX = 170;
             var offsetY = 0;
 
@@ -120,7 +122,7 @@ namespace MineDotNet.GUI
             {
                 if (!CurrentManualGameEngine.GameStarted)
                 {
-                    CurrentManualGameEngine.StartNew(Width, Height, args.Coordinate, true, MineDensity);
+                    CurrentManualGameEngine.StartWithMineDensity(GameMapGenerator, Width, Height, args.Coordinate, true, MineDensity);
                 }
                 else
                 {
@@ -194,10 +196,8 @@ namespace MineDotNet.GUI
 
         private void AutoPlayButton_Click(object sender, EventArgs e)
         {
-            var random = new Random();
-            var generator = new GameMapGenerator(random);
-            var engine = new GameEngine(generator);
-            engine.StartNew(Width, Height, new Coordinate(Width/2, Height/2), true, MineDensity);
+            var engine = new GameEngine();
+            engine.StartWithMineDensity(GameMapGenerator, Width, Height, new Coordinate(Width/2, Height/2), true, MineDensity);
             while (true)
             {
                 var regularMap = engine.GameMap.ToRegularMap();
@@ -249,9 +249,7 @@ namespace MineDotNet.GUI
 
         private void ManualPlayButton_Click(object sender, EventArgs e)
         {
-            var random = new Random();
-            var generator = new GameMapGenerator(random);
-            CurrentManualGameEngine = new GameEngine(generator);
+            CurrentManualGameEngine = new GameEngine();
             var emptyMap = new Map(Width, Height, null, true, CellState.Filled);
             Display.DisplayMaps(new[] {emptyMap});
         }

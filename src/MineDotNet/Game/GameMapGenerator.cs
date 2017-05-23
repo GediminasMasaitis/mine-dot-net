@@ -26,6 +26,14 @@ namespace MineDotNet.Game
             return map;
         }
 
+        public IEnumerable<GameMap> GenerateSequenceWithMineCount(int width, int height, Coordinate startingPosition, bool guaranteeOpening, int mineCount)
+        {
+            while (true)
+            {
+                yield return GenerateWithMineCount(width, height, startingPosition, guaranteeOpening, mineCount);
+            }
+        }
+
         public GameMap GenerateWithMineCount(int width, int height, Coordinate startingPosition, bool guaranteeOpening, int mineCount)
         {
             var coordinates = new List<Coordinate>();
@@ -38,7 +46,7 @@ namespace MineDotNet.Game
             }
 
 
-            var map = new GameMap(width, height, mineCount, true, CellState.Filled);
+            var map = new GameMap(width, height, mineCount, startingPosition, guaranteeOpening, true, CellState.Filled);
 
             if (startingPosition != null)
             {

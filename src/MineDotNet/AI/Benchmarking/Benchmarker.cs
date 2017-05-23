@@ -16,12 +16,12 @@ namespace MineDotNet.AI.Benchmarking
         public event Action<Map, IDictionary<Coordinate, SolverResult>> MissingFromSecondary;
         public event Action<BenchmarkEntry> AfterBenchmark;
 
-        private IList<GameEngine> InitEngines(int width, int height, double mineDensity, int testsToRun)
+        /*private IList<GameEngine> InitEngines(int width, int height, double mineDensity, int testsToRun)
         {
             return InitEngines(width, height, (int)(width * height / mineDensity), testsToRun);
         }
 
-        private IList<GameEngine> InitEngines(int width, int height, int mineCount, int testsToRun)
+        private IEnumerable<GameMap> InitEngines(int width, int height, int mineCount, int testsToRun)
         {
             var random = new Random(0);
             var generator = new GameMapGenerator(random);
@@ -34,46 +34,53 @@ namespace MineDotNet.AI.Benchmarking
                 engines.Add(engine);
             }
             return engines;
-        }
+        }*/
 
-        public BenchmarkDensityGroup Benchmark(ISolver solver, IGuesser guesser, int width, int height, int mineCount, int testsToRun, ISolver secondarySolver = null)
+        public BenchmarkDensityGroup BenchmarkWithMineCount(ISolver solver, IGuesser guesser, int width, int height, int mineCount, int testsToRun, ISolver secondarySolver = null)
         {
-            var engines = InitEngines(width, height, mineCount, testsToRun);
+            //var engines = InitEngines(width, height, mineCount, testsToRun);
+            var random = new Random(0);
+            var generator = new GameMapGenerator(random);
+            var startingPos = new Coordinate(width / 2, height / 2);
+            var maps = generator.GenerateSequenceWithMineCount(width, height, startingPos, true, mineCount).Take(testsToRun);
             var entries = new List<BenchmarkEntry>();
-            for (var i = 0; i < engines.Count; i++)
+            var i = 0;
+            foreach (var map in maps)
             {
-                var gameEngine = engines[i];
-                var entry = BenchmarkEngine(gameEngine, solver, guesser, secondarySolver);
+                var entry = BenchmarkMap(map, solver, guesser, secondarySolver);
                 entry.Index = i;
                 AfterBenchmark?.Invoke(entry);
                 entries.Add(entry);
+                i++;
             }
             var group = new BenchmarkDensityGroup(entries, mineCount/(double) (width*height));
             return group;
         }
 
-        public BenchmarkDensityGroup Benchmark(ISolver solver, IGuesser guesser, int width, int height, double density, int testsToRun, ISolver secondarySolver = null)
+        public BenchmarkDensityGroup BenchmarkWithMineDensity(ISolver solver, IGuesser guesser, int width, int height, double density, int testsToRun, ISolver secondarySolver = null)
         {
-            return Benchmark(solver, guesser, width, height, (int) (width*height*density), testsToRun, secondarySolver);
+            return BenchmarkWithMineCount(solver, guesser, width, height, (int) (width*height*density), testsToRun, secondarySolver);
         }
 
         public IEnumerable<BenchmarkDensityGroup> BenchmarkMultipleDensities(ISolver solver, IGuesser guesser, int width, int height, double minDensity, double maxDensity, double densityInterval, int testsToRun, ISolver secondarySolver = null)
         {
             for (var currentDensity = minDensity; currentDensity <= maxDensity; currentDensity += densityInterval)
             {
-                yield return Benchmark(solver, guesser, width, height, currentDensity, testsToRun, secondarySolver);
+                yield return BenchmarkWithMineDensity(solver, guesser, width, height, currentDensity, testsToRun, secondarySolver);
             }
         }
 
-        private BenchmarkEntry BenchmarkEngine(GameEngine engine, ISolver solver, IGuesser guesser, ISolver secondarySolver)
+        private BenchmarkEntry BenchmarkMap(GameMap gameMap, ISolver solver, IGuesser guesser, ISolver secondarySolver)
         {
             var entry = new BenchmarkEntry();
-            entry.GameMap = engine.GameMap;
-            entry.MineCount = entry.GameMap.RemainingMineCount.Value;
+            entry.GameMap = gameMap;
+            entry.MineCount = entry.GameMap.RemainingMineCount;
+            var engine = new GameEngine();
+            engine.Start(gameMap);
             var sw = new Stopwatch();
             while (true)
             {
-                var map = engine.GameMap.ToRegularMap();
+                var map = gameMap.ToRegularMap();
                 sw.Restart();
                 var solverResults = solver.Solve(map);
                 sw.Stop();

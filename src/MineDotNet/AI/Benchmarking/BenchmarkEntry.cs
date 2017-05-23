@@ -12,7 +12,7 @@ namespace MineDotNet.AI.Benchmarking
         }
         public int Index { get; set; }
         public GameMap GameMap { get; set; }
-        public int MineCount { get; set; }
+        public int? MineCount { get; set; }
         public IList<TimeSpan> SolvingDuarations { get; set; }
         public TimeSpan TotalDuration { get; set; }
         public bool Solved { get; set; }
