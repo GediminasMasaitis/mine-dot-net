@@ -245,14 +245,20 @@ namespace TestConsole
 
             var gm = GameMap.FromRegularMap(map);
             var benchmarker = new Benchmarker();
-            benchmarker.SolverStep += (m, results) =>
+            benchmarker.SolverStep += (m, results, guess) =>
             {
                 var sb = new StringBuilder();
                 sb.AppendLine(visualizer.VisualizeToString(m));
-                foreach (var verdict in results.OrderBy(x => x.Key.X).ThenBy(x => x.Key.Y))
+                foreach (var res in results.OrderBy(x => x.Key.X).ThenBy(x => x.Key.Y))
                 {
-                    sb.AppendLine(verdict.Value.ToString());
+                    sb.AppendLine(res.Value.ToString());
                 }
+                if (guess != null)
+                {
+                    sb.AppendLine();
+                    sb.AppendLine($"Guess: {guess}");
+                }
+                sb.AppendLine("----------");
                 var str = sb.ToString();
                 Console.Write(str);
                 File.AppendAllText(@"C:\Temp\steps.txt", str);
@@ -292,9 +298,9 @@ namespace TestConsole
             var verdictCount = results.Count(x => x.Value.Verdict.HasValue);
 
             Console.WriteLine();
-            foreach (var verdict in results)
+            foreach (var res in results)
             {
-                Console.WriteLine(verdict.Value.ToString());
+                Console.WriteLine(res.Value.ToString());
             }
             Console.WriteLine("Press any key to close...");
         }

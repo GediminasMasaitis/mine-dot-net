@@ -12,7 +12,7 @@ namespace MineDotNet.AI.Benchmarking
 {
     public class Benchmarker
     {
-        public event Action<Map, IDictionary<Coordinate, SolverResult>> SolverStep;
+        public event Action<Map, IDictionary<Coordinate, SolverResult>, SolverResult> SolverStep;
         public event Action<Map, IDictionary<Coordinate, SolverResult>> MissingFromPrimary;
         public event Action<Map, IDictionary<Coordinate, SolverResult>> MissingFromSecondary;
         public event Action<BenchmarkEntry, BenchmarkEntry> OneSolverFailed;
@@ -95,7 +95,7 @@ namespace MineDotNet.AI.Benchmarking
                 var map = gameMap.ToRegularMap();
                 sw.Restart();
                 var solverResults = solver.Solve(map);
-                SolverStep?.Invoke(map, solverResults);
+                
                 sw.Stop();
                 if (secondarySolver != null)
                 {
@@ -114,7 +114,7 @@ namespace MineDotNet.AI.Benchmarking
                 entry.SolvingDuarations.Add(sw.Elapsed);
                 entry.TotalDuration += sw.Elapsed;
                 var resultsWithVerdicts = solverResults.Where(x => x.Value.Verdict.HasValue).ToDictionary(x => x.Key, x => x.Value);
-                SolverResult guesserResult;
+                SolverResult guesserResult = null;
                 if (resultsWithVerdicts.Count == 0)
                 {
                     guesserResult = guesser.Guess(map, solverResults);
@@ -128,7 +128,7 @@ namespace MineDotNet.AI.Benchmarking
                         return entry;
                     }
                 }
-
+                SolverStep?.Invoke(map, solverResults, guesserResult);
                 foreach (var result in resultsWithVerdicts)
                 {
                     switch (result.Value.Verdict.Value)
