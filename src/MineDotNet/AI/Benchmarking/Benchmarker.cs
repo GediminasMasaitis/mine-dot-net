@@ -85,7 +85,7 @@ namespace MineDotNet.AI.Benchmarking
                     BenchmarkMapOuter(map);
                 }
             }
-            var group = new BenchmarkDensityGroup(entries, mineCount/(double) (width*height));
+            var group = new BenchmarkDensityGroup(entries, mineCount, mineCount/(double) (width*height));
             return group;
         }
 
@@ -99,6 +99,14 @@ namespace MineDotNet.AI.Benchmarking
             for (var currentDensity = minDensity; currentDensity <= maxDensity; currentDensity += densityInterval)
             {
                 yield return BenchmarkWithMineDensity(solver, guesser, width, height, currentDensity, testsToRun, secondarySolver);
+            }
+        }
+
+        public IEnumerable<BenchmarkDensityGroup> BenchmarkMultipleMineCounts(ISolver solver, IGuesser guesser, int width, int height, int minMineCount, int maxMineCount, int mineCountInterval, int testsToRun, ISolver secondarySolver = null)
+        {
+            for(var currentMineCount = minMineCount; currentMineCount <= maxMineCount; currentMineCount += mineCountInterval)
+            {
+                yield return BenchmarkWithMineCount(solver, guesser, width, height, currentMineCount, testsToRun, secondarySolver);
             }
         }
 

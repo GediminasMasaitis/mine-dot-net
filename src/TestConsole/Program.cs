@@ -119,8 +119,9 @@ namespace TestConsole
         private static void BenchmarkSolver()
         {
             var settings = new BorderSeparationSolverSettings();
-            settings.PartialOptimalSize = 14;
+            settings.PartialOptimalSize = 18;
             settings.TrivialSolve = true;
+            settings.TrivialStopAlways = true;
             settings.GaussianSolve = true;
             settings.GaussianStopAlways = false;
             settings.PartialSolve = true;
@@ -131,9 +132,10 @@ namespace TestConsole
             //settings.ValidCombinationSearchOpenClPlatformID = 0;
             settings.GiveUpFromSize = 25;
             //settings.SeparationSingleBorderStopOnNoMineVerdict = false;
-            var solver = ExtSolver.Instance;
-            solver.InitSolver(settings);
+
+            var solver = ExtSolver.Instance; solver.InitSolver(settings);
             //var solver = new BorderSeparationSolver(settings);
+
             var secondarySolver = new BorderSeparationSolver(settings);
             var guesser = new LowestProbabilityGuesser();
             var testsToRun = 1000;
@@ -188,10 +190,11 @@ namespace TestConsole
                 Console.WriteLine(new TextMapVisualizer().VisualizeToString(m));
                 Console.WriteLine("ONE SOLVER FAILED");
             };
-            var benchmarkSequence = benchmarker.BenchmarkMultipleDensities(solver, guesser, 16, 16, 0.2, 0.35, 0.01, testsToRun);
+            var benchmarkSequence = benchmarker.BenchmarkMultipleMineCounts(solver, guesser, 16, 16, 1, 100, 1, testsToRun);
+            //var benchmarkSequence = benchmarker.BenchmarkMultipleDensities(solver, guesser, 16, 16, 0.2, 0.35, 0.005, testsToRun);
             //var benchmarkSequence = benchmarker.BenchmarkMultipleDensities(solver, guesser, 16, 16, 0.2, 0.35, 0.01, testsToRun, secondarySolver);
             var csv = new StringBuilder();
-            var csvpath = @"C:\Temp\benchmark.csv";
+            var csvpath = @"C:\Temp\benchmark-trivial-cpp.csv";
             var infopath = @"C:\Temp\info.txt";
             var now = DateTime.UtcNow.ToString("O");
             File.AppendAllText(infopath, Environment.NewLine + now + Environment.NewLine);
@@ -208,7 +211,7 @@ namespace TestConsole
                 var successRate = entries.Count(x => x.Solved) / (decimal)entries.Count;
                 var averageTime = new TimeSpan((long)entries.Select(x => x.TotalDuration.Ticks).Average());
                 var averageSteps = entries.Average(x => x.SolvingDuarations.Count);
-                File.AppendAllText(csvpath, $"{densityGroup.Density};{testsToRun};{successRate};{averageSteps};{averageTime.TotalMilliseconds:0.000}{Environment.NewLine}");
+                File.AppendAllText(csvpath, $"{densityGroup.MineCount};{densityGroup.Density};{testsToRun};{successRate};{averageSteps};{averageTime.TotalMilliseconds:0.000}{Environment.NewLine}");
                 var sb = new StringBuilder();
                 sb.AppendLine($"Density: {densityGroup.Density:##0.00%}");
                 sb.AppendLine($"Tests ran: {testsToRun}");
