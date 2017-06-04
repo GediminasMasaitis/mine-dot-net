@@ -9,6 +9,9 @@ namespace MineDotNet.AI.Solvers
 {
     public class ExtSolver : ISolver
     {
+        private static ExtSolver InnerInstance { get; set; }
+
+        public static ExtSolver Instance => InnerInstance ?? (InnerInstance = new ExtSolver());
 
         private struct ExtPt
         {
@@ -40,16 +43,26 @@ namespace MineDotNet.AI.Solvers
         private static extern int ExtSolve([MarshalAs(UnmanagedType.LPStr)]string mapStr, IntPtr results_buffer, ref int buffer_size);
 
         private TextMapVisualizer Visualizer;
+        private BorderSeparationSolverSettings Settings { get; set; }
 
-        public ExtSolver(BorderSeparationSolverSettings settings)
+        private ExtSolver()
         {
             Visualizer = new TextMapVisualizer();
+        }
+
+        public void InitSolver(BorderSeparationSolverSettings settings)
+        {
+            Settings = settings;
             var extSettings = new ExternalBorderSeparationSolverSettings(settings);
             ExtInitSolver(extSettings);
         }
 
         public IDictionary<Coordinate, SolverResult> Solve(IMap map)
         {
+            if (Settings == null)
+            {
+                InitSolver(new BorderSeparationSolverSettings());
+            }
             var str = Visualizer.VisualizeToString(map);
             str = str.Replace("\r", string.Empty);
             var buffer_size = map.Width * map.Height;

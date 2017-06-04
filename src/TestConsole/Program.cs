@@ -38,11 +38,12 @@ namespace TestConsole
 
             Console.WriteLine(mapStr);*/
 
-            PlaySingleFromFile();
+            BenchmarkSolver();
+            //PlaySingleFromFile();
 
             //TestMatrixSolving();
             //SolveMapFromFile();
-            //BenchmarkSolver();
+            
             //SolveMapFromFile();
             //TestGaussianSolving();
             Console.ReadKey();
@@ -118,22 +119,29 @@ namespace TestConsole
         private static void BenchmarkSolver()
         {
             var settings = new BorderSeparationSolverSettings();
-            //settings.TrivialSolve = false;
-            settings.GaussianSolve = false;
-            //settings.PartialSolve = false;
+            settings.PartialOptimalSize = 14;
+            settings.TrivialSolve = true;
+            settings.GaussianSolve = true;
+            settings.GaussianStopAlways = false;
+            settings.PartialSolve = true;
             //settings.MineCountIgnoreCompletely = true;
             settings.GuessIfNoNoMineVerdict = false;
-            settings.MineCountSolve = false;
-            settings.MineCountSolveNonBorder = false;
-            settings.ValidCombinationSearchOpenClPlatformID = 0;
-            //settings.GiveUpFromSize = 25;
-            settings.SeparationSingleBorderStopOnNoMineVerdict = false;
-            var solver = new ExtSolver(settings);
+            settings.MineCountSolve = true;
+            settings.MineCountSolveNonBorder = true;
+            //settings.ValidCombinationSearchOpenClPlatformID = 0;
+            settings.GiveUpFromSize = 25;
+            //settings.SeparationSingleBorderStopOnNoMineVerdict = false;
+            var solver = ExtSolver.Instance;
+            solver.InitSolver(settings);
+            //var solver = new BorderSeparationSolver(settings);
             var secondarySolver = new BorderSeparationSolver(settings);
             var guesser = new LowestProbabilityGuesser();
-            var testsToRun = 500;
+            var testsToRun = 1000;
             var visualizer = new TextMapVisualizer();
             var benchmarker = new Benchmarker();
+
+            benchmarker.AllowParallelBenchmarking = false;
+
             benchmarker.AfterBenchmark += entry =>
             {
                 if (entry.Index % 50 != 0)
@@ -144,23 +152,23 @@ namespace TestConsole
             };
             benchmarker.MissingFromPrimary += (map, results) =>
             {
-                Console.WriteLine("Missing from primary");
+                /*Console.WriteLine("Missing from primary");
                 var mapStr = visualizer.VisualizeToString(map);
                 Console.WriteLine(mapStr);
                 foreach (var result in results)
                 {
                     Console.WriteLine(result.Value);
-                }
+                }*/
             };
             benchmarker.MissingFromSecondary += (map, results) =>
             {
-                Console.WriteLine("Missing from secondary");
+                /*Console.WriteLine("Missing from secondary");
                 var mapStr = visualizer.VisualizeToString(map);
                 Console.WriteLine(mapStr);
                 foreach (var result in results)
                 {
                     Console.WriteLine(result.Value);
-                }
+                }*/
             };
             benchmarker.OneSolverFailed += (primaryEntry, secondaryEntry) =>
             {
@@ -180,13 +188,14 @@ namespace TestConsole
                 Console.WriteLine(new TextMapVisualizer().VisualizeToString(m));
                 Console.WriteLine("ONE SOLVER FAILED");
             };
-            //var benchmarkSequence = benchmarker.BenchmarkMultipleDensities(solver, guesser, 16, 16, 0.2, 0.35, 0.01, testsToRun);
-            var benchmarkSequence = benchmarker.BenchmarkMultipleDensities(solver, guesser, 16, 16, 0.2, 0.35, 0.01, testsToRun, secondarySolver);
+            var benchmarkSequence = benchmarker.BenchmarkMultipleDensities(solver, guesser, 16, 16, 0.2, 0.35, 0.01, testsToRun);
+            //var benchmarkSequence = benchmarker.BenchmarkMultipleDensities(solver, guesser, 16, 16, 0.2, 0.35, 0.01, testsToRun, secondarySolver);
             var csv = new StringBuilder();
             var csvpath = @"C:\Temp\benchmark.csv";
             var infopath = @"C:\Temp\info.txt";
+            var now = DateTime.UtcNow.ToString("O");
+            File.AppendAllText(infopath, Environment.NewLine + now + Environment.NewLine);
             File.Delete(csvpath);
-            File.Delete(infopath);
             foreach (var densityGroup in benchmarkSequence)
             {
                 //var i = 1;
@@ -218,7 +227,7 @@ namespace TestConsole
         {
             var parser = new TextMapParser();
             Map map;
-            using (var file = File.OpenRead("C:/Temp/test_map.txt"))
+            using (var file = File.OpenRead("C:/Temp/game_map.txt"))
             {
                 map = parser.Parse(file);
             }
@@ -231,14 +240,20 @@ namespace TestConsole
 
 
             var settings = new BorderSeparationSolverSettings();
+            settings.PartialOptimalSize = 14;
+            settings.TrivialSolve = true;
             settings.GaussianSolve = false;
+            settings.GaussianStopAlways = false;
+            settings.PartialSolve = false;
+            //settings.MineCountIgnoreCompletely = true;
             settings.GuessIfNoNoMineVerdict = false;
             settings.MineCountSolve = false;
-            settings.MineCountSolveNonBorder = false;
-            settings.ValidCombinationSearchOpenClPlatformID = 0;
-            settings.SeparationSingleBorderStopOnNoMineVerdict = false;
-            settings.PartialSetProbabilityGuesses = false;
-            var solver = new ExtSolver(settings);
+            settings.MineCountSolveNonBorder = true;
+            //settings.ValidCombinationSearchOpenClPlatformID = 0;
+            settings.GiveUpFromSize = 25;
+            //settings.SeparationSingleBorderStopOnNoMineVerdict = false;
+            var solver = ExtSolver.Instance;
+            solver.InitSolver(settings);
             //var solver = new BorderSeparationSolver(settings);
 
             var guesser = new LowestProbabilityGuesser();
@@ -273,7 +288,7 @@ namespace TestConsole
         {
             var parser = new TextMapParser();
             Map map;
-            using (var file = File.OpenRead("C:/Temp/test_map.txt"))
+            using (var file = File.OpenRead("C:/Temp/game_map.txt"))
             {
                 map = parser.Parse(file);
             }
@@ -290,7 +305,8 @@ namespace TestConsole
             settings.MineCountSolveNonBorder = false;
             settings.ValidCombinationSearchOpenClPlatformID = 0;
             settings.SeparationSingleBorderStopOnNoMineVerdict = false;
-            var solver = new ExtSolver(settings);
+            var solver = ExtSolver.Instance;
+            solver.InitSolver(settings);
             //var solver = new BorderSeparationSolver(settings);
 
             var results = TimeItReturning(() => solver.Solve(map));

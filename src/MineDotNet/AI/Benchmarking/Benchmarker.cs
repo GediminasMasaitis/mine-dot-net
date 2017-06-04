@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using MineDotNet.AI.Guessers;
 using MineDotNet.AI.Solvers;
 using MineDotNet.Common;
@@ -17,6 +18,9 @@ namespace MineDotNet.AI.Benchmarking
         public event Action<Map, IDictionary<Coordinate, SolverResult>> MissingFromSecondary;
         public event Action<BenchmarkEntry, BenchmarkEntry> OneSolverFailed;
         public event Action<BenchmarkEntry> AfterBenchmark;
+
+        public bool AllowParallelBenchmarking { get; set; }
+
         /*private IList<GameEngine> InitEngines(int width, int height, double mineDensity, int testsToRun)
         {
             return InitEngines(width, height, (int)(width * height / mineDensity), testsToRun);
@@ -46,7 +50,8 @@ namespace MineDotNet.AI.Benchmarking
             var maps = generator.GenerateSequenceWithMineCount(width, height, startingPos, true, mineCount).Take(testsToRun);
             var entries = new List<BenchmarkEntry>();
             var i = 0;
-            foreach (var map in maps)
+            var sync = new object();
+            void BenchmarkMapOuter(GameMap map)
             {
                 var originalMap = map.Clone();
                 var entry = BenchmarkMap(map, solver, guesser, secondarySolver);
@@ -60,10 +65,25 @@ namespace MineDotNet.AI.Benchmarking
                         OneSolverFailed?.Invoke(entry, secondaryEntry);
                     }
                 }
-                entry.Index = i;
-                AfterBenchmark?.Invoke(entry);
-                entries.Add(entry);
-                i++;
+                lock (sync)
+                {
+                    entry.Index = i;
+                    AfterBenchmark?.Invoke(entry);
+                    entries.Add(entry);
+                    i++;
+                }
+            }
+
+            if (AllowParallelBenchmarking)
+            {
+                Parallel.ForEach(maps, BenchmarkMapOuter);
+            }
+            else
+            {
+                foreach(var map in maps)
+                {
+                    BenchmarkMapOuter(map);
+                }
             }
             var group = new BenchmarkDensityGroup(entries, mineCount/(double) (width*height));
             return group;

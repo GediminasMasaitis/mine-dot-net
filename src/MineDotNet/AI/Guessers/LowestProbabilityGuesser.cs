@@ -12,8 +12,10 @@ namespace MineDotNet.AI.Guessers
         {
             if (solverResults == null) throw new ArgumentNullException(nameof(solverResults));
 
-            var leastRiskyPrediction = solverResults.FirstOrDefault().Value;
-            foreach (var solverResult in solverResults.Values)
+            var sortedResults = solverResults.OrderBy(x => x.Key.X).ThenBy(x => x.Key.Y).ToDictionary(x => x.Key, x=> x.Value);
+
+            var leastRiskyPrediction = sortedResults.FirstOrDefault().Value;
+            foreach (var solverResult in sortedResults.Values)
             {
                 if (solverResult.Probability < leastRiskyPrediction.Probability)
                 {
