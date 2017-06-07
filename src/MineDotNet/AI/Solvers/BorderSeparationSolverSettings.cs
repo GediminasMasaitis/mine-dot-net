@@ -43,15 +43,15 @@ namespace MineDotNet.AI.Solvers
         // TODO
         public bool ValidCombinationSearchOpenCl { get; set; } = true;
         public bool ValidCombinationSearchOpenClAllowLoopBreak { get; set; } = true;
-        public int ValidCombinationSearchOpenClUseFromSize { get; set; } = 17;
+        public int ValidCombinationSearchOpenClUseFromSize { get; set; } = 16;
         public int ValidCombinationSearchOpenClMaxBatchSize { get; set; } = 20;
         public int ValidCombinationSearchOpenClPlatformID { get; set; } = 1;
         public int ValidCombinationSearchOpenClDeviceID { get; set; } = 0;
 
         public bool ValidCombinationSearchMultithread { get; set; } = true;
-        public int ValidCombinationSearchMultithreadUseFromSize { get; set; } = 22; //2097152
+        public int ValidCombinationSearchMultithreadUseFromSize { get; set; } = 6; //2097152
 
-        public int VariableMineCountBordersProbabilitiesMultithreadUseFrom { get; set; } = 65536;
+        public int VariableMineCountBordersProbabilitiesMultithreadUseFrom { get; set; } = 32;
 
         public bool GuessIfNoNoMineVerdict { get; set; } = true;
         public bool GuessIfNoVerdict { get; set; } = false;
