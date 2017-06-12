@@ -49,9 +49,10 @@ namespace MineDotNet.AI.Solvers
         public int ValidCombinationSearchOpenClDeviceID { get; set; } = 0;
 
         public bool ValidCombinationSearchMultithread { get; set; } = true;
-        public int ValidCombinationSearchMultithreadUseFromSize { get; set; } = 6; //2097152
+        public int ValidCombinationSearchMultithreadUseFromSize { get; set; } = 8; //2097152
 
-        public int VariableMineCountBordersProbabilitiesMultithreadUseFrom { get; set; } = 32;
+        public int VariableMineCountBordersProbabilitiesMultithreadUseFrom { get; set; } = 128;
+        public int VariableMineCountBordersProbabilitiesGiveUpFrom { get; set; } = 131072;
 
         public bool GuessIfNoNoMineVerdict { get; set; } = true;
         public bool GuessIfNoVerdict { get; set; } = false;
@@ -136,6 +137,7 @@ namespace MineDotNet.AI.Solvers
         public int ValidCombinationSearchMultithreadUseFromSize; //2097152
 
         public int VariableMineCountBordersProbabilitiesMultithreadUseFrom;
+        public int VariableMineCountBordersProbabilitiesGiveUpFrom;
 
         [MarshalAs(UnmanagedType.U1)]
         public bool GuessIfNoNoMineVerdict;
@@ -192,6 +194,7 @@ namespace MineDotNet.AI.Solvers
             ValidCombinationSearchMultithreadUseFromSize = originalSettings.ValidCombinationSearchMultithreadUseFromSize; //2097152
 
             VariableMineCountBordersProbabilitiesMultithreadUseFrom = originalSettings.VariableMineCountBordersProbabilitiesMultithreadUseFrom;
+            VariableMineCountBordersProbabilitiesGiveUpFrom = originalSettings.VariableMineCountBordersProbabilitiesGiveUpFrom;
 
             GuessIfNoNoMineVerdict = originalSettings.GuessIfNoNoMineVerdict;
             GuessIfNoVerdict = originalSettings.GuessIfNoVerdict;

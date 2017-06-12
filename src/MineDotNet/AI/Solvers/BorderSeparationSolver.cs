@@ -199,14 +199,33 @@ namespace MineDotNet.AI.Solvers
             var parameters = new List<MatrixReductionParameters>
             {
                 new MatrixReductionParameters(true),
+
+                new MatrixReductionParameters(false, false, false, false, false),
+                new MatrixReductionParameters(false, false, false, false, true),
+                new MatrixReductionParameters(false, false, false, true, false),
+                new MatrixReductionParameters(false, false, false, true, true),
+                new MatrixReductionParameters(false, false, true, false, false),
+                new MatrixReductionParameters(false, false, true, false, true),
+                new MatrixReductionParameters(false, false, true, true, false),
+                new MatrixReductionParameters(false, false, true, true, true),
+                new MatrixReductionParameters(false, true, false, false, false),
+                new MatrixReductionParameters(false, true, false, false, true),
+                new MatrixReductionParameters(false, true, false, true, false),
                 new MatrixReductionParameters(false, true, false, true, true),
+                new MatrixReductionParameters(false, true, true, false, false),
+                new MatrixReductionParameters(false, true, true, false, true),
+                new MatrixReductionParameters(false, true, true, true, false),
+                new MatrixReductionParameters(false, true, true, true, true),
+
+
+                /*new MatrixReductionParameters(false, true, false, true, true),
                 new MatrixReductionParameters(false, true, true, true, true),
                 new MatrixReductionParameters(false, false, false, true, true),
                 new MatrixReductionParameters(false, false, true, true, true),
                 //new MatrixReductionParameters(false, true, false, false, true),
                 new MatrixReductionParameters(false, false, true, false, true),
                 new MatrixReductionParameters(false, true, false, true, false),
-                new MatrixReductionParameters(false, true, true, true, false),
+                new MatrixReductionParameters(false, true, true, true, false),*/
             };
 
 
@@ -215,8 +234,8 @@ namespace MineDotNet.AI.Solvers
             var matrix = gaussianSolvingService.GetMatrixFromMap(map, coordinates, true);
             var sync = new object();
             var gaussianResults = new Dictionary<Coordinate, bool>();
-            parameters.ForEach(p =>
-            //Parallel.ForEach(parameters, p =>
+            //parameters.ForEach(p =>
+            Parallel.ForEach(parameters, p =>
             {
                 var localMatrix = gaussianSolvingService.CloneMatrix(matrix);
                 var localCoordinates = (IList<Coordinate>)coordinates.ToList();
