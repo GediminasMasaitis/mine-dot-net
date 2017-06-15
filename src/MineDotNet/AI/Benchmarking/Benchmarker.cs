@@ -18,6 +18,7 @@ namespace MineDotNet.AI.Benchmarking
         public event Action<Map, IDictionary<Coordinate, SolverResult>> MissingFromSecondary;
         public event Action<BenchmarkEntry, BenchmarkEntry> OneSolverFailed;
         public event Action<BenchmarkEntry> AfterBenchmark;
+        public event Action<BenchmarkEntry> SolverGaveWrongAnswer;
 
         public bool AllowParallelBenchmarking { get; set; }
 
@@ -116,6 +117,7 @@ namespace MineDotNet.AI.Benchmarking
             entry.GameMap = gameMap;
             entry.MineCount = entry.GameMap.RemainingMineCount;
             var engine = new GameEngine();
+            engine.FailOnIncorrectFlag = true;
             engine.Start(gameMap);
             var sw = new Stopwatch();
             while (true)
@@ -162,13 +164,27 @@ namespace MineDotNet.AI.Benchmarking
                     switch (result.Value.Verdict.Value)
                     {
                         case true:
-                            engine.SetFlag(result.Key, CellFlag.HasMine);
-                            break;
-                        case false:
-                            var success = engine.OpenCell(result.Key);
-                            if (!success)
+                            var flagSuccess = engine.SetFlag(result.Key, CellFlag.HasMine);
+                            if(!flagSuccess)
                             {
                                 entry.Solved = false;
+                                entry.FailedOnFlagging = true;
+                                if(guesserResult == null)
+                                {
+                                    SolverGaveWrongAnswer?.Invoke(entry);
+                                }
+                                return entry;
+                            }
+                            break;
+                        case false:
+                            var clickSuccess = engine.OpenCell(result.Key);
+                            if (!clickSuccess)
+                            {
+                                entry.Solved = false;
+                                if (guesserResult == null)
+                                {
+                                    SolverGaveWrongAnswer?.Invoke(entry);
+                                }
                                 return entry;
                             }
                             break;

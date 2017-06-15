@@ -79,16 +79,43 @@ namespace MineDotNet.Game
 
         public static GameMap FromRegularMap(Map map)
         {
-            var gm = new GameMap(map.Width, map.Height, map.RemainingMineCount.Value, new Coordinate(map.Width/2, map.Height/2), true);
+            var gm = new GameMap(map.Width, map.Height, 0, new Coordinate(map.Width/2, map.Height/2), true);
             for (var i = 0; i < gm.Width; i++)
             {
                 for (var j = 0; j < gm.Height; j++)
                 {
                     var cell = map.Cells[i, j];
-                    gm.Cells[i, j] = new GameCell(cell.Coordinate, cell.Flag == CellFlag.HasMine, CellState.Filled, CellFlag.None, cell.Hint);
+                    gm.Cells[i, j] = new GameCell(cell.Coordinate, cell.Flag == CellFlag.HasMine, CellState.Filled, CellFlag.None, 0);
+                }
+            }
+            foreach (var cell in gm.AllCells)
+            {
+                if (cell.HasMine)
+                {
+                    gm.RemainingMineCount++;
+                }
+                else
+                {
+                    var neighbours = gm.CalculateNeighboursOf(cell.Coordinate, false);
+                    cell.Hint = neighbours.Count(x => x.HasMine);
                 }
             }
             return gm;
+        }
+
+        public Map ToDisplayMap(bool showHints)
+        {
+            var cellCopy = new List<Cell>();
+            foreach (var gameCell in AllCells)
+            {
+                var state = gameCell.HasMine ? CellState.Filled : CellState.Empty;
+                var flag = gameCell.HasMine ? CellFlag.HasMine : CellFlag.DoesntHaveMine;
+                var hint = showHints ? gameCell.Hint : 0;
+                var cell = new Cell(gameCell.Coordinate, state, flag, hint);
+                cellCopy.Add(cell);
+            }
+            var map = new Map(cellCopy, null);
+            return map;
         }
     }
 

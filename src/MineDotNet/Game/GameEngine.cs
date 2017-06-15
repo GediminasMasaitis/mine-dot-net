@@ -8,6 +8,7 @@ namespace MineDotNet.Game
 {
     public class GameEngine
     {
+        public bool FailOnIncorrectFlag { get; set; }
         public GameMap GameMap { get; set; }
         public bool GameStarted => GameMap != null;
 
@@ -38,36 +39,39 @@ namespace MineDotNet.Game
             }
         }
 
-        public void SetFlag(Coordinate coordinate, CellFlag flag)
+        public bool SetFlag(Coordinate coordinate, CellFlag flag)
         {
             var cell = GameMap[coordinate];
-            if (cell.Flag != CellFlag.HasMine && flag == CellFlag.HasMine)
+            var oldFlag = cell.Flag;
+            cell.Flag = flag;
+            if (oldFlag != CellFlag.HasMine && flag == CellFlag.HasMine)
             {
                 GameMap.RemainingMineCount--;
+                if (FailOnIncorrectFlag && !cell.HasMine)
+                {
+                    return false;
+                }
             }
-            else if(cell.Flag == CellFlag.HasMine && flag != CellFlag.HasMine)
+            else if(oldFlag == CellFlag.HasMine && flag != CellFlag.HasMine)
             {
                 GameMap.RemainingMineCount++;
             }
-            cell.Flag = flag;
+            return true;
         }
 
-        public void ToggleFlag(Coordinate coordinate)
+        public bool ToggleFlag(Coordinate coordinate)
         {
             var cell = GameMap[coordinate];
             switch (cell.Flag)
             {
                 case CellFlag.None:
-                    SetFlag(coordinate, CellFlag.HasMine);
-                    break;
+                    return SetFlag(coordinate, CellFlag.HasMine);
                 case CellFlag.HasMine:
-                    SetFlag(coordinate, CellFlag.None);
-                    break;
+                    return SetFlag(coordinate, CellFlag.None);
                 case CellFlag.NotSure:
-                    SetFlag(coordinate, CellFlag.HasMine);
-                    break;
+                    return SetFlag(coordinate, CellFlag.HasMine);
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw new ArgumentOutOfRangeException(nameof(cell.Flag), cell.Flag, null);
             }
         }
 

@@ -16,5 +16,6 @@ namespace MineDotNet.AI.Benchmarking
         public IList<TimeSpan> SolvingDuarations { get; set; }
         public TimeSpan TotalDuration { get; set; }
         public bool Solved { get; set; }
+        public bool FailedOnFlagging { get; set; }
     }
 }

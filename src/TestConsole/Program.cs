@@ -120,7 +120,7 @@ namespace TestConsole
         {
             var settings = new BorderSeparationSolverSettings();
             settings.PartialOptimalSize = 18;
-            settings.TrivialSolve = true;
+            settings.TrivialSolve = false;
             settings.TrivialStopAlways = false;
             settings.GaussianSolve = true;
             settings.GaussianStopAlways = true;
@@ -129,6 +129,8 @@ namespace TestConsole
             settings.GuessIfNoNoMineVerdict = false;
             settings.MineCountSolve = true;
             settings.MineCountSolveNonBorder = true;
+            settings.ValidCombinationSearchOpenCl = false;
+            settings.DebugSetting1 = 1;
             //settings.ValidCombinationSearchOpenClPlatformID = 0;
             settings.GiveUpFromSize = 25;
             //settings.SeparationSingleBorderStopOnNoMineVerdict = false;
@@ -138,7 +140,7 @@ namespace TestConsole
 
             var secondarySolver = new BorderSeparationSolver(settings);
             var guesser = new LowestProbabilityGuesser();
-            var testsToRun = 1000;
+            var testsToRun = 100;
             var visualizer = new TextMapVisualizer();
             var benchmarker = new Benchmarker();
 
@@ -191,7 +193,20 @@ namespace TestConsole
                 Console.WriteLine(new TextMapVisualizer().VisualizeToString(m));
                 Console.WriteLine("ONE SOLVER FAILED");
             };
-            var benchmarkSequence = benchmarker.BenchmarkMultipleMineCounts(solver, guesser, 16, 16, 1, 100, 1, testsToRun);
+            benchmarker.SolverGaveWrongAnswer += entry =>
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("Solver gave wrong answer!");
+                sb.AppendLine("Map index: " + entry.Index);
+                sb.AppendLine("Failed on flagging: " + entry.FailedOnFlagging);
+                var displayMap = entry.GameMap.ToDisplayMap(false);
+                var mapStr = visualizer.VisualizeToString(displayMap);
+                sb.AppendLine(mapStr);
+                Console.WriteLine(sb);
+            };
+            var benchmarkSequence = new[] {benchmarker.BenchmarkWithMineDensity(solver, guesser, 5,4, 0.22, testsToRun)};
+            //var benchmarkSequence = benchmarker.BenchmarkMultipleMineCounts(solver, guesser, 16, 16, 56, 56, 1, testsToRun);
+            //var benchmarkSequence = benchmarker.BenchmarkMultipleMineCounts(solver, guesser, 16, 16, 1, 100, 1, testsToRun);
             //var benchmarkSequence = benchmarker.BenchmarkMultipleDensities(solver, guesser, 16, 16, 0.2, 0.35, 0.005, testsToRun);
             //var benchmarkSequence = benchmarker.BenchmarkMultipleDensities(solver, guesser, 16, 16, 0.2, 0.35, 0.01, testsToRun, secondarySolver);
             var csv = new StringBuilder();
@@ -247,6 +262,7 @@ namespace TestConsole
             settings.TrivialSolve = false;
             settings.GaussianStopAlways = true;
             settings.ValidCombinationSearchOpenCl = false;
+            settings.DebugSetting1 = 1;
             //settings.SeparationSingleBorderStopOnNoMineVerdict = false;
             var solver = ExtSolver.Instance; solver.InitSolver(settings);
             //var solver = new BorderSeparationSolver(settings);
@@ -261,7 +277,12 @@ namespace TestConsole
                 sb.AppendLine(visualizer.VisualizeToString(m));
                 foreach (var res in results.OrderBy(x => x.Key.X).ThenBy(x => x.Key.Y))
                 {
-                    sb.AppendLine(res.Value.ToString());
+                    sb.Append(res.Value.ToString());
+                    if (res.Value.Verdict.HasValue && res.Value.Verdict != gm[res.Value.Coordinate].HasMine)
+                    {
+                        sb.Append(" WRONG!");
+                    }
+                    sb.AppendLine();
                 }
                 if (guess != null)
                 {
