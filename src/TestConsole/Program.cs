@@ -121,9 +121,9 @@ namespace TestConsole
             var settings = new BorderSeparationSolverSettings();
             settings.PartialOptimalSize = 18;
             settings.TrivialSolve = true;
-            settings.TrivialStopAlways = true;
+            settings.TrivialStopAlways = false;
             settings.GaussianSolve = true;
-            settings.GaussianStopAlways = false;
+            settings.GaussianStopAlways = true;
             settings.PartialSolve = true;
             //settings.MineCountIgnoreCompletely = true;
             settings.GuessIfNoNoMineVerdict = false;
@@ -146,6 +146,7 @@ namespace TestConsole
 
             benchmarker.AfterBenchmark += entry =>
             {
+                File.AppendAllText(@"C:\Temp\successes.txt", $"{entry.Index}: {entry.Solved}");
                 if (entry.Index % 50 != 0)
                 {
                     return;
@@ -243,20 +244,11 @@ namespace TestConsole
 
 
             var settings = new BorderSeparationSolverSettings();
-            settings.PartialOptimalSize = 14;
-            settings.TrivialSolve = true;
-            settings.GaussianSolve = false;
-            settings.GaussianStopAlways = false;
-            settings.PartialSolve = false;
-            //settings.MineCountIgnoreCompletely = true;
-            settings.GuessIfNoNoMineVerdict = false;
-            settings.MineCountSolve = false;
-            settings.MineCountSolveNonBorder = true;
-            //settings.ValidCombinationSearchOpenClPlatformID = 0;
-            settings.GiveUpFromSize = 25;
+            settings.TrivialSolve = false;
+            settings.GaussianStopAlways = true;
+            settings.ValidCombinationSearchOpenCl = false;
             //settings.SeparationSingleBorderStopOnNoMineVerdict = false;
-            var solver = ExtSolver.Instance;
-            solver.InitSolver(settings);
+            var solver = ExtSolver.Instance; solver.InitSolver(settings);
             //var solver = new BorderSeparationSolver(settings);
 
             var guesser = new LowestProbabilityGuesser();

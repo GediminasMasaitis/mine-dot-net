@@ -56,6 +56,10 @@ namespace MineDotNet.AI.Solvers
 
         public bool GuessIfNoNoMineVerdict { get; set; } = true;
         public bool GuessIfNoVerdict { get; set; } = false;
+
+        public int DebugSetting1 { get; set; } = 0;
+        public int DebugSetting2 { get; set; } = 0;
+        public int DebugSetting3 { get; set; } = 0;
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
@@ -144,6 +148,10 @@ namespace MineDotNet.AI.Solvers
         [MarshalAs(UnmanagedType.U1)]
         public bool GuessIfNoVerdict;
 
+        public int DebugSetting1;
+        public int DebugSetting2;
+        public int DebugSetting3;
+
         public ExternalBorderSeparationSolverSettings(BorderSeparationSolverSettings originalSettings)
         {
             TrivialSolve = originalSettings.TrivialSolve;
@@ -198,6 +206,10 @@ namespace MineDotNet.AI.Solvers
 
             GuessIfNoNoMineVerdict = originalSettings.GuessIfNoNoMineVerdict;
             GuessIfNoVerdict = originalSettings.GuessIfNoVerdict;
+
+            DebugSetting1 = originalSettings.DebugSetting1;
+            DebugSetting2 = originalSettings.DebugSetting2;
+            DebugSetting3 = originalSettings.DebugSetting3;
         }
     }
 }
