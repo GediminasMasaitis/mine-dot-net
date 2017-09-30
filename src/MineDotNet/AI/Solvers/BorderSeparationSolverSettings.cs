@@ -10,6 +10,10 @@ namespace MineDotNet.AI.Solvers
         public bool TrivialStopAlways { get; set; } = false;
 
         public bool GaussianSolve { get; set; } = true;
+        public bool GaussianResolveOnSuccess { get; set; } = true;
+        public bool GaussianSingleStopOnNoMineVerdict { get; set; } = true;
+        public bool GaussianSingleStopOnAnyVerdict { get; set; } = false;
+        public bool GaussianSingleStopAlways { get; set; } = false;
         public bool GaussianStopOnNoMineVerdict { get; set; } = true;
         public bool GaussianStopOnAnyVerdict { get; set; } = false;
         public bool GaussianStopAlways { get; set; } = false;
@@ -76,6 +80,14 @@ namespace MineDotNet.AI.Solvers
 
         [MarshalAs(UnmanagedType.U1)]
         public bool GaussianSolve;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool GaussianResolveOnSuccess;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool GaussianSingleStopOnNoMineVerdict;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool GaussianSingleStopOnAnyVerdict;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool GaussianSingleStopAlways;
         [MarshalAs(UnmanagedType.U1)]
         public bool GaussianStopOnNoMineVerdict;
         [MarshalAs(UnmanagedType.U1)]
@@ -160,6 +172,10 @@ namespace MineDotNet.AI.Solvers
             TrivialStopAlways = originalSettings.TrivialStopAlways;
 
             GaussianSolve = originalSettings.GaussianSolve;
+            GaussianResolveOnSuccess = originalSettings.GaussianResolveOnSuccess;
+            GaussianSingleStopOnNoMineVerdict = originalSettings.GaussianSingleStopOnNoMineVerdict;
+            GaussianSingleStopOnAnyVerdict = originalSettings.GaussianSingleStopOnAnyVerdict;
+            GaussianSingleStopAlways = originalSettings.GaussianSingleStopAlways;
             GaussianStopOnNoMineVerdict = originalSettings.GaussianStopOnNoMineVerdict;
             GaussianStopOnAnyVerdict = originalSettings.GaussianStopOnAnyVerdict;
             GaussianStopAlways = originalSettings.GaussianStopAlways;
