@@ -144,7 +144,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CellClickEventArgs.cs" />
-    <Compile Include="CellClickEventHandler.cs" />
     <Compile Include="DisplayService.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
@@ -152,6 +151,7 @@
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="MaskMap.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="MainForm.resx">

@@ -32,17 +32,17 @@ namespace MineDotNet.GUI
         private int CurrentCellWidth { get; set; }
         private int CurrentCellHeight { get; set; }
 
-        public event CellClickEventHandler CellClick;
+        public event EventHandler<CellClickEventArgs> CellClick;
 
         public DisplayService(PictureBox target, int colorCount, TextMapVisualizer visualizer)
         {
-            DrawCoordinates = false;
+            DrawCoordinates = true;
             Target = target;
             Visualizer = visualizer;
 
             var colors = new List<Color>
             {
-                Color.FromArgb(0, 0, 0),
+                //Color.FromArgb(0, 0, 0),
                 Color.FromArgb(100, 0, 150, 0),
                 Color.FromArgb(100, 150, 0, 0),
                 Color.FromArgb(100, 40, 70, 220),
@@ -195,43 +195,84 @@ namespace MineDotNet.GUI
             CurrentCellHeight = height;
         }
 
-        private void DisplayCell(Graphics graphics, Cell cell, int x, int y, int width, int height, Brush textBrush)
+        private bool TryDrawTile(Graphics graphics, Cell cell, int cellX, int cellY, int width, int height)
         {
+            graphics.FillRectangle(EmptyBrush, cellX, cellY, width, height);
             var tiles = new List<Image>();
-            Image tempTile;
             var needStr = true;
-            if (ResizedStateTextures.TryGetValue(cell.State, out tempTile))
+            if (ResizedStateTextures.TryGetValue(cell.State, out var stateTile))
             {
-                tiles.Add(tempTile);
+                tiles.Add(stateTile);
             }
-            if (ResizedFlagTextures.TryGetValue(cell.Flag, out tempTile))
+            if (ResizedFlagTextures.TryGetValue(cell.Flag, out var flagTile))
             {
-                tiles.Add(tempTile);
+                tiles.Add(flagTile);
                 needStr = false;
             }
-            if (ResizedHintTextures.TryGetValue(cell.Hint, out tempTile))
+            if (ResizedHintTextures.TryGetValue(cell.Hint, out var hintTile))
             {
-                tiles.Add(tempTile);
+                tiles.Add(hintTile);
                 needStr = false;
             }
             needStr = needStr && cell.Hint != 0 && cell.Flag != CellFlag.None;
             foreach (var tile in tiles)
             {
-                graphics.DrawImage(tile, x, y, width, height);
+                graphics.DrawImage(tile, cellX, cellY, width, height);
             }
-            if (!needStr)
+            return !needStr;
+        }
+
+        public void DisplayCell(Graphics graphics, Cell cell, int cellWidth, int cellHeight, Brush textBrush, IList<bool> masks, IDictionary<Coordinate, SolverResult> results, Font mainFont, Font subFont)
+        {
+            var borderIncrement = (cellWidth / 2 - 5) / (masks.Count + 1);
+
+            var cellX = cell.Y * cellWidth;
+            var cellY = cell.X * cellHeight;
+            var tileSuccess = TryDrawTile(graphics, cell, cellX, cellY, cellWidth, cellHeight);
+
+            if (!tileSuccess)
             {
-                return;
+                var str = Visualizer.VisualizeCell(cell);
+                var font = new Font(FontFamily.GenericMonospace, 12, FontStyle.Bold);
+                if (str != null)
+                {
+                    graphics.DrawString(str, font, textBrush, cellX + cellWidth / 2 - 12, cellY + cellHeight / 2 - 7);
+                }
             }
-            var str = Visualizer.VisualizeCell(cell);
-            var font = new Font(FontFamily.GenericMonospace, 12, FontStyle.Bold);
-            if (str != null)
+
+            var borderWidth = 0;
+            for(var i = 0; i < masks.Count; i++)
             {
-                graphics.DrawString(str, font, textBrush, x + width/2 - 12, y + height/2 - 7);
+                if(masks[i])
+                {
+                    graphics.FillRectangle(Brushes[i], cellX + borderWidth + 1, cellY + borderWidth + 1, cellWidth - 2 * borderWidth - 1, cellHeight - 2 * borderWidth - 1);
+                    borderWidth += borderIncrement;
+                }
+            }
+            if(DrawCoordinates)
+            {
+                var posStr = $"[{cell.X};{cell.Y}]";
+                graphics.DrawString(posStr, mainFont, textBrush, cellX, cellY + cellHeight - 15);
+            }
+
+            if(results.TryGetValue(cell.Coordinate, out var result))
+            {
+                var probabilityStr = $"{result.Probability:##0.00%}";
+                graphics.DrawString(probabilityStr, mainFont, textBrush, cellX, cellY);
+                if(result.HintProbabilities != null)
+                {
+                    var heightOffset = 2;
+                    foreach(var resultHintProbability in result.HintProbabilities)
+                    {
+                        heightOffset += 8;
+                        var hintProbabilityStr = $"{resultHintProbability.Key}:{resultHintProbability.Value:000.00%}";
+                        graphics.DrawString(hintProbabilityStr, subFont, textBrush, cellX, cellY + heightOffset);
+                    }
+                }
             }
         }
 
-        public void DisplayMaps(Map[] maps, IDictionary<Coordinate, SolverResult> results = null)
+        public void DisplayMap(Map map, IList<MaskMap> masks, IDictionary<Coordinate, SolverResult> results = null)
         {
             if (results == null)
             {
@@ -239,8 +280,8 @@ namespace MineDotNet.GUI
             }
             var textColor = Color.DarkRed;
             var textBrush = new SolidBrush(textColor);
-            var cellWidth = Target.Width/maps[0].Height;
-            var cellHeight = Target.Height/maps[0].Width;
+            var cellWidth = Target.Width/map.Height;
+            var cellHeight = Target.Height/map.Width;
             if (cellHeight > cellWidth)
             {
                 cellHeight = cellWidth;
@@ -251,67 +292,23 @@ namespace MineDotNet.GUI
             }
             RescaleTiles(cellHeight, cellWidth);
 
-            var debugTextFont = new Font(FontFamily.GenericMonospace, 8, FontStyle.Bold);
-            var hintProbabilityTextFont = new Font(FontFamily.GenericMonospace, 6, FontStyle.Bold);
-
-            var borderIncrement = (cellWidth/2 - 5)/maps.Length;
+            var mainFont = new Font(FontFamily.GenericMonospace, 8, FontStyle.Bold);
+            var subFont = new Font(FontFamily.GenericMonospace, 6, FontStyle.Bold);
 
             var bmp = new Bitmap(Target.Width, Target.Height);
             using (var graphics = Graphics.FromImage(bmp))
             {
-                for (var i = 0; i < maps[0].Width; i++)
+                for (var i = 0; i < map.Width; i++)
                 {
-                    for (var j = 0; j < maps[0].Height; j++)
+                    for (var j = 0; j < map.Height; j++)
                     {
-
-                        graphics.FillRectangle(EmptyBrush, j*cellWidth, i*cellHeight, cellWidth, cellHeight);
-                        var cell = maps[0].Cells[i, j];
-                        DisplayCell(graphics, cell, j*cellWidth, i*cellHeight, cellWidth, cellHeight, textBrush);
-
-                        var borderWidth = 0;
-                        for (var k = 1; k < maps.Length; k++)
-                        {
-                            if (maps[k]?.Cells[i, j].State == CellState.Filled)
-                            {
-                                graphics.FillRectangle(Brushes[k], j*cellWidth + borderWidth + 1, i*cellHeight + borderWidth + 1, cellWidth - 2*borderWidth - 1, cellHeight - 2*borderWidth - 1);
-                                borderWidth += borderIncrement;
-                            }
-                        }
-                        if (DrawCoordinates)
-                        {
-                            var posStr = $"[{i};{j}]";
-                            graphics.DrawString(posStr, debugTextFont, textBrush, j*cellWidth, i*cellHeight + cellHeight - 15);
-                        }
-                        SolverResult result;
-                        if (results.TryGetValue(cell.Coordinate, out result))
-                        {
-                            var probabilityStr = $"{result.Probability:##0.00%}";
-                            graphics.DrawString(probabilityStr, debugTextFont, textBrush, j*cellWidth, i*cellHeight);
-                            if (result.HintProbabilities != null)
-                            {
-                                var heightOffset = 2;
-                                foreach (var resultHintProbability in result.HintProbabilities)
-                                {
-                                    heightOffset += 8;
-                                    var hintProbabilityStr = $"{resultHintProbability.Key}:{resultHintProbability.Value:000.00%}";
-                                    graphics.DrawString(hintProbabilityStr, hintProbabilityTextFont, textBrush, j * cellWidth, i * cellHeight + heightOffset);
-                                }
-                            }
-                        }
+                        var cell = map.Cells[i, j];
+                        var cellMasks = masks.Select(x => x.Cells[cell.X, cell.Y]).ToList();
+                        DisplayCell(graphics, cell, cellWidth, cellHeight, textBrush, cellMasks, results, mainFont, subFont);
                     }
-
-                    //for (var i = 0; i <= maps[0].Height; i++)
-                    //{
-                    //    graphics.DrawLine(Pens.Black, cellWidth*i, 0, cellWidth*i, cellHeight*maps[0].Width);
-                    //}
-                    //for (var i = 0; i <= maps[0].Width; i++)
-                    //{
-                    //    graphics.DrawLine(Pens.Black, 0, cellHeight * i, cellHeight * maps[0].Height, cellHeight * i);
-                    //}
                 }
             }
             Target.Image = bmp;
-            //Target.Invalidate();
         }
 
         public void Dispose()

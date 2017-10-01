@@ -101,7 +101,8 @@ namespace MineDotNet.GUI
             }
             
             Display.TryLoadAssets();
-            Display.DisplayMaps(allMaps.ToArray());
+            var maskMaps = allMaps.Skip(1).Select(MapToMaskMap).ToList();
+            Display.DisplayMap(allMaps[0], maskMaps);
         }
 
         private void DisplayOnCellClick(object sender, CellClickEventArgs args)
@@ -136,19 +137,38 @@ namespace MineDotNet.GUI
             }
             var regularMap = CurrentManualGameEngine.GameMap.ToRegularMap();
             MapTextBoxes[0].Text = Visualizer.VisualizeToString(regularMap);
-            Display.DisplayMaps(new[] {regularMap});
+            var maskMaps = GetMaskMaps();
+            Display.DisplayMap(regularMap, maskMaps);
         }
 
         private void ShowMapsButton_Click(object sender, EventArgs e)
         {
-            var maps = GetMapsFromTextBoxes();
-            Display.DisplayMaps(maps);
+            GetAndDisplayMap();
         }
 
-        private Map[] GetMapsFromTextBoxes()
+        private void GetAndDisplayMap(IDictionary<Coordinate, SolverResult> results = null)
+        {
+            var map = GetMap();
+            var maskMaps = GetMaskMaps();
+            Display.DisplayMap(map, maskMaps, results);
+        }
+
+        private Map GetMap()
         {
             var maps = new Map[MapTextBoxes.Count];
-            for (var i = 0; i < MapTextBoxes.Count; i++)
+            var mapStr = MapTextBoxes[0].Text.Replace(";", Environment.NewLine);
+            if(string.IsNullOrWhiteSpace(mapStr))
+            {
+                // TODO: Handle this
+            }
+            var map = Parser.Parse(mapStr);
+            return map;
+        }
+
+        private IList<MaskMap> GetMaskMaps()
+        {
+            var maps = new List<MaskMap>();
+            for (var i = 1; i < MapTextBoxes.Count; i++)
             {
                 var mapStr = MapTextBoxes[i].Text.Replace(";", Environment.NewLine);
                 if (string.IsNullOrWhiteSpace(mapStr))
@@ -156,9 +176,20 @@ namespace MineDotNet.GUI
                     continue;
                 }
                 var map = Parser.Parse(mapStr);
-                maps[i] = map;
+                var maskMap = MapToMaskMap(map);
+                maps.Add(maskMap);
             }
             return maps;
+        }
+
+        private MaskMap MapToMaskMap(Map map)
+        {
+            var maskMap = new MaskMap(map.Width, map.Height);
+            foreach(var cell in map.AllCells)
+            {
+                maskMap.Cells[cell.X, cell.Y] = cell.State == CellState.Filled;
+            }
+            return maskMap;
         }
 
         private Map GetMask(IDictionary<Coordinate, SolverResult> results, bool targetVerdict, int width, int height)
@@ -190,8 +221,7 @@ namespace MineDotNet.GUI
                 MapTextBoxes[1].Text = Visualizer.VisualizeToString(maskDoesntHaveMine);
                 MapTextBoxes[2].Text = Visualizer.VisualizeToString(maskHasMine);
             }
-            var maps = GetMapsFromTextBoxes();
-            Display.DisplayMaps(maps, results);
+            GetAndDisplayMap(results);
         }
 
         private void AutoPlayButton_Click(object sender, EventArgs e)
@@ -245,13 +275,11 @@ namespace MineDotNet.GUI
             MineDensityLabel.Text = $"Mine density: {MineDensityTrackBar.Value}%";
         }
 
-        
-
         private void ManualPlayButton_Click(object sender, EventArgs e)
         {
             CurrentManualGameEngine = new GameEngine();
             var emptyMap = new Map(Width, Height, null, true, CellState.Filled);
-            Display.DisplayMaps(new[] {emptyMap});
+            Display.DisplayMap(emptyMap, new List<MaskMap>());
         }
     }
 }
