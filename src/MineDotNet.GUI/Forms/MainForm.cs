@@ -1,20 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
-using System.IO;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Windows.Forms;
-using MineDotNet.AI;
 using MineDotNet.AI.Solvers;
 using MineDotNet.Common;
 using MineDotNet.Game;
+using MineDotNet.GUI.Models;
+using MineDotNet.GUI.Services;
 
-namespace MineDotNet.GUI
+namespace MineDotNet.GUI.Forms
 {
     public partial class MainForm : Form
     {
@@ -36,8 +32,7 @@ namespace MineDotNet.GUI
         {
         }
 
-        public MainForm(IList<Map> maps
-            )
+        public MainForm(IList<Map> maps)
         {
             InitializeComponent();
 
@@ -101,7 +96,7 @@ namespace MineDotNet.GUI
             }
             
             Display.TryLoadAssets();
-            var maskMaps = allMaps.Skip(1).Select(MapToMaskMap).ToList();
+            var maskMaps = allMaps.Skip(1).Select(MaskMap.FromMap).ToList();
             Display.DisplayMap(allMaps[0], maskMaps);
         }
 
@@ -144,6 +139,8 @@ namespace MineDotNet.GUI
         private void ShowMapsButton_Click(object sender, EventArgs e)
         {
             GetAndDisplayMap();
+            //var editor = new SolverSettingsEditorForm();
+            //editor.ShowDialog();
         }
 
         private void GetAndDisplayMap(IDictionary<Coordinate, SolverResult> results = null)
@@ -176,20 +173,10 @@ namespace MineDotNet.GUI
                     continue;
                 }
                 var map = Parser.Parse(mapStr);
-                var maskMap = MapToMaskMap(map);
+                var maskMap = MaskMap.FromMap(map);
                 maps.Add(maskMap);
             }
             return maps;
-        }
-
-        private MaskMap MapToMaskMap(Map map)
-        {
-            var maskMap = new MaskMap(map.Width, map.Height);
-            foreach(var cell in map.AllCells)
-            {
-                maskMap.Cells[cell.X, cell.Y] = cell.State == CellState.Filled;
-            }
-            return maskMap;
         }
 
         private Map GetMask(IDictionary<Coordinate, SolverResult> results, bool targetVerdict, int width, int height)

@@ -6,13 +6,12 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Windows.Forms;
-using MineDotNet.AI;
 using MineDotNet.AI.Solvers;
 using MineDotNet.Common;
+using MineDotNet.GUI.Models;
 
-namespace MineDotNet.GUI
+namespace MineDotNet.GUI.Services
 {
     class DisplayService : IDisposable
     {
@@ -124,7 +123,7 @@ namespace MineDotNet.GUI
             }
 
             var antiFlagPath = $@"{path}\antiflag.png";
-            if(File.Exists(flagPath))
+            if(File.Exists(antiFlagPath))
             {
                 FlagTextures[CellFlag.DoesntHaveMine] = Image.FromFile(antiFlagPath);
             }

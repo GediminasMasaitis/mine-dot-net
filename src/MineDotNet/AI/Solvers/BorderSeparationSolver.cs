@@ -12,6 +12,8 @@ namespace MineDotNet.AI.Solvers
 {
     public class BorderSeparationSolver : ISolver
     {
+        public const string Alias = "C#";
+
         public BorderSeparationSolverSettings Settings { get; set; }
 
         public BorderSeparationSolver(BorderSeparationSolverSettings settings = null)

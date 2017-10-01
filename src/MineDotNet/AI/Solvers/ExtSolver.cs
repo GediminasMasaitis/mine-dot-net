@@ -9,6 +9,7 @@ namespace MineDotNet.AI.Solvers
 {
     public class ExtSolver : ISolver
     {
+        public const string Alias = "C++";
         private static ExtSolver InnerInstance { get; set; }
 
         public static ExtSolver Instance => InnerInstance ?? (InnerInstance = new ExtSolver());

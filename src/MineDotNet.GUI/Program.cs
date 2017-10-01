@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Windows.Forms;
 using MineDotNet.Common;
+using MineDotNet.GUI.Forms;
 
 namespace MineDotNet.GUI
 {
@@ -13,6 +14,9 @@ namespace MineDotNet.GUI
         [STAThread]
         static void Main(string[] args)
         {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+
             IList<Map> maps = new List<Map>();
             for(var i = 0; i < args.Length; i++)
             {
@@ -22,9 +26,17 @@ namespace MineDotNet.GUI
                 maps.Add(map);
             }
 
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new MainForm(maps));
+            Form form;
+            if(maps.Count > 0)
+            {
+                form = new MainForm(maps);
+            }
+            else
+            {
+                form = new LauncherForm();
+            }
+
+            Application.Run(form);
         }
     }
 }

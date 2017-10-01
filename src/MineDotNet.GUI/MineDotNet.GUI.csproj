@@ -133,6 +133,9 @@
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.10.0.3\lib\net40\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -141,25 +144,79 @@
     <Reference Include="System.Deployment" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CellClickEventArgs.cs" />
-    <Compile Include="DisplayService.cs" />
-    <Compile Include="MainForm.cs">
+    <Compile Include="Forms\BenchmarkingForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="MainForm.Designer.cs">
+    <Compile Include="Forms\BenchmarkingForm.Designer.cs">
+      <DependentUpon>BenchmarkingForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\LauncherForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\LauncherForm.Designer.cs">
+      <DependentUpon>LauncherForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Models\CellClickEventArgs.cs" />
+    <Compile Include="Services\DisplayService.cs" />
+    <Compile Include="Forms\SolverSettingsEditorForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\SolverSettingsEditorForm.Designer.cs">
+      <DependentUpon>SolverSettingsEditorForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="MaskMap.cs" />
+    <Compile Include="Models\MaskMap.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <EmbeddedResource Include="MainForm.resx">
+    <Compile Include="UserControls\ObjectEditor.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Models\SolverListEntry.cs" />
+    <Compile Include="UserControls\SolversListEditor.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UserControls\SolversListEditor.Designer.cs">
+      <DependentUpon>SolversListEditor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UserControls\ValueEditor.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UserControls\ValueEditorBase.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UserControls\ValueEditorBase.Designer.cs">
+      <DependentUpon>ValueEditorBase.cs</DependentUpon>
+    </Compile>
+    <EmbeddedResource Include="Forms\BenchmarkingForm.resx">
+      <DependentUpon>BenchmarkingForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\LauncherForm.resx">
+      <DependentUpon>LauncherForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\SolverSettingsEditorForm.resx">
+      <DependentUpon>SolverSettingsEditorForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UserControls\SolversListEditor.resx">
+      <DependentUpon>SolversListEditor.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UserControls\ValueEditorBase.resx">
+      <DependentUpon>ValueEditorBase.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MineDotNet\MineDotNet.csproj">

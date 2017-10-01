@@ -2,7 +2,7 @@
 using System.Windows.Forms;
 using MineDotNet.Common;
 
-namespace MineDotNet.GUI
+namespace MineDotNet.GUI.Models
 {
     public class CellClickEventArgs : EventArgs
     {
