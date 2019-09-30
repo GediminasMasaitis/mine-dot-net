@@ -28,7 +28,6 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.MainPictureBox = new System.Windows.Forms.PictureBox();
             this.ShowMapsButton = new System.Windows.Forms.Button();
             this.Map0Label = new System.Windows.Forms.Label();
             this.Map0TextBox = new System.Windows.Forms.TextBox();
@@ -42,24 +41,17 @@
             this.HeightNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.HeightLabel = new System.Windows.Forms.Label();
             this.solversListEditor1 = new MineDotNet.GUI.UserControls.SolversListEditor();
-            ((System.ComponentModel.ISupportInitialize)(this.MainPictureBox)).BeginInit();
+            this.MainPictureBox = new System.Windows.Forms.PictureBox();
             ((System.ComponentModel.ISupportInitialize)(this.MineDensityTrackBar)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.WidthNumericUpDown)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.HeightNumericUpDown)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.MainPictureBox)).BeginInit();
             this.SuspendLayout();
-            // 
-            // MainPictureBox
-            // 
-            this.MainPictureBox.Location = new System.Drawing.Point(0, 0);
-            this.MainPictureBox.Name = "MainPictureBox";
-            this.MainPictureBox.Size = new System.Drawing.Size(513, 513);
-            this.MainPictureBox.TabIndex = 0;
-            this.MainPictureBox.TabStop = false;
             // 
             // ShowMapsButton
             // 
             this.ShowMapsButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.ShowMapsButton.Location = new System.Drawing.Point(1185, 7);
+            this.ShowMapsButton.Location = new System.Drawing.Point(917, 7);
             this.ShowMapsButton.Name = "ShowMapsButton";
             this.ShowMapsButton.Size = new System.Drawing.Size(110, 23);
             this.ShowMapsButton.TabIndex = 3;
@@ -90,7 +82,7 @@
             // SolveMapButton
             // 
             this.SolveMapButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.SolveMapButton.Location = new System.Drawing.Point(1185, 36);
+            this.SolveMapButton.Location = new System.Drawing.Point(917, 36);
             this.SolveMapButton.Name = "SolveMapButton";
             this.SolveMapButton.Size = new System.Drawing.Size(110, 23);
             this.SolveMapButton.TabIndex = 24;
@@ -101,7 +93,7 @@
             // AutoPlayButton
             // 
             this.AutoPlayButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.AutoPlayButton.Location = new System.Drawing.Point(1185, 218);
+            this.AutoPlayButton.Location = new System.Drawing.Point(917, 218);
             this.AutoPlayButton.Name = "AutoPlayButton";
             this.AutoPlayButton.Size = new System.Drawing.Size(110, 23);
             this.AutoPlayButton.TabIndex = 25;
@@ -112,7 +104,7 @@
             // MineDensityTrackBar
             // 
             this.MineDensityTrackBar.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.MineDensityTrackBar.Location = new System.Drawing.Point(1180, 167);
+            this.MineDensityTrackBar.Location = new System.Drawing.Point(912, 167);
             this.MineDensityTrackBar.Maximum = 100;
             this.MineDensityTrackBar.Name = "MineDensityTrackBar";
             this.MineDensityTrackBar.Size = new System.Drawing.Size(115, 45);
@@ -124,7 +116,7 @@
             // 
             this.MineDensityLabel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.MineDensityLabel.AutoSize = true;
-            this.MineDensityLabel.Location = new System.Drawing.Point(1194, 199);
+            this.MineDensityLabel.Location = new System.Drawing.Point(926, 199);
             this.MineDensityLabel.Name = "MineDensityLabel";
             this.MineDensityLabel.Size = new System.Drawing.Size(92, 13);
             this.MineDensityLabel.TabIndex = 27;
@@ -133,7 +125,7 @@
             // ManualPlayButton
             // 
             this.ManualPlayButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.ManualPlayButton.Location = new System.Drawing.Point(1185, 247);
+            this.ManualPlayButton.Location = new System.Drawing.Point(917, 247);
             this.ManualPlayButton.Name = "ManualPlayButton";
             this.ManualPlayButton.Size = new System.Drawing.Size(110, 23);
             this.ManualPlayButton.TabIndex = 28;
@@ -145,7 +137,7 @@
             // 
             this.WidthLabel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.WidthLabel.AutoSize = true;
-            this.WidthLabel.Location = new System.Drawing.Point(1194, 116);
+            this.WidthLabel.Location = new System.Drawing.Point(926, 116);
             this.WidthLabel.Name = "WidthLabel";
             this.WidthLabel.Size = new System.Drawing.Size(38, 13);
             this.WidthLabel.TabIndex = 29;
@@ -154,7 +146,7 @@
             // WidthNumericUpDown
             // 
             this.WidthNumericUpDown.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.WidthNumericUpDown.Location = new System.Drawing.Point(1238, 114);
+            this.WidthNumericUpDown.Location = new System.Drawing.Point(970, 114);
             this.WidthNumericUpDown.Maximum = new decimal(new int[] {
             200,
             0,
@@ -177,7 +169,7 @@
             // HeightNumericUpDown
             // 
             this.HeightNumericUpDown.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.HeightNumericUpDown.Location = new System.Drawing.Point(1238, 140);
+            this.HeightNumericUpDown.Location = new System.Drawing.Point(970, 140);
             this.HeightNumericUpDown.Maximum = new decimal(new int[] {
             200,
             0,
@@ -201,7 +193,7 @@
             // 
             this.HeightLabel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.HeightLabel.AutoSize = true;
-            this.HeightLabel.Location = new System.Drawing.Point(1191, 142);
+            this.HeightLabel.Location = new System.Drawing.Point(923, 142);
             this.HeightLabel.Name = "HeightLabel";
             this.HeightLabel.Size = new System.Drawing.Size(41, 13);
             this.HeightLabel.TabIndex = 31;
@@ -209,17 +201,25 @@
             // 
             // solversListEditor1
             // 
-            this.solversListEditor1.Location = new System.Drawing.Point(564, 95);
+            this.solversListEditor1.Location = new System.Drawing.Point(545, 0);
             this.solversListEditor1.Name = "solversListEditor1";
             this.solversListEditor1.Size = new System.Drawing.Size(313, 311);
             this.solversListEditor1.TabIndex = 33;
+            // 
+            // MainPictureBox
+            // 
+            this.MainPictureBox.Location = new System.Drawing.Point(0, 0);
+            this.MainPictureBox.Name = "MainPictureBox";
+            this.MainPictureBox.Size = new System.Drawing.Size(539, 539);
+            this.MainPictureBox.TabIndex = 0;
+            this.MainPictureBox.TabStop = false;
             // 
             // MainForm
             // 
             this.AcceptButton = this.ShowMapsButton;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1302, 779);
+            this.ClientSize = new System.Drawing.Size(1034, 779);
             this.Controls.Add(this.solversListEditor1);
             this.Controls.Add(this.HeightNumericUpDown);
             this.Controls.Add(this.HeightLabel);
@@ -236,18 +236,16 @@
             this.Controls.Add(this.MainPictureBox);
             this.Name = "MainForm";
             this.Text = "Mine viewer";
-            ((System.ComponentModel.ISupportInitialize)(this.MainPictureBox)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.MineDensityTrackBar)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.WidthNumericUpDown)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.HeightNumericUpDown)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.MainPictureBox)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
         }
 
         #endregion
-
-        private System.Windows.Forms.PictureBox MainPictureBox;
         private System.Windows.Forms.Button ShowMapsButton;
         private System.Windows.Forms.Label Map0Label;
         private System.Windows.Forms.TextBox Map0TextBox;
@@ -261,6 +259,7 @@
         private System.Windows.Forms.NumericUpDown HeightNumericUpDown;
         private System.Windows.Forms.Label HeightLabel;
         private UserControls.SolversListEditor solversListEditor1;
+        private System.Windows.Forms.PictureBox MainPictureBox;
     }
 }
 

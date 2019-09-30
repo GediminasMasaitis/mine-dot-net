@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using MineDotNet.AI.Solvers;
 using MineDotNet.Common;
 using MineDotNet.GUI.Models;
+using MineDotNet.GUI.Tiles;
 
 namespace MineDotNet.GUI.Services
 {
@@ -22,19 +23,21 @@ namespace MineDotNet.GUI.Services
         public IList<SolidBrush> Brushes { get; }
         private SolidBrush EmptyBrush { get; }
 
-        private IDictionary<int, Image> HintTextures { get; set; }
-        private IDictionary<CellState, Image> StateTextures { get; set; }
-        private IDictionary<CellFlag, Image> FlagTextures { get; set; }
-        private IDictionary<int, Image> ResizedHintTextures { get; set; }
-        private IDictionary<CellState, Image> ResizedStateTextures { get; set; }
-        private IDictionary<CellFlag, Image> ResizedFlagTextures { get; set; }
+
         private int CurrentCellWidth { get; set; }
         private int CurrentCellHeight { get; set; }
 
         public event EventHandler<CellClickEventArgs> CellClick;
 
+        private readonly ITileProvider _tileProvider;
+
         public DisplayService(PictureBox target, int colorCount, TextMapVisualizer visualizer)
         {
+            var tileLoader = new TileLoader();
+            var tileResizer = new TileResizer();
+            var tileGenerator = new TileGenerator();
+            _tileProvider = new TileProvider(tileLoader, tileResizer, tileGenerator);
+
             DrawCoordinates = true;
             Target = target;
             Visualizer = visualizer;
@@ -96,129 +99,25 @@ namespace MineDotNet.GUI.Services
             OnCellClick(args);
         }
 
-        public void TryLoadAssets()
-        {
-            var currentPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            var path = $@"{currentPath}\assets";
-            HintTextures = new Dictionary<int, Image>();
-            FlagTextures = new Dictionary<CellFlag, Image>();
-            StateTextures = new Dictionary<CellState, Image>();
-            if (!Directory.Exists(path))
-            {
-                return;
-            }
-            for (var i = 1; i <= 8; i++)
-            {
-                var hintPath = $@"{path}\{i}.png";
-                if (File.Exists(hintPath))
-                {
-                    HintTextures[i] = Image.FromFile(hintPath);
-                }
-            }
-
-            var flagPath = $@"{path}\flag.png";
-            if (File.Exists(flagPath))
-            {
-                FlagTextures[CellFlag.HasMine] = Image.FromFile(flagPath);
-            }
-
-            var antiFlagPath = $@"{path}\antiflag.png";
-            if(File.Exists(antiFlagPath))
-            {
-                FlagTextures[CellFlag.DoesntHaveMine] = Image.FromFile(antiFlagPath);
-            }
-
-            var unknownPath = $@"{path}\unknown.png";
-            if (File.Exists(unknownPath))
-            {
-                FlagTextures[CellFlag.NotSure] = Image.FromFile(unknownPath);
-            }
-
-            var filledPath = $@"{path}\filled.png";
-            if (File.Exists(filledPath))
-            {
-                StateTextures[CellState.Filled] = Image.FromFile(filledPath);
-            }
-
-            var emptyPath = $@"{path}\empty.png";
-            if (File.Exists(emptyPath))
-            {
-                StateTextures[CellState.Empty] = Image.FromFile(emptyPath);
-            }
-        }
-
-        private Image ResizeImage(Image image, int width, int height)
-        {
-            //return new Bitmap(image, width, height);
-            var rect = new Rectangle(0, 0, width, height);
-            var bitmap = new Bitmap(width, height);
-            using (var graphics = Graphics.FromImage(bitmap))
-            {
-                graphics.InterpolationMode = InterpolationMode.High;
-                graphics.CompositingQuality = CompositingQuality.HighQuality;
-                graphics.SmoothingMode = SmoothingMode.HighQuality;
-                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-
-                using (var attr = new ImageAttributes())
-                {
-                    attr.SetWrapMode(WrapMode.TileFlipXY);
-                    graphics.DrawImage(image, rect, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, attr);
-                }
-            }
-            return bitmap;
-        }
-
-        private void RescaleTiles(int width, int height)
-        {
-            if (CurrentCellWidth == width && CurrentCellHeight == height)
-            {
-                return;
-            }
-            ResizedFlagTextures = new Dictionary<CellFlag, Image>();
-            ResizedHintTextures = new Dictionary<int, Image>();
-            ResizedStateTextures = new Dictionary<CellState, Image>();
-
-            foreach (var texture in StateTextures)
-            {
-                ResizedStateTextures[texture.Key] = ResizeImage(texture.Value, width, height);
-            }
-            foreach (var texture in HintTextures)
-            {
-                ResizedHintTextures[texture.Key] = ResizeImage(texture.Value, width, height);
-            }
-            foreach (var texture in FlagTextures)
-            {
-                ResizedFlagTextures[texture.Key] = ResizeImage(texture.Value, width, height);
-            }
-            CurrentCellWidth = width;
-            CurrentCellHeight = height;
-        }
-
-        private bool TryDrawTile(Graphics graphics, Cell cell, int cellX, int cellY, int width, int height)
+        private void DrawTile(Graphics graphics, Cell cell, int cellX, int cellY, int width, int height)
         {
             graphics.FillRectangle(EmptyBrush, cellX, cellY, width, height);
-            var tiles = new List<Image>();
-            var needStr = true;
-            if (ResizedStateTextures.TryGetValue(cell.State, out var stateTile))
+            var tiles = _tileProvider.GetTiles(width, height);
+            Image tile;
+            if (cell.State == CellState.Empty)
             {
-                tiles.Add(stateTile);
+                tile = tiles.Hints[cell.Hint];
             }
-            if (ResizedFlagTextures.TryGetValue(cell.Flag, out var flagTile))
+            else if (cell.Flag != CellFlag.None)
             {
-                tiles.Add(flagTile);
-                needStr = false;
+                tile = tiles.Flags[cell.Flag];
             }
-            if (ResizedHintTextures.TryGetValue(cell.Hint, out var hintTile))
+            else
             {
-                tiles.Add(hintTile);
-                needStr = false;
+                tile = tiles.States[cell.State];
             }
-            needStr = needStr && cell.Hint != 0 && cell.Flag != CellFlag.None;
-            foreach (var tile in tiles)
-            {
-                graphics.DrawImage(tile, cellX, cellY, width, height);
-            }
-            return !needStr;
+
+            graphics.DrawImage(tile, cellX, cellY, width, height);
         }
 
         public void DisplayCell(Graphics graphics, Cell cell, int cellWidth, int cellHeight, Brush textBrush, IList<bool> masks, IDictionary<Coordinate, SolverResult> results, Font mainFont, Font subFont)
@@ -227,17 +126,8 @@ namespace MineDotNet.GUI.Services
 
             var cellX = cell.Y * cellWidth;
             var cellY = cell.X * cellHeight;
-            var tileSuccess = TryDrawTile(graphics, cell, cellX, cellY, cellWidth, cellHeight);
+            DrawTile(graphics, cell, cellX, cellY, cellWidth, cellHeight);
 
-            if (!tileSuccess)
-            {
-                var str = Visualizer.VisualizeCell(cell);
-                var font = new Font(FontFamily.GenericMonospace, 12, FontStyle.Bold);
-                if (str != null)
-                {
-                    graphics.DrawString(str, font, textBrush, cellX + cellWidth / 2 - 12, cellY + cellHeight / 2 - 7);
-                }
-            }
 
             var borderWidth = 0;
             for(var i = 0; i < masks.Count; i++)
@@ -289,7 +179,6 @@ namespace MineDotNet.GUI.Services
             {
                 cellWidth = cellHeight;
             }
-            RescaleTiles(cellHeight, cellWidth);
 
             var mainFont = new Font(FontFamily.GenericMonospace, 8, FontStyle.Bold);
             var subFont = new Font(FontFamily.GenericMonospace, 6, FontStyle.Bold);

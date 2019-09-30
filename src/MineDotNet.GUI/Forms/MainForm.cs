@@ -95,7 +95,6 @@ namespace MineDotNet.GUI.Forms
                 MapTextBoxes[i].Text = mapStr;
             }
             
-            Display.TryLoadAssets();
             var maskMaps = allMaps.Skip(1).Select(MaskMap.FromMap).ToList();
             Display.DisplayMap(allMaps[0], maskMaps);
         }

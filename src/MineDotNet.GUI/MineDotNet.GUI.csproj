@@ -176,6 +176,15 @@
     <Compile Include="Models\MaskMap.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Tiles\ITileGenerator.cs" />
+    <Compile Include="Tiles\ITileLoader.cs" />
+    <Compile Include="Tiles\ITileProvider.cs" />
+    <Compile Include="Tiles\ITileResizer.cs" />
+    <Compile Include="Tiles\TileGenerator.cs" />
+    <Compile Include="Tiles\TileProvider.cs" />
+    <Compile Include="Tiles\TileResizer.cs" />
+    <Compile Include="Tiles\TileCollection.cs" />
+    <Compile Include="Tiles\TileLoader.cs" />
     <Compile Include="UserControls\ObjectEditor.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -224,6 +233,7 @@
       <Name>MineDotNet</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
