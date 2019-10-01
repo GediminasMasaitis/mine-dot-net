@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System.Collections.Generic;
+using System.Drawing;
 
 namespace MineDotNet.GUI.Tiles
 {
@@ -8,7 +9,8 @@ namespace MineDotNet.GUI.Tiles
         private readonly ITileResizer _resizer;
         private readonly ITileGenerator _generator;
 
-        private bool _tilesLoaded;
+        private TileCollection _originalTiles;
+        private readonly IDictionary<Size, TileCollection> _tileCache;
 
         public TileProvider(ITileLoader loader, ITileResizer resizer, ITileGenerator tileGenerator)
         {
@@ -16,14 +18,23 @@ namespace MineDotNet.GUI.Tiles
             _resizer = resizer;
             _generator = tileGenerator;
 
-            _tilesLoaded = false;
+            _tileCache = new Dictionary<Size, TileCollection>();
         }
 
         public TileCollection GetTiles(Size size)
         {
-            var originalTiles = _loader.GetTiles();
-            var resizedTiles = _resizer.ReszizeTiles(originalTiles, size);
-            return resizedTiles;
+            if (_originalTiles == null)
+            {
+                _originalTiles = _loader.GetTiles();
+            }
+
+            if (!_tileCache.TryGetValue(size, out var tiles))
+            {
+                tiles = _resizer.ReszizeTiles(_originalTiles, size);
+                _tileCache.Add(size, tiles);
+            }
+
+            return tiles;
         }
 
         public TileCollection GetTiles(int width, int height)

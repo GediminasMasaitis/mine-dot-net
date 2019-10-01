@@ -1,11 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
-using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Windows.Forms;
 using MineDotNet.AI.Solvers;
 using MineDotNet.Common;
@@ -14,95 +10,69 @@ using MineDotNet.GUI.Tiles;
 
 namespace MineDotNet.GUI.Services
 {
-    class DisplayService : IDisposable
+    class DisplayService : IDisplayService
     {
-        public bool DrawCoordinates { get; set; }
-        public PictureBox Target { get; }
-        public TextMapVisualizer Visualizer { get; set; }
-
-        public IList<SolidBrush> Brushes { get; }
-        private SolidBrush EmptyBrush { get; }
-
-
-        private int CurrentCellWidth { get; set; }
-        private int CurrentCellHeight { get; set; }
-
         public event EventHandler<CellClickEventArgs> CellClick;
-
+        public bool DrawCoordinates { get; set; }
+        
         private readonly ITileProvider _tileProvider;
+        private readonly IBrushProvider _brushProvider;
 
-        public DisplayService(PictureBox target, int colorCount, TextMapVisualizer visualizer)
+        private readonly Font _mainFont;
+        private readonly Font _subFont;
+
+        private PictureBox _target;
+        private Size _currentCellSize;
+
+        public DisplayService(ITileProvider tileProvider, IBrushProvider brushProvider)
         {
-            var tileLoader = new TileLoader();
-            var tileResizer = new TileResizer();
-            var tileGenerator = new TileGenerator();
-            _tileProvider = new TileProvider(tileLoader, tileResizer, tileGenerator);
+            _tileProvider = tileProvider;
+            _brushProvider = brushProvider;
+
+            _mainFont = new Font(FontFamily.GenericMonospace, 8, FontStyle.Bold);
+            _subFont = new Font(FontFamily.GenericMonospace, 6, FontStyle.Bold);
 
             DrawCoordinates = true;
-            Target = target;
-            Visualizer = visualizer;
-
-            var colors = new List<Color>
-            {
-                //Color.FromArgb(0, 0, 0),
-                Color.FromArgb(100, 0, 150, 0),
-                Color.FromArgb(100, 150, 0, 0),
-                Color.FromArgb(100, 40, 70, 220),
-                Color.FromArgb(100,100, 100, 0),
-                Color.FromArgb(100,100, 0, 100),
-                Color.FromArgb(100,0, 100, 100),
-                Color.FromArgb(100,170, 70, 0),
-                Color.FromArgb(100,0, 170, 100),
-                Color.FromArgb(100,70, 30, 0),
-                Color.FromArgb(100,180, 0, 100),
-                Color.FromArgb(100,180, 150, 50),
-                Color.FromArgb(100,120, 120, 120),
-                Color.FromArgb(100,170, 170, 170),
-            };
-
-            var rng = new Random(0);
-            while (colors.Count < colorCount)
-            {
-                var red = rng.Next(0, 256);
-                var green = rng.Next(0, 256);
-                var blue = rng.Next(0, 256);
-                var color = Color.FromArgb(red, green, blue);
-                colors.Add(color);
-            }
-
-            Brushes = colors.Select(x => new SolidBrush(x)).ToList();
-
-            EmptyBrush = new SolidBrush(Color.FromArgb(100, 100, 100));
-            Target.MouseUp += TargetOnClick;
         }
 
-        protected void OnCellClick(CellClickEventArgs args)
+        public void SetTarget(PictureBox target)
+        {
+            if (_target != null)
+            {
+                _target.MouseUp -= TargetOnClick;
+            }
+
+            _target = target;
+            _target.MouseUp += TargetOnClick;
+        }
+
+        private void OnCellClick(CellClickEventArgs args)
         {
             CellClick?.Invoke(this, args);
         }
 
         private void TargetOnClick(object sender, MouseEventArgs eventArgs)
         {
-            if (CurrentCellWidth <= 0 || CurrentCellHeight <= 0)
+            if (_currentCellSize.Width <= 0 || _currentCellSize.Height <= 0)
             {
                 return;
             }
-            if (!Target.Bounds.Contains(eventArgs.Location))
+            if (!_target.Bounds.Contains(eventArgs.Location))
             {
                 return;
             }
 
-            var x = eventArgs.Location.Y/CurrentCellWidth;
-            var y = eventArgs.Location.X/CurrentCellHeight;
+            var x = eventArgs.Location.Y/ _currentCellSize.Width;
+            var y = eventArgs.Location.X/ _currentCellSize.Height;
             var coord = new Coordinate(x,y);
             var args = new CellClickEventArgs(coord, eventArgs.Button);
             OnCellClick(args);
         }
 
-        private void DrawTile(Graphics graphics, Cell cell, int cellX, int cellY, int width, int height)
+        private void DrawTile(Graphics graphics, Cell cell, Rectangle cellRectangle)
         {
-            graphics.FillRectangle(EmptyBrush, cellX, cellY, width, height);
-            var tiles = _tileProvider.GetTiles(width, height);
+            graphics.FillRectangle(_brushProvider.EmptyBrush, cellRectangle);
+            var tiles = _tileProvider.GetTiles(cellRectangle.Size);
             Image tile;
             if (cell.State == CellState.Empty)
             {
@@ -116,17 +86,20 @@ namespace MineDotNet.GUI.Services
             {
                 tile = tiles.States[cell.State];
             }
-
-            graphics.DrawImage(tile, cellX, cellY, width, height);
+            
+            graphics.DrawImage(tile, cellRectangle);
         }
 
-        public void DisplayCell(Graphics graphics, Cell cell, int cellWidth, int cellHeight, Brush textBrush, IList<bool> masks, IDictionary<Coordinate, SolverResult> results, Font mainFont, Font subFont)
+        private void DisplayCell(Graphics graphics, Cell cell, Size cellSize, Brush textBrush, IList<bool> masks, IDictionary<Coordinate, SolverResult> results)
         {
-            var borderIncrement = (cellWidth / 2 - 5) / (masks.Count + 1);
+            var borderIncrement = (cellSize.Width / 2 - 5) / (masks.Count + 1);
 
-            var cellX = cell.Y * cellWidth;
-            var cellY = cell.X * cellHeight;
-            DrawTile(graphics, cell, cellX, cellY, cellWidth, cellHeight);
+            var cellX = cell.Y * cellSize.Width;
+            var cellY = cell.X * cellSize.Height;
+            var cellLocation = new Point(cellX, cellY);
+            var cellRectangle = new Rectangle(cellLocation, cellSize);
+
+            DrawTile(graphics, cell, cellRectangle);
 
 
             var borderWidth = 0;
@@ -134,20 +107,20 @@ namespace MineDotNet.GUI.Services
             {
                 if(masks[i])
                 {
-                    graphics.FillRectangle(Brushes[i], cellX + borderWidth + 1, cellY + borderWidth + 1, cellWidth - 2 * borderWidth - 1, cellHeight - 2 * borderWidth - 1);
+                    graphics.FillRectangle(_brushProvider.Brushes[i], cellX + borderWidth + 1, cellY + borderWidth + 1, cellSize.Width - 2 * borderWidth - 1, cellSize.Height - 2 * borderWidth - 1);
                     borderWidth += borderIncrement;
                 }
             }
             if(DrawCoordinates)
             {
                 var posStr = $"[{cell.X};{cell.Y}]";
-                graphics.DrawString(posStr, mainFont, textBrush, cellX, cellY + cellHeight - 15);
+                graphics.DrawString(posStr, _mainFont, textBrush, cellX, cellY + cellSize.Height - 15);
             }
 
             if(results.TryGetValue(cell.Coordinate, out var result))
             {
                 var probabilityStr = $"{result.Probability:##0.00%}";
-                graphics.DrawString(probabilityStr, mainFont, textBrush, cellX, cellY);
+                graphics.DrawString(probabilityStr, _mainFont, textBrush, cellX, cellY);
                 if(result.HintProbabilities != null)
                 {
                     var heightOffset = 2;
@@ -155,10 +128,26 @@ namespace MineDotNet.GUI.Services
                     {
                         heightOffset += 8;
                         var hintProbabilityStr = $"{resultHintProbability.Key}:{resultHintProbability.Value:000.00%}";
-                        graphics.DrawString(hintProbabilityStr, subFont, textBrush, cellX, cellY + heightOffset);
+                        graphics.DrawString(hintProbabilityStr, _subFont, textBrush, cellX, cellY + heightOffset);
                     }
                 }
             }
+        }
+
+        private Size GetCellSize(IMap map)
+        {
+            var cellWidth = _target.Width / map.Height;
+            var cellHeight = _target.Height / map.Width;
+            if (cellHeight > cellWidth)
+            {
+                cellHeight = cellWidth;
+            }
+            if (cellWidth > cellHeight)
+            {
+                cellWidth = cellHeight;
+            }
+
+            return new Size(cellWidth, cellHeight);
         }
 
         public void DisplayMap(Map map, IList<MaskMap> masks, IDictionary<Coordinate, SolverResult> results = null)
@@ -169,21 +158,10 @@ namespace MineDotNet.GUI.Services
             }
             var textColor = Color.DarkRed;
             var textBrush = new SolidBrush(textColor);
-            var cellWidth = Target.Width/map.Height;
-            var cellHeight = Target.Height/map.Width;
-            if (cellHeight > cellWidth)
-            {
-                cellHeight = cellWidth;
-            }
-            if (cellWidth > cellHeight)
-            {
-                cellWidth = cellHeight;
-            }
+            var cellSize = GetCellSize(map);
+            _currentCellSize = cellSize;
 
-            var mainFont = new Font(FontFamily.GenericMonospace, 8, FontStyle.Bold);
-            var subFont = new Font(FontFamily.GenericMonospace, 6, FontStyle.Bold);
-
-            var bmp = new Bitmap(Target.Width, Target.Height);
+            var bmp = new Bitmap(_target.Width, _target.Height);
             using (var graphics = Graphics.FromImage(bmp))
             {
                 for (var i = 0; i < map.Width; i++)
@@ -192,16 +170,19 @@ namespace MineDotNet.GUI.Services
                     {
                         var cell = map.Cells[i, j];
                         var cellMasks = masks.Select(x => x.Cells[cell.X, cell.Y]).ToList();
-                        DisplayCell(graphics, cell, cellWidth, cellHeight, textBrush, cellMasks, results, mainFont, subFont);
+                        DisplayCell(graphics, cell, cellSize, textBrush, cellMasks, results);
                     }
                 }
             }
-            Target.Image = bmp;
+            _target.Image = bmp;
         }
 
         public void Dispose()
         {
-            Target.MouseClick -= TargetOnClick;
+            if (_target != null)
+            {
+                _target.MouseClick -= TargetOnClick;
+            }
         }
     }
 }

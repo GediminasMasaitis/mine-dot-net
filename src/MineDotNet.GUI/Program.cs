@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Windows.Forms;
+using Microsoft.Extensions.DependencyInjection;
 using MineDotNet.Common;
 using MineDotNet.GUI.Forms;
+using MineDotNet.GUI.IO;
 
 namespace MineDotNet.GUI
 {
@@ -14,6 +17,10 @@ namespace MineDotNet.GUI
         [STAThread]
         static void Main(string[] args)
         {
+            var collection = new ServiceCollection();
+            collection.AddMineDotNetGUI();
+            IOCC.ServiceProvider = collection.BuildServiceProvider();
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 

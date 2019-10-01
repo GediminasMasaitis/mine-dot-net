@@ -21,7 +21,8 @@ namespace MineDotNet.GUI.Forms
         private TextMapVisualizer Visualizer { get; }
         private int MapCount { get; }
 
-        private DisplayService Display { get; set; }
+        private readonly IDisplayService _display;
+        private readonly IBrushProvider _brushes;
 
         private GameMapGenerator GameMapGenerator { get; set; }
         private GameEngine CurrentManualGameEngine { get; set; }
@@ -36,6 +37,12 @@ namespace MineDotNet.GUI.Forms
         {
             InitializeComponent();
 
+            _display = IOCC.GetService<IDisplayService>();
+            _display.SetTarget(MainPictureBox);
+            _display.CellClick += DisplayOnCellClick;
+
+            _brushes = IOCC.GetService<IBrushProvider>();
+
             var aggregateSolver = new BorderSeparationSolver();
             Solver = aggregateSolver;
 
@@ -46,8 +53,7 @@ namespace MineDotNet.GUI.Forms
             MapTextBoxes = new TextBox[MapCount];
             MapTextBoxes[0] = Map0TextBox;
 
-            Display = new DisplayService(MainPictureBox, MapCount, Visualizer);
-            Display.CellClick += DisplayOnCellClick;
+
             var random = new Random();
             GameMapGenerator = new GameMapGenerator(random);
             var offsetX = 170;
@@ -67,7 +73,7 @@ namespace MineDotNet.GUI.Forms
                 newLabel.Parent = this;
                 newLabel.Location = new Point(Map0Label.Location.X + offsetX*i, Map0Label.Location.Y + offsetY*i);
                 newLabel.Text = $"Mask {i}:";
-                newLabel.ForeColor = Display.Brushes[i].Color;
+                newLabel.ForeColor = _brushes.Brushes[i].Color;
                 newLabel.Anchor = Map0Label.Anchor;
 
                 MapTextBoxes[i] = newTextBox;
@@ -81,7 +87,7 @@ namespace MineDotNet.GUI.Forms
 
             for (var i = 0; i < MapTextBoxes.Count; i++)
             {
-                MapTextBoxes[i].ForeColor = Display.Brushes[i].Color;
+                MapTextBoxes[i].ForeColor = _brushes.Brushes[i].Color;
                 MapTextBoxes[i].Font = new Font(FontFamily.GenericMonospace, 10, FontStyle.Bold);
             }
 
@@ -96,7 +102,7 @@ namespace MineDotNet.GUI.Forms
             }
             
             var maskMaps = allMaps.Skip(1).Select(MaskMap.FromMap).ToList();
-            Display.DisplayMap(allMaps[0], maskMaps);
+            _display.DisplayMap(allMaps[0], maskMaps);
         }
 
         private void DisplayOnCellClick(object sender, CellClickEventArgs args)
@@ -132,7 +138,7 @@ namespace MineDotNet.GUI.Forms
             var regularMap = CurrentManualGameEngine.GameMap.ToRegularMap();
             MapTextBoxes[0].Text = Visualizer.VisualizeToString(regularMap);
             var maskMaps = GetMaskMaps();
-            Display.DisplayMap(regularMap, maskMaps);
+            _display.DisplayMap(regularMap, maskMaps);
         }
 
         private void ShowMapsButton_Click(object sender, EventArgs e)
@@ -146,7 +152,7 @@ namespace MineDotNet.GUI.Forms
         {
             var map = GetMap();
             var maskMaps = GetMaskMaps();
-            Display.DisplayMap(map, maskMaps, results);
+            _display.DisplayMap(map, maskMaps, results);
         }
 
         private Map GetMap()
@@ -265,7 +271,7 @@ namespace MineDotNet.GUI.Forms
         {
             CurrentManualGameEngine = new GameEngine();
             var emptyMap = new Map(Width, Height, null, true, CellState.Filled);
-            Display.DisplayMap(emptyMap, new List<MaskMap>());
+            _display.DisplayMap(emptyMap, new List<MaskMap>());
         }
     }
 }

@@ -7,13 +7,6 @@ namespace MineDotNet.GUI.Tiles
 {
     class TileResizer : ITileResizer
     {
-        private readonly IDictionary<Size, TileCollection> _tileCache;
-
-        public TileResizer()
-        {
-            _tileCache = new Dictionary<Size, TileCollection>();
-        }
-
         private Image ResizeImage(Image image, Size size)
         {
             var rect = new Rectangle(Point.Empty, size);
@@ -45,16 +38,10 @@ namespace MineDotNet.GUI.Tiles
 
         public TileCollection ReszizeTiles(TileCollection originalTiles, Size size)
         {
-            if (_tileCache.TryGetValue(size, out var tiles))
-            {
-                return tiles;
-            }
-
-            tiles = new TileCollection();
+            var tiles = new TileCollection();
             ResizeToDictionary(originalTiles.Hints, tiles.Hints, size);
             ResizeToDictionary(originalTiles.Flags, tiles.Flags, size);
             ResizeToDictionary(originalTiles.States, tiles.States, size);
-            _tileCache.Add(size, tiles);
             return tiles;
         }
 
