@@ -5,7 +5,6 @@ using System.Windows.Forms;
 using Microsoft.Extensions.DependencyInjection;
 using MineDotNet.Common;
 using MineDotNet.GUI.Forms;
-using MineDotNet.GUI.IO;
 
 namespace MineDotNet.GUI
 {

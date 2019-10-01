@@ -16,6 +16,7 @@ namespace MineDotNet.GUI.Services
         public bool DrawCoordinates { get; set; }
         
         private readonly ITileProvider _tileProvider;
+        private readonly ICellLocator _cellLocator;
         private readonly IBrushProvider _brushProvider;
 
         private readonly Font _mainFont;
@@ -24,9 +25,10 @@ namespace MineDotNet.GUI.Services
         private PictureBox _target;
         private Size _currentCellSize;
 
-        public DisplayService(ITileProvider tileProvider, IBrushProvider brushProvider)
+        public DisplayService(ITileProvider tileProvider, ICellLocator cellLocator, IBrushProvider brushProvider)
         {
             _tileProvider = tileProvider;
+            _cellLocator = cellLocator;
             _brushProvider = brushProvider;
 
             _mainFont = new Font(FontFamily.GenericMonospace, 8, FontStyle.Bold);
@@ -45,28 +47,22 @@ namespace MineDotNet.GUI.Services
             _target = target;
             _target.MouseUp += TargetOnClick;
         }
-
-        private void OnCellClick(CellClickEventArgs args)
-        {
-            CellClick?.Invoke(this, args);
-        }
-
+        
         private void TargetOnClick(object sender, MouseEventArgs eventArgs)
         {
             if (_currentCellSize.Width <= 0 || _currentCellSize.Height <= 0)
             {
                 return;
             }
+
             if (!_target.Bounds.Contains(eventArgs.Location))
             {
                 return;
             }
 
-            var x = eventArgs.Location.Y/ _currentCellSize.Width;
-            var y = eventArgs.Location.X/ _currentCellSize.Height;
-            var coord = new Coordinate(x,y);
-            var args = new CellClickEventArgs(coord, eventArgs.Button);
-            OnCellClick(args);
+            var coordinate = _cellLocator.GetCellCoordinate(eventArgs.Location, _currentCellSize);
+            var args = new CellClickEventArgs(coordinate, eventArgs.Button);
+            CellClick?.Invoke(this, args);
         }
 
         private void DrawTile(Graphics graphics, Cell cell, Rectangle cellRectangle)
@@ -134,21 +130,7 @@ namespace MineDotNet.GUI.Services
             }
         }
 
-        private Size GetCellSize(IMap map)
-        {
-            var cellWidth = _target.Width / map.Height;
-            var cellHeight = _target.Height / map.Width;
-            if (cellHeight > cellWidth)
-            {
-                cellHeight = cellWidth;
-            }
-            if (cellWidth > cellHeight)
-            {
-                cellWidth = cellHeight;
-            }
 
-            return new Size(cellWidth, cellHeight);
-        }
 
         public void DisplayMap(Map map, IList<MaskMap> masks, IDictionary<Coordinate, SolverResult> results = null)
         {
@@ -158,7 +140,7 @@ namespace MineDotNet.GUI.Services
             }
             var textColor = Color.DarkRed;
             var textBrush = new SolidBrush(textColor);
-            var cellSize = GetCellSize(map);
+            var cellSize = _cellLocator.GetCellSize(map, _target.Size);
             _currentCellSize = cellSize;
 
             var bmp = new Bitmap(_target.Width, _target.Height);

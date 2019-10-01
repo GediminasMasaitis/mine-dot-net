@@ -18,6 +18,7 @@ namespace MineDotNet.GUI
             services.AddTransient<ITileGenerator, TileGenerator>();
             services.AddTransient<ITileProvider, TileProvider>();
             services.AddSingleton<IBrushProvider, BrushProvider>();
+            services.AddTransient<ICellLocator, CellLocator>();
             services.AddTransient<IDisplayService, DisplayService>();
 
             return services;

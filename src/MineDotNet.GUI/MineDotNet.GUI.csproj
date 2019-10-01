@@ -173,6 +173,7 @@
     <Compile Include="MineDotNetGuiServiceCollectionExtensions.cs" />
     <Compile Include="Models\CellClickEventArgs.cs" />
     <Compile Include="Services\BrushProvider.cs" />
+    <Compile Include="Services\CellLocator.cs" />
     <Compile Include="Services\DisplayService.cs" />
     <Compile Include="Forms\SolverSettingsEditorForm.cs">
       <SubType>Form</SubType>
@@ -200,6 +201,12 @@
     <Compile Include="Tiles\TileResizer.cs" />
     <Compile Include="Tiles\TileCollection.cs" />
     <Compile Include="Tiles\TileLoader.cs" />
+    <Compile Include="UserControls\MapTextVisualizers.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UserControls\MapTextVisualizers.Designer.cs">
+      <DependentUpon>MapTextVisualizers.cs</DependentUpon>
+    </Compile>
     <Compile Include="UserControls\ObjectEditor.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -230,6 +237,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UserControls\MapTextVisualizers.resx">
+      <DependentUpon>MapTextVisualizers.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="UserControls\SolversListEditor.resx">
       <DependentUpon>SolversListEditor.cs</DependentUpon>

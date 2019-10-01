@@ -29,8 +29,6 @@
         private void InitializeComponent()
         {
             this.ShowMapsButton = new System.Windows.Forms.Button();
-            this.Map0Label = new System.Windows.Forms.Label();
-            this.Map0TextBox = new System.Windows.Forms.TextBox();
             this.SolveMapButton = new System.Windows.Forms.Button();
             this.AutoPlayButton = new System.Windows.Forms.Button();
             this.MineDensityTrackBar = new System.Windows.Forms.TrackBar();
@@ -42,6 +40,7 @@
             this.HeightLabel = new System.Windows.Forms.Label();
             this.solversListEditor1 = new MineDotNet.GUI.UserControls.SolversListEditor();
             this.MainPictureBox = new System.Windows.Forms.PictureBox();
+            this.MapTextVisualizers = new MineDotNet.GUI.UserControls.MapTextVisualizers();
             ((System.ComponentModel.ISupportInitialize)(this.MineDensityTrackBar)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.WidthNumericUpDown)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.HeightNumericUpDown)).BeginInit();
@@ -58,26 +57,6 @@
             this.ShowMapsButton.Text = "Show";
             this.ShowMapsButton.UseVisualStyleBackColor = true;
             this.ShowMapsButton.Click += new System.EventHandler(this.ShowMapsButton_Click);
-            // 
-            // Map0Label
-            // 
-            this.Map0Label.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.Map0Label.AutoSize = true;
-            this.Map0Label.Location = new System.Drawing.Point(3, 542);
-            this.Map0Label.Name = "Map0Label";
-            this.Map0Label.Size = new System.Drawing.Size(31, 13);
-            this.Map0Label.TabIndex = 23;
-            this.Map0Label.Text = "Map:";
-            // 
-            // Map0TextBox
-            // 
-            this.Map0TextBox.AcceptsReturn = true;
-            this.Map0TextBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.Map0TextBox.Location = new System.Drawing.Point(6, 558);
-            this.Map0TextBox.Multiline = true;
-            this.Map0TextBox.Name = "Map0TextBox";
-            this.Map0TextBox.Size = new System.Drawing.Size(156, 209);
-            this.Map0TextBox.TabIndex = 22;
             // 
             // SolveMapButton
             // 
@@ -214,12 +193,22 @@
             this.MainPictureBox.TabIndex = 0;
             this.MainPictureBox.TabStop = false;
             // 
+            // MapTextVisualizers
+            // 
+            this.MapTextVisualizers.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.MapTextVisualizers.Location = new System.Drawing.Point(0, 545);
+            this.MapTextVisualizers.Name = "MapTextVisualizers";
+            this.MapTextVisualizers.Size = new System.Drawing.Size(1027, 231);
+            this.MapTextVisualizers.TabIndex = 34;
+            // 
             // MainForm
             // 
             this.AcceptButton = this.ShowMapsButton;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1034, 779);
+            this.Controls.Add(this.MapTextVisualizers);
             this.Controls.Add(this.solversListEditor1);
             this.Controls.Add(this.HeightNumericUpDown);
             this.Controls.Add(this.HeightLabel);
@@ -230,8 +219,6 @@
             this.Controls.Add(this.MineDensityTrackBar);
             this.Controls.Add(this.AutoPlayButton);
             this.Controls.Add(this.SolveMapButton);
-            this.Controls.Add(this.Map0Label);
-            this.Controls.Add(this.Map0TextBox);
             this.Controls.Add(this.ShowMapsButton);
             this.Controls.Add(this.MainPictureBox);
             this.Name = "MainForm";
@@ -247,8 +234,6 @@
 
         #endregion
         private System.Windows.Forms.Button ShowMapsButton;
-        private System.Windows.Forms.Label Map0Label;
-        private System.Windows.Forms.TextBox Map0TextBox;
         private System.Windows.Forms.Button SolveMapButton;
         private System.Windows.Forms.Button AutoPlayButton;
         private System.Windows.Forms.TrackBar MineDensityTrackBar;
@@ -260,6 +245,7 @@
         private System.Windows.Forms.Label HeightLabel;
         private UserControls.SolversListEditor solversListEditor1;
         private System.Windows.Forms.PictureBox MainPictureBox;
+        private UserControls.MapTextVisualizers MapTextVisualizers;
     }
 }
 
