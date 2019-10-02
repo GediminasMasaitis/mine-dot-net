@@ -88,6 +88,7 @@ namespace MineDotNet.GUI.Services
 
         private void DisplayCell(Graphics graphics, Cell cell, Size cellSize, Brush textBrush, IList<bool> masks, IDictionary<Coordinate, SolverResult> results)
         {
+            masks = masks ?? new List<bool>();
             var borderIncrement = (cellSize.Width / 2 - 5) / (masks.Count + 1);
 
             var cellX = cell.Y * cellSize.Width;
@@ -130,9 +131,7 @@ namespace MineDotNet.GUI.Services
             }
         }
 
-
-
-        public void DisplayMap(Map map, IList<MaskMap> masks, IDictionary<Coordinate, SolverResult> results = null)
+        public void DisplayMap(Map map, IList<Mask> masks, IDictionary<Coordinate, SolverResult> results = null)
         {
             if (results == null)
             {
@@ -151,7 +150,7 @@ namespace MineDotNet.GUI.Services
                     for (var j = 0; j < map.Height; j++)
                     {
                         var cell = map.Cells[i, j];
-                        var cellMasks = masks.Select(x => x.Cells[cell.X, cell.Y]).ToList();
+                        var cellMasks = masks?.Select(x => x.Cells[cell.X, cell.Y]).ToList();
                         DisplayCell(graphics, cell, cellSize, textBrush, cellMasks, results);
                     }
                 }

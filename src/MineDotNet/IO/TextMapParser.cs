@@ -1,18 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
+using MineDotNet.Common;
 
-namespace MineDotNet.Common
+namespace MineDotNet.IO
 {
-    public class TextMapParser
+    public class TextMapParser : IStringMapParser
     {
-        public TextMapParser()
-        {
-            
-        }
-
         public Map Parse(string str)
         {
             using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(str)))

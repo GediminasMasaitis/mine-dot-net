@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using MineDotNet.GUI.Services;
 using MineDotNet.GUI.Tiles;
+using MineDotNet.IO;
 
 namespace MineDotNet.GUI
 {
@@ -20,6 +21,12 @@ namespace MineDotNet.GUI
             services.AddSingleton<IBrushProvider, BrushProvider>();
             services.AddTransient<ICellLocator, CellLocator>();
             services.AddTransient<IDisplayService, DisplayService>();
+
+            services.AddTransient<IMaskConverter, MaskConverter>();
+            services.AddTransient<IMapVisualizer, TextMapVisualizer>();
+            services.AddTransient<IStringMapVisualizer, TextMapVisualizer>();
+            services.AddTransient<IMapParser, TextMapParser>();
+            services.AddTransient<IStringMapParser, TextMapParser>();
 
             return services;
         }

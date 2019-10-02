@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Windows.Forms;
 using Microsoft.Extensions.DependencyInjection;
 using MineDotNet.Common;
 using MineDotNet.GUI.Forms;
+using MineDotNet.GUI.Services;
+using MineDotNet.IO;
 
 namespace MineDotNet.GUI
 {
@@ -35,7 +38,13 @@ namespace MineDotNet.GUI
             Form form;
             if(maps.Count > 0)
             {
-                form = new MainForm(maps);
+                var converter = IOCC.GetService<IMaskConverter>();
+                var map = maps[0];
+                var masks = converter.ConvertToMasks(maps.Skip(1)).ToList();
+
+                var mainForm = new MainForm();
+                form = mainForm;
+                mainForm.SetMapAndMasks(map, masks);
             }
             else
             {

@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
+using MineDotNet.Common;
 
-namespace MineDotNet.Common
+namespace MineDotNet.IO
 {
-    public class TextMapVisualizer
+    public class TextMapVisualizer : IStringMapVisualizer
     {
         public string VisualizeToString(IMap map)
         {

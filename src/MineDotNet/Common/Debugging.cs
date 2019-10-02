@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using MineDotNet.AI.Solvers;
+using MineDotNet.IO;
 
 namespace MineDotNet.Common
 {

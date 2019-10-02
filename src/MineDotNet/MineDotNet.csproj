@@ -59,6 +59,9 @@
     <Compile Include="AI\Solvers\ExtSolver.cs" />
     <Compile Include="AI\Solvers\GaussianSolvingService.cs" />
     <Compile Include="AI\Solvers\MatrixReductionParameters.cs" />
+    <Compile Include="IO\IMapParser.cs" />
+    <Compile Include="IO\IMapVisualizer.cs" />
+    <Compile Include="IO\IStringMapParser.cs" />
     <Compile Include="Etc\Maths.cs" />
     <Compile Include="Etc\MultiCartesianExtension.cs" />
     <Compile Include="AI\Solvers\SolverResult.cs" />
@@ -75,8 +78,9 @@
     <Compile Include="Common\IMap.cs" />
     <Compile Include="Common\Map.cs" />
     <Compile Include="Common\NeighbourCacheEntry.cs" />
-    <Compile Include="Common\TextMapParser.cs" />
-    <Compile Include="Common\TextMapVisualizer.cs" />
+    <Compile Include="IO\IStringMapVisualizer.cs" />
+    <Compile Include="IO\TextMapParser.cs" />
+    <Compile Include="IO\TextMapVisualizer.cs" />
     <Compile Include="Game\GameCell.cs" />
     <Compile Include="Game\GameEngine.cs" />
     <Compile Include="Game\GameMap.cs" />

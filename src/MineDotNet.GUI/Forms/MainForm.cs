@@ -12,12 +12,10 @@ using MineDotNet.GUI.Services;
 
 namespace MineDotNet.GUI.Forms
 {
-    public partial class MainForm : Form
+    internal partial class MainForm : Form
     {
         
         private ISolver Solver { get; }
-        
-        
         private readonly IDisplayService _display;
         
 
@@ -27,11 +25,7 @@ namespace MineDotNet.GUI.Forms
         private int Width => (int)WidthNumericUpDown.Value;
         private int Height => (int)HeightNumericUpDown.Value;
 
-        public MainForm() : this(new Map[0])
-        {
-        }
-
-        public MainForm(IList<Map> maps)
+        public MainForm()
         {
             InitializeComponent();
 
@@ -42,23 +36,22 @@ namespace MineDotNet.GUI.Forms
             var aggregateSolver = new BorderSeparationSolver();
             Solver = aggregateSolver;
 
-            var allMaps = maps.ToList();
-
             var random = new Random();
             GameMapGenerator = new GameMapGenerator(random);
-            MapTextVisualizers.SetMaskCount(6);
 
+            var defaultMap = new Map(8, 8, null, true);
+            SetMapAndMasks(defaultMap, null);
+        }
 
-            if (allMaps.Count == 0)
+        public void SetMapAndMasks(Map map, IList<Mask> masks)
+        {
+            if (map != null)
             {
-                allMaps.Add(new Map(8,8,null,true));
+                MapTextVisualizers.SetMap(map);
             }
-            MapTextVisualizers.SetMaps(allMaps);
 
-
-            
-            var maskMaps = allMaps.Skip(1).Select(MaskMap.FromMap).ToList();
-            _display.DisplayMap(allMaps[0], maskMaps);
+            MapTextVisualizers.SetMasks(masks);
+            _display.DisplayMap(map, masks);
         }
 
         private void DisplayOnCellClick(object sender, CellClickEventArgs args)
@@ -93,7 +86,7 @@ namespace MineDotNet.GUI.Forms
             }
             var regularMap = CurrentManualGameEngine.GameMap.ToRegularMap();
             MapTextVisualizers.SetMap(regularMap);
-            var maskMaps = MapTextVisualizers.GetMaskMaps();
+            var maskMaps = MapTextVisualizers.GetMasks();
             _display.DisplayMap(regularMap, maskMaps);
         }
 
@@ -107,7 +100,7 @@ namespace MineDotNet.GUI.Forms
         private void GetAndDisplayMap(IDictionary<Coordinate, SolverResult> results = null)
         {
             var map = MapTextVisualizers.GetMap();
-            var maskMaps = MapTextVisualizers.GetMaskMaps();
+            var maskMaps = MapTextVisualizers.GetMasks();
             _display.DisplayMap(map, maskMaps, results);
         }
         
@@ -179,7 +172,7 @@ namespace MineDotNet.GUI.Forms
         {
             CurrentManualGameEngine = new GameEngine();
             var emptyMap = new Map(Width, Height, null, true, CellState.Filled);
-            _display.DisplayMap(emptyMap, new List<MaskMap>());
+            _display.DisplayMap(emptyMap, new List<Mask>());
         }
     }
 }

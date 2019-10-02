@@ -13,6 +13,6 @@ namespace MineDotNet.GUI.Services
         bool DrawCoordinates { get; set; }
         
         void SetTarget(PictureBox target);
-        void DisplayMap(Map map, IList<MaskMap> masks, IDictionary<Coordinate, SolverResult> results = null);
+        void DisplayMap(Map map, IList<Mask> masks, IDictionary<Coordinate, SolverResult> results = null);
     }
 }
