@@ -60,6 +60,8 @@ namespace MineDotNet.GUI.Forms
             {
                 return;
             }
+
+            bool success = true;
             if ((args.Buttons & MouseButtons.Right) != 0)
             {
                 if (!CurrentManualGameEngine.GameStarted)
@@ -76,18 +78,18 @@ namespace MineDotNet.GUI.Forms
                 }
                 else
                 {
-                    var success = CurrentManualGameEngine.OpenCell(args.Coordinate);
-                    if (!success)
-                    {
-                        MessageBox.Show("Boom " + args.Coordinate);
-                        return;
-                    }
+                    success = CurrentManualGameEngine.OpenCell(args.Coordinate);
                 }
             }
             var regularMap = CurrentManualGameEngine.GameMap.ToRegularMap();
             MapTextVisualizers.SetMap(regularMap);
             var maskMaps = MapTextVisualizers.GetMasks();
             _display.DisplayMap(regularMap, maskMaps);
+
+            if (!success)
+            {
+                MessageBox.Show("Boom " + args.Coordinate);
+            }
         }
 
         private void ShowMapsButton_Click(object sender, EventArgs e)

@@ -46,6 +46,7 @@ namespace MineDotNet.GUI.Tiles
 
             LoadTileIfExists(tiles.States, CellState.Filled, path, "filled.png");
             LoadTileIfExists(tiles.States, CellState.Wall, path, "wall.png");
+            LoadTileIfExists(tiles.States, CellState.Mine, path, "mine.png");
         }
 
         private TileCollection GetTiles(string path)

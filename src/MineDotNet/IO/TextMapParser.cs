@@ -57,6 +57,9 @@ namespace MineDotNet.IO
                         case 'X':
                             cell = new Cell(i, j, CellState.Wall, CellFlag.None, 0);
                             break;
+                        case '*':
+                            cell = new Cell(i, j, CellState.Mine, CellFlag.None, 0);
+                            break;
                         default:
                             int hint;
                             var success = int.TryParse(lines[i][j].ToString(), out hint);

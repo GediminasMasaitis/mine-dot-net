@@ -4,6 +4,7 @@ namespace MineDotNet.Common
     {
         Empty = 0,
         Filled = 1,
-        Wall = 2
+        Wall = 2,
+        Mine = 3
     }
 }

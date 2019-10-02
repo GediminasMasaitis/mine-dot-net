@@ -80,6 +80,7 @@ namespace MineDotNet.Game
             var initialCell = GameMap[coordinate];
             if (initialCell.HasMine)
             {
+                initialCell.State = CellState.Mine;
                 return false;
             }
 

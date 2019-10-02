@@ -170,6 +170,7 @@ namespace MineDotNet.GUI.UserControls
 
         public void DisplayResults(IMap map, IDictionary<Coordinate, SolverResult> results)
         {
+            SetMaskCount(2);
             if (results != null)
             {
                 var maskHasMine = _maskConverter.ConvertToMask(results, true, map.Width, map.Height);

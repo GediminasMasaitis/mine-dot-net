@@ -28,7 +28,19 @@ namespace MineDotNet.GUI.Services
 
         public Map ConvertToMap(Mask mask)
         {
-            return null;
+            var map = new Map(mask.Width, mask.Height, 0, true);
+            for (int i = 0; i < mask.Width; i++)
+            {
+                for (int j = 0; j < mask.Height; j++)
+                {
+                    if (mask.Cells[i, j])
+                    {
+                        map.Cells[i, j].State = CellState.Filled;
+                    }
+                }
+            }
+
+            return map;
         }
 
         public IEnumerable<Map> ConvertToMaps(IEnumerable<Mask> masks)

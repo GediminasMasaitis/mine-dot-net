@@ -68,6 +68,8 @@ namespace MineDotNet.IO
                     }
                 case CellState.Wall:
                     return "X";
+                case CellState.Mine:
+                    return "*";
                 default:
                     throw new ArgumentOutOfRangeException();
             }
