@@ -192,6 +192,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\GameHandler.cs" />
     <Compile Include="Services\IBrushProvider.cs" />
+    <Compile Include="Services\ICellLocator.cs" />
     <Compile Include="Services\IDisplayService.cs" />
     <Compile Include="Services\IGameHandler.cs" />
     <Compile Include="Services\IMaskConverter.cs" />

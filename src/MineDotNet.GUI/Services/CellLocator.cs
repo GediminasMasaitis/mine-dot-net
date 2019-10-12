@@ -8,13 +8,6 @@ using MineDotNet.Common;
 
 namespace MineDotNet.GUI.Services
 {
-    internal interface ICellLocator
-    {
-        Size GetCellSize(IMap map, Size canvasSize);
-        Coordinate GetCellCoordinate(Point location, IMap map, Size canvasSize);
-        Coordinate GetCellCoordinate(Point location, Size cellSize);
-    }
-
     class CellLocator : ICellLocator
     {
         public Size GetCellSize(IMap map, Size canvasSize)
