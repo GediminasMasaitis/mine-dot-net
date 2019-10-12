@@ -7,12 +7,11 @@ using MineDotNet.GUI.Models;
 
 namespace MineDotNet.GUI.Services
 {
-    internal interface IDisplayService : IDisposable
+    internal interface IDisplayService
     {
-        event EventHandler<CellClickEventArgs> CellClick;
+        PictureBox Target { get; set; }
         bool DrawCoordinates { get; set; }
         
-        void SetTarget(PictureBox target);
         void DisplayMap(Map map, IList<Mask> masks, IDictionary<Coordinate, SolverResult> results = null);
     }
 }

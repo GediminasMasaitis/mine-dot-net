@@ -14,32 +14,36 @@ namespace MineDotNet.GUI.Forms
 {
     internal partial class MainForm : Form
     {
-        
-        private ISolver Solver { get; }
         private readonly IDisplayService _display;
+        private readonly IGameHandler _gameHandler;
         
-
         private GameMapGenerator GameMapGenerator { get; set; }
         private GameEngine CurrentManualGameEngine { get; set; }
+
         private double MineDensity => MineDensityTrackBar.Value/(double) 100;
-        private int Width => (int)WidthNumericUpDown.Value;
-        private int Height => (int)HeightNumericUpDown.Value;
+        private int MapWidth => (int)WidthNumericUpDown.Value;
+        private int MapHeight => (int)HeightNumericUpDown.Value;
 
         public MainForm()
         {
             InitializeComponent();
 
+            if (Designer.IsDesignTime)
+            {
+                return;
+            } 
+
             _display = IOCC.GetService<IDisplayService>();
-            _display.SetTarget(MainPictureBox);
-            _display.CellClick += DisplayOnCellClick;
+            _display.Target = MainPictureBox;
 
-            var aggregateSolver = new BorderSeparationSolver();
-            Solver = aggregateSolver;
+            _gameHandler = IOCC.GetService<IGameHandler>();
+            _gameHandler.Target = MainPictureBox;
+            _gameHandler.CellClick += DisplayOnCellClick;
 
-            var random = new Random();
+            var random = new Random(0);
             GameMapGenerator = new GameMapGenerator(random);
 
-            var defaultMap = new Map(8, 8, null, true);
+            var defaultMap = new Map(12, 12, null, true);
             SetMapAndMasks(defaultMap, null);
         }
 
@@ -51,6 +55,7 @@ namespace MineDotNet.GUI.Forms
             }
 
             MapTextVisualizers.SetMasks(masks);
+            _gameHandler.Map = map;
             _display.DisplayMap(map, masks);
         }
 
@@ -74,7 +79,7 @@ namespace MineDotNet.GUI.Forms
             {
                 if (!CurrentManualGameEngine.GameStarted)
                 {
-                    CurrentManualGameEngine.StartWithMineDensity(GameMapGenerator, Width, Height, args.Coordinate, true, MineDensity);
+                    CurrentManualGameEngine.StartWithMineDensity(GameMapGenerator, MapWidth, MapHeight, args.Coordinate, true, MineDensity);
                 }
                 else
                 {
@@ -95,8 +100,6 @@ namespace MineDotNet.GUI.Forms
         private void ShowMapsButton_Click(object sender, EventArgs e)
         {
             GetAndDisplayMap();
-            //var editor = new SolverSettingsEditorForm();
-            //editor.ShowDialog();
         }
 
         private void GetAndDisplayMap(IDictionary<Coordinate, SolverResult> results = null)
@@ -105,8 +108,6 @@ namespace MineDotNet.GUI.Forms
             var maskMaps = MapTextVisualizers.GetMasks();
             _display.DisplayMap(map, maskMaps, results);
         }
-        
-
 
         private void SolveMapButton_Click(object sender, EventArgs e)
         {
@@ -124,12 +125,11 @@ namespace MineDotNet.GUI.Forms
         private void AutoPlayButton_Click(object sender, EventArgs e)
         {
             var engine = new GameEngine();
-            engine.StartWithMineDensity(GameMapGenerator, Width, Height, new Coordinate(Width/2, Height/2), true, MineDensity);
+            engine.StartWithMineDensity(GameMapGenerator, MapWidth, MapHeight, new Coordinate(MapWidth/2, MapHeight/2), true, MineDensity);
             while (true)
             {
                 var regularMap = engine.GameMap.ToRegularMap();
                 MapTextVisualizers.SetMap(regularMap);
-                //Display.DisplayMaps(new[] { regularMap });
                 Application.DoEvents();
                 var results = AI.AI.Solve(regularMap);
                 if (results.Count == 0)
@@ -173,7 +173,7 @@ namespace MineDotNet.GUI.Forms
         private void ManualPlayButton_Click(object sender, EventArgs e)
         {
             CurrentManualGameEngine = new GameEngine();
-            var emptyMap = new Map(Width, Height, null, true, CellState.Filled);
+            var emptyMap = new Map(MapWidth, MapHeight, null, true, CellState.Filled);
             _display.DisplayMap(emptyMap, new List<Mask>());
         }
     }

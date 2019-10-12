@@ -38,9 +38,9 @@
             this.WidthNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.HeightNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.HeightLabel = new System.Windows.Forms.Label();
-            this.solversListEditor1 = new MineDotNet.GUI.UserControls.SolversListEditor();
             this.MainPictureBox = new System.Windows.Forms.PictureBox();
             this.MapTextVisualizers = new MineDotNet.GUI.UserControls.MapTextVisualizers();
+            this.solversListEditor1 = new MineDotNet.GUI.UserControls.SolversListEditor();
             ((System.ComponentModel.ISupportInitialize)(this.MineDensityTrackBar)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.WidthNumericUpDown)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.HeightNumericUpDown)).BeginInit();
@@ -178,15 +178,11 @@
             this.HeightLabel.TabIndex = 31;
             this.HeightLabel.Text = "Height:";
             // 
-            // solversListEditor1
-            // 
-            this.solversListEditor1.Location = new System.Drawing.Point(545, 0);
-            this.solversListEditor1.Name = "solversListEditor1";
-            this.solversListEditor1.Size = new System.Drawing.Size(313, 311);
-            this.solversListEditor1.TabIndex = 33;
-            // 
             // MainPictureBox
             // 
+            this.MainPictureBox.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.MainPictureBox.Location = new System.Drawing.Point(0, 0);
             this.MainPictureBox.Name = "MainPictureBox";
             this.MainPictureBox.Size = new System.Drawing.Size(539, 539);
@@ -198,9 +194,18 @@
             this.MapTextVisualizers.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.MapTextVisualizers.Location = new System.Drawing.Point(0, 545);
+            this.MapTextVisualizers.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.MapTextVisualizers.Name = "MapTextVisualizers";
             this.MapTextVisualizers.Size = new System.Drawing.Size(1027, 231);
             this.MapTextVisualizers.TabIndex = 34;
+            // 
+            // solversListEditor1
+            // 
+            this.solversListEditor1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.solversListEditor1.Location = new System.Drawing.Point(545, 0);
+            this.solversListEditor1.Name = "solversListEditor1";
+            this.solversListEditor1.Size = new System.Drawing.Size(313, 311);
+            this.solversListEditor1.TabIndex = 33;
             // 
             // MainForm
             // 

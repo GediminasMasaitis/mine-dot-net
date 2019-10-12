@@ -19,6 +19,8 @@ namespace MineDotNet.GUI
         [STAThread]
         static void Main(string[] args)
         {
+            Designer.IsDesignTime = false;
+
             var collection = new ServiceCollection();
             collection.AddMineDotNetGUI();
             IOCC.ServiceProvider = collection.BuildServiceProvider();
@@ -48,7 +50,7 @@ namespace MineDotNet.GUI
             }
             else
             {
-                form = new LauncherForm();
+                form = new MainForm();
             }
 
             Application.Run(form);

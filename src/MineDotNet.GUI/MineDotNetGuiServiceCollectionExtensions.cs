@@ -20,6 +20,7 @@ namespace MineDotNet.GUI
             services.AddTransient<ITileProvider, TileProvider>();
             services.AddSingleton<IBrushProvider, BrushProvider>();
             services.AddTransient<ICellLocator, CellLocator>();
+            services.AddTransient<IGameHandler, GameHandler>();
             services.AddTransient<IDisplayService, DisplayService>();
 
             services.AddTransient<IMaskConverter, MaskConverter>();

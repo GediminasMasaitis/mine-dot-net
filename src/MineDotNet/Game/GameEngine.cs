@@ -100,7 +100,5 @@ namespace MineDotNet.Game
             }
             return true;
         }
-
-
     }
 }

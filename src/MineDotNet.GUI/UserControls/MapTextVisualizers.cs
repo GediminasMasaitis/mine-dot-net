@@ -22,30 +22,33 @@ namespace MineDotNet.GUI.UserControls
         private readonly IMaskConverter _maskConverter;
         
         private readonly IBrushProvider _brushes;
-        private readonly IList<TextBox> _maskTextBoxes;
+        private readonly IList<RichTextBox> _maskTextBoxes;
         private readonly IList<Label> _maskLabels;
 
-        private const int MinMaskCount = 5;
+        private const int MinMaskCount = 7;
 
         public MapTextVisualizers()
         {
             InitializeComponent();
 
-            Font = new Font(FontFamily.GenericMonospace, 10, FontStyle.Bold);
-            MapTextBox.Font = Font;
+            if (Designer.IsDesignTime)
+            {
+                return;
+            }
 
             _parser = IOCC.GetService<IStringMapParser>();
             _visualizer = IOCC.GetService<IStringMapVisualizer>();
             _brushes = IOCC.GetService<IBrushProvider>();
             _maskConverter = IOCC.GetService<IMaskConverter>();
 
-            _maskTextBoxes = new List<TextBox>();
+            _maskTextBoxes = new List<RichTextBox>();
             _maskLabels = new List<Label>();
             SetMaskCount(MinMaskCount);
         }
 
         private void SetMaskCount(int maskCount)
         {
+            maskCount = Math.Max(maskCount, MinMaskCount);
             var difference = maskCount - _maskTextBoxes.Count;
             if (difference > 0)
             {
@@ -59,35 +62,42 @@ namespace MineDotNet.GUI.UserControls
 
         private void AddMasks(int maskCount)
         {
-            const int offsetX = 170;
-            const int offsetY = 0;
+            const int padding = 8;
+
+            var previousLabel = _maskLabels.Count == 0 ? MapLabel : _maskLabels[_maskLabels.Count - 1];
+            var previousBox = _maskTextBoxes.Count == 0 ? MapRichTextBox : _maskTextBoxes[_maskTextBoxes.Count - 1];
 
             var totalMasks = _maskTextBoxes.Count + maskCount;
             for (var i = _maskTextBoxes.Count; i < totalMasks; i++)
             {
-                var newTextBox = new TextBox();
+                var newTextBox = new RichTextBox();
                 newTextBox.Parent = this;
-                newTextBox.Location = new Point(MapTextBox.Location.X + offsetX * i, MapTextBox.Location.Y + offsetY * i);
-                newTextBox.Multiline = MapTextBox.Multiline;
-                newTextBox.Size = MapTextBox.Size;
-                newTextBox.Anchor = MapTextBox.Anchor;
-                newTextBox.AcceptsReturn = MapTextBox.AcceptsReturn;
+                var xPosBox = previousBox.Right + padding;
+                var yPosBox = previousBox.Top;
+                newTextBox.Location = new Point(xPosBox, yPosBox);
+                newTextBox.Size = MapRichTextBox.Size;
+                newTextBox.Anchor = MapRichTextBox.Anchor;
+                newTextBox.Multiline = true;
+                previousBox = newTextBox;
 
                 var newLabel = new Label();
                 newLabel.Parent = this;
-                newLabel.Location = new Point(MapLabel.Location.X + offsetX * i, MapLabel.Location.Y + offsetY * i);
+                var yPosLabel = previousLabel.Top;
+                newLabel.Location = new Point(xPosBox, yPosLabel);
                 newLabel.Text = $"Mask {i}:";
                 newLabel.ForeColor = _brushes.Brushes[i].Color;
                 newLabel.Anchor = MapLabel.Anchor;
+                previousLabel = newLabel;
 
                 _maskTextBoxes.Add(newTextBox);
                 _maskLabels.Add(newLabel);
+                
             }
 
             for (var i = 0; i < _maskTextBoxes.Count; i++)
             {
                 _maskTextBoxes[i].ForeColor = _brushes.Brushes[i].Color;
-                _maskTextBoxes[i].Font = Font;
+                //_maskTextBoxes[i].Font = Font;
             }
         }
 
@@ -120,7 +130,7 @@ namespace MineDotNet.GUI.UserControls
         public void SetMap(Map map)
         {
             var mapText = _visualizer.VisualizeToString(map);
-            MapTextBox.Text = mapText;
+            MapRichTextBox.Text = mapText;
         }
 
         public void SetMasks(IList<Mask> masks)
@@ -142,7 +152,7 @@ namespace MineDotNet.GUI.UserControls
 
         public Map GetMap()
         {
-            var mapStr = MapTextBox.Text.Replace(";", Environment.NewLine);
+            var mapStr = MapRichTextBox.Text.Replace(";", Environment.NewLine);
             if (string.IsNullOrWhiteSpace(mapStr))
             {
                 // TODO: Handle this
