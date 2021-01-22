@@ -1,18 +1,37 @@
 using System.Collections.Generic;
+using MineDotNet.Game;
+using MineDotNet.Game.Models;
 
 namespace MineDotNet.Common
 {
-    public interface IMap
+    public interface IMap : IMapBase<Cell>
     {
-        int Width { get; }
-        int Height { get; }
-        Cell[,] Cells { get; }
-        int? RemainingMineCount { get; set; }
-        IEnumerable<Cell> AllCells { get; }
         IDictionary<Coordinate, NeighbourCacheEntry> NeighbourCache { get; }
         bool CellExists(Coordinate coord);
         //IList<Cell> GetNeighboursOf(Coordinate coord, bool includeSelf = false);
         void BuildNeighbourCache();
-        Cell this[Coordinate coordinate] { get; set; }
+    }
+
+    public interface IMapBase<TCell> : IReadOnlyMapBase<TCell>
+        where TCell : Cell
+    {
+        new int? RemainingMineCount { get; set; }
+        TCell[,] Cells { get; }
+        new TCell this[Coordinate coordinate] { get; set; }
+    }
+
+    public interface IGameMap : IMapBase<GameCell>
+    {
+    }
+
+    public interface IReadOnlyMapBase<out TCell>
+        where TCell : Cell
+    {
+        int Width { get; }
+        int Height { get; }
+        int? RemainingMineCount { get; }
+        IEnumerable<TCell> AllCells { get; }
+
+        TCell this[Coordinate coordinate] { get; }
     }
 }

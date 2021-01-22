@@ -9,6 +9,7 @@ namespace MineDotNet.GUI.Tiles
         public IDictionary<int, Image> Hints { get; }
         public IDictionary<CellState, Image> States { get; }
         public IDictionary<CellFlag, Image> Flags { get; }
+        public Image UnrevealedMine { get; set; }
 
         public TileCollection()
         {

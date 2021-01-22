@@ -23,8 +23,8 @@ namespace MineDotNet.GUI.Services
             var colors = new List<Color>
             {
                 //Color.FromArgb(0, 0, 0),
-                Color.FromArgb(100, 0, 150, 0),
                 Color.FromArgb(100, 150, 0, 0),
+                Color.FromArgb(100, 0, 150, 0),
                 Color.FromArgb(100, 40, 70, 220),
                 Color.FromArgb(100,100, 100, 0),
                 Color.FromArgb(100,100, 0, 100),

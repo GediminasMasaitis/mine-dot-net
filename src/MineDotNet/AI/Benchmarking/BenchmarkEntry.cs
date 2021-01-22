@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MineDotNet.Game;
+using MineDotNet.Game.Models;
 
 namespace MineDotNet.AI.Benchmarking
 {

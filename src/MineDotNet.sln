@@ -1,13 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30711.63
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestConsole", "TestConsole\TestConsole.csproj", "{A77A0F71-1264-4AA7-90B5-D4C096C36BA9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestConsole", "TestConsole\TestConsole.csproj", "{A77A0F71-1264-4AA7-90B5-D4C096C36BA9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MineDotNet.GUI", "MineDotNet.GUI\MineDotNet.GUI.csproj", "{84B0870A-071A-430A-B6B5-6D26F5AEE8F1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MineDotNet.GUI", "MineDotNet.GUI\MineDotNet.GUI.csproj", "{84B0870A-071A-430A-B6B5-6D26F5AEE8F1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MineDotNet", "MineDotNet\MineDotNet.csproj", "{BA14FF48-5702-4E2E-B445-16C1CE78D3F6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MineDotNet", "MineDotNet\MineDotNet.csproj", "{BA14FF48-5702-4E2E-B445-16C1CE78D3F6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MineDotNet.ML", "MineDotNet.ML\MineDotNet.ML.csproj", "{EBBE7C95-3A3F-489F-942E-6183EB7983D8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -97,8 +99,35 @@ Global
 		{BA14FF48-5702-4E2E-B445-16C1CE78D3F6}.Test|x64.Build.0 = Release|Any CPU
 		{BA14FF48-5702-4E2E-B445-16C1CE78D3F6}.Test|x86.ActiveCfg = Release|Any CPU
 		{BA14FF48-5702-4E2E-B445-16C1CE78D3F6}.Test|x86.Build.0 = Release|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Debug|x64.Build.0 = Debug|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Debug|x86.Build.0 = Debug|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Debug-silent|Any CPU.ActiveCfg = Debug|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Debug-silent|Any CPU.Build.0 = Debug|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Debug-silent|x64.ActiveCfg = Debug|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Debug-silent|x64.Build.0 = Debug|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Debug-silent|x86.ActiveCfg = Debug|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Debug-silent|x86.Build.0 = Debug|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Release|x64.ActiveCfg = Release|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Release|x64.Build.0 = Release|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Release|x86.ActiveCfg = Release|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Release|x86.Build.0 = Release|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Test|Any CPU.ActiveCfg = Debug|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Test|Any CPU.Build.0 = Debug|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Test|x64.ActiveCfg = Debug|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Test|x64.Build.0 = Debug|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Test|x86.ActiveCfg = Debug|Any CPU
+		{EBBE7C95-3A3F-489F-942E-6183EB7983D8}.Test|x86.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0A922726-3F00-42D8-A1AE-DC7FA950B327}
 	EndGlobalSection
 EndGlobal

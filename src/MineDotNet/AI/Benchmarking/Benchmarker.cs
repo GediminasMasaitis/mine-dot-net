@@ -8,6 +8,7 @@ using MineDotNet.AI.Guessers;
 using MineDotNet.AI.Solvers;
 using MineDotNet.Common;
 using MineDotNet.Game;
+using MineDotNet.Game.Models;
 
 namespace MineDotNet.AI.Benchmarking
 {
@@ -116,8 +117,7 @@ namespace MineDotNet.AI.Benchmarking
             var entry = new BenchmarkEntry();
             entry.GameMap = gameMap;
             entry.MineCount = entry.GameMap.RemainingMineCount;
-            var engine = new GameEngine();
-            engine.FailOnIncorrectFlag = true;
+            var engine = new GameManager(new GameMapGenerator(new Random(0)), new GameEngine());
             engine.Start(gameMap);
             var sw = new Stopwatch();
             while (true)
@@ -164,8 +164,8 @@ namespace MineDotNet.AI.Benchmarking
                     switch (result.Value.Verdict.Value)
                     {
                         case true:
-                            var flagSuccess = engine.SetFlag(result.Key, CellFlag.HasMine);
-                            if(!flagSuccess)
+                            var flagCorrect = engine.SetFlag(result.Key, CellFlag.HasMine).FlagCorrect;
+                            if(!flagCorrect)
                             {
                                 entry.Solved = false;
                                 entry.FailedOnFlagging = true;
@@ -177,8 +177,8 @@ namespace MineDotNet.AI.Benchmarking
                             }
                             break;
                         case false:
-                            var clickSuccess = engine.OpenCell(result.Key);
-                            if (!clickSuccess)
+                            var openCorrect = engine.OpenCell(result.Key).OpenCorrect;
+                            if (!openCorrect)
                             {
                                 entry.Solved = false;
                                 if (guesserResult == null)

@@ -41,6 +41,7 @@
             this.MainPictureBox = new System.Windows.Forms.PictureBox();
             this.MapTextVisualizers = new MineDotNet.GUI.UserControls.MapTextVisualizers();
             this.solversListEditor1 = new MineDotNet.GUI.UserControls.SolversListEditor();
+            this.MLTestButton = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.MineDensityTrackBar)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.WidthNumericUpDown)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.HeightNumericUpDown)).BeginInit();
@@ -193,8 +194,9 @@
             // 
             this.MapTextVisualizers.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.MapTextVisualizers.Font = new System.Drawing.Font("Consolas", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.MapTextVisualizers.Location = new System.Drawing.Point(0, 545);
-            this.MapTextVisualizers.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.MapTextVisualizers.Margin = new System.Windows.Forms.Padding(4);
             this.MapTextVisualizers.Name = "MapTextVisualizers";
             this.MapTextVisualizers.Size = new System.Drawing.Size(1027, 231);
             this.MapTextVisualizers.TabIndex = 34;
@@ -207,12 +209,24 @@
             this.solversListEditor1.Size = new System.Drawing.Size(313, 311);
             this.solversListEditor1.TabIndex = 33;
             // 
+            // MLTestButton
+            // 
+            this.MLTestButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.MLTestButton.Location = new System.Drawing.Point(917, 276);
+            this.MLTestButton.Name = "MLTestButton";
+            this.MLTestButton.Size = new System.Drawing.Size(110, 23);
+            this.MLTestButton.TabIndex = 35;
+            this.MLTestButton.Text = "ML";
+            this.MLTestButton.UseVisualStyleBackColor = true;
+            this.MLTestButton.Click += new System.EventHandler(this.MLTestButton_Click);
+            // 
             // MainForm
             // 
             this.AcceptButton = this.ShowMapsButton;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1034, 779);
+            this.Controls.Add(this.MLTestButton);
             this.Controls.Add(this.MapTextVisualizers);
             this.Controls.Add(this.solversListEditor1);
             this.Controls.Add(this.HeightNumericUpDown);
@@ -251,6 +265,7 @@
         private UserControls.SolversListEditor solversListEditor1;
         private System.Windows.Forms.PictureBox MainPictureBox;
         private UserControls.MapTextVisualizers MapTextVisualizers;
+        private System.Windows.Forms.Button MLTestButton;
     }
 }
 

@@ -13,9 +13,14 @@ namespace MineDotNet.GUI.Tiles
             var tilePath = Path.Combine(path, tileName);
             if (File.Exists(tilePath))
             {
-                var tile = Image.FromFile(tilePath);
+                var tile = LoadImage(tilePath);
                 dictionary.Add(key, tile);
             }
+        }
+
+        private Image LoadImage(string tilePath)
+        {
+            return Image.FromFile(tilePath);
         }
 
         private void LoadHints(TileCollection tiles, string path)
@@ -51,7 +56,7 @@ namespace MineDotNet.GUI.Tiles
 
         private TileCollection GetTiles(string path)
         {
-            var tiles = new TileCollection();
+            var tiles = new TileCollection(); 
             if (!Directory.Exists(path))
             {
                 return tiles;
@@ -60,7 +65,14 @@ namespace MineDotNet.GUI.Tiles
             LoadHints(tiles, path);
             LoadFlags(tiles, path);
             LoadStates(tiles, path);
+            LoadUnrevealed(tiles, path);
             return tiles;
+        }
+
+        private void LoadUnrevealed(TileCollection tiles, string path)
+        {
+            var tilePath = Path.Combine(path, "mine_hidden.png");
+            tiles.UnrevealedMine = LoadImage(tilePath);
         }
 
         public TileCollection GetTiles()

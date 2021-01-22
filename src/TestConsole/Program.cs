@@ -13,6 +13,7 @@ using MineDotNet.AI.Guessers;
 using MineDotNet.AI.Solvers;
 using MineDotNet.Common;
 using MineDotNet.Game;
+using MineDotNet.Game.Models;
 using MineDotNet.IO;
 
 namespace TestConsole

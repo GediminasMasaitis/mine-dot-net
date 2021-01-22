@@ -7,18 +7,24 @@ namespace MineDotNet.IO
 {
     public class TextMapVisualizer : IStringMapVisualizer
     {
-        public string VisualizeToString(IMap map)
+        public string VisualizeToString(IMap map, bool multiline = true)
         {
             using (var ms = new MemoryStream())
             {
-                Visualize(map, ms);
+                Visualize(map, ms, multiline);
                 var str = Encoding.ASCII.GetString(ms.ToArray());
                 return str;
             }
         }
 
-        public void Visualize(IMap map, Stream outputStream)
+        void IMapVisualizer.Visualize(IMap map, Stream outputStream)
         {
+            Visualize(map, outputStream, true);
+        }
+        
+        public void Visualize(IMap map, Stream outputStream, bool multiline = true)
+        {
+            var delimiter = multiline ? Environment.NewLine : ";";
             var writer = new StreamWriter(outputStream);
             for (var i = 0; i < map.Width; i++)
             {
@@ -28,11 +34,17 @@ namespace MineDotNet.IO
                     var cellStr = VisualizeCell(cell);
                     writer.Write(cellStr);
                 }
-                writer.WriteLine();
+
+                if (i < map.Width - 1)
+                {
+                    writer.Write(delimiter);
+                }
+                
             }
             if (map.RemainingMineCount.HasValue)
             {
-                writer.WriteLine($"m{map.RemainingMineCount.Value}");
+                writer.Write(delimiter);
+                writer.Write($"m{map.RemainingMineCount.Value}");
             }
             writer.Flush();
         }

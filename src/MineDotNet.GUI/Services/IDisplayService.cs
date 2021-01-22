@@ -12,6 +12,6 @@ namespace MineDotNet.GUI.Services
         PictureBox Target { get; set; }
         bool DrawCoordinates { get; set; }
         
-        void DisplayMap(Map map, IList<Mask> masks, IDictionary<Coordinate, SolverResult> results = null);
+        void DisplayMap(IReadOnlyMapBase<Cell> map, IList<Mask> masks, IDictionary<Coordinate, SolverResult> results = null);
     }
 }

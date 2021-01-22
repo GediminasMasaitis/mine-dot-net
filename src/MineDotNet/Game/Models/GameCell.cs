@@ -1,6 +1,6 @@
 ﻿using MineDotNet.Common;
 
-namespace MineDotNet.Game
+namespace MineDotNet.Game.Models
 {
     public class GameCell : Cell
     {

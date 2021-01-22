@@ -42,6 +42,7 @@ namespace MineDotNet.GUI.Tiles
             ResizeToDictionary(originalTiles.Hints, tiles.Hints, size);
             ResizeToDictionary(originalTiles.Flags, tiles.Flags, size);
             ResizeToDictionary(originalTiles.States, tiles.States, size);
+            tiles.UnrevealedMine = ResizeImage(originalTiles.UnrevealedMine, size);
             return tiles;
         }
 

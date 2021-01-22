@@ -1,23 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using MineDotNet.Common;
 
-namespace MineDotNet.Game
+namespace MineDotNet.Game.Models
 {
-    public class GameMap
+    public class GameMap : IGameMap
     {
         public int Width { get; }
         public int Height { get; }
-        public int RemainingMineCount { get; set; }
+        public int? RemainingMineCount { get; set; }
+
         public bool DisplayMineCount { get; set; }
-        public GameCell[,] Cells { get; private set; }
+        public GameCell[,] Cells { get; }
         public IEnumerable<GameCell> AllCells => Cells.Cast<GameCell>().Where(x => x != null);
         public Coordinate StartingPosition { get; }
         public bool GuaranteedOpening { get; }
 
-        public GameMap(int width, int height, int remainingMineCount, Coordinate startingPosition, bool guaranteedOpening, bool createCells = false, CellState fillWithState = CellState.Empty)
+        public GameMap(int width, int height, int? remainingMineCount, Coordinate startingPosition, bool guaranteedOpening, bool createCells = false, CellState fillWithState = CellState.Empty)
         {
             Width = width;
             Height = height;
@@ -38,10 +37,14 @@ namespace MineDotNet.Game
 
         public GameCell this[Coordinate coordinate]
         {
-            get { return Cells[coordinate.X, coordinate.Y]; }
-            set { Cells[coordinate.X, coordinate.Y] = value; }
+            get => Cells[coordinate.X, coordinate.Y];
+            set => Cells[coordinate.X, coordinate.Y] = value;
         }
-        public bool CellExists(Coordinate coord) => coord.X >= 0 && coord.Y >= 0 && coord.X < Width && coord.Y < Height && Cells[coord.X, coord.Y] != null && Cells[coord.X, coord.Y].State != CellState.Wall;
+
+        public bool CellExists(Coordinate coord)
+        {
+            return coord.X >= 0 && coord.Y >= 0 && coord.X < Width && coord.Y < Height &&  Cells[coord.X, coord.Y] != null && Cells[coord.X, coord.Y].State != CellState.Wall;
+        }
 
         public IList<GameCell> CalculateNeighboursOf(Coordinate coord, bool includeSelf = false)
         {

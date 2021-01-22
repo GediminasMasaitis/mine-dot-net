@@ -10,7 +10,7 @@ namespace MineDotNet.GUI.Services
 {
     class CellLocator : ICellLocator
     {
-        public Size GetCellSize(IMap map, Size canvasSize)
+        public Size GetCellSize(IReadOnlyMapBase<Cell> map, Size canvasSize)
         {
             var cellWidth = canvasSize.Width / map.Height;
             var cellHeight = canvasSize.Height / map.Width;
@@ -26,7 +26,7 @@ namespace MineDotNet.GUI.Services
             return new Size(cellWidth, cellHeight);
         }
 
-        public Coordinate GetCellCoordinate(Point location, IMap map, Size canvasSize)
+        public Coordinate GetCellCoordinate(Point location, IReadOnlyMapBase<Cell> map, Size canvasSize)
         {
             var cellSize = GetCellSize(map, canvasSize);
             return GetCellCoordinate(location, cellSize);

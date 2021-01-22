@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Authors>Gediminas Masaitis</Authors>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -11,6 +10,12 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="5.0.0" />
+    <PackageReference Include="Microsoft.ML" Version="1.5.3" />
+    <PackageReference Include="Microsoft.ML.LightGbm" Version="1.5.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MineDotNet\MineDotNet.csproj" />
   </ItemGroup>
 
 </Project>

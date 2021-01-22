@@ -2,16 +2,25 @@
 using System.Collections.Generic;
 using System.Linq;
 using MineDotNet.Common;
+using MineDotNet.Game.Models;
 
 namespace MineDotNet.Game
 {
-    public class GameMapGenerator
+    public class GameMapGenerator : IGameMapGenerator
     {
-        public Random Random { get; set; }
+        private readonly Random _random;
 
         public GameMapGenerator(Random random = null)
         {
-            Random = random ?? new Random();
+            _random = random ?? new Random();
+        }
+
+        public IEnumerable<GameMap> GenerateSequenceWithMineDensity(int width, int height, Coordinate startingPosition, bool guaranteeOpening, double mineDensity)
+        {
+            while (true)
+            {
+                yield return GenerateWithMineDensity(width, height, startingPosition, guaranteeOpening, mineDensity);
+            }
         }
 
         public GameMap GenerateWithMineDensity(int width, int height, Coordinate startingPosition, bool guaranteeOpening, double mineDensity)
@@ -87,7 +96,7 @@ namespace MineDotNet.Game
             while (n > 1)
             {
                 n--;
-                var k = Random.Next(n + 1);
+                var k = _random.Next(n + 1);
                 var value = list[k];
                 list[k] = list[n];
                 list[n] = value;

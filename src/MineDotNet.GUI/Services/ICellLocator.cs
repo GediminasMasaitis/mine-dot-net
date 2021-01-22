@@ -5,8 +5,8 @@ namespace MineDotNet.GUI.Services
 {
     internal interface ICellLocator
     {
-        Size GetCellSize(IMap map, Size canvasSize);
-        Coordinate GetCellCoordinate(Point location, IMap map, Size canvasSize);
+        Size GetCellSize(IReadOnlyMapBase<Cell> map, Size canvasSize);
+        Coordinate GetCellCoordinate(Point location, IReadOnlyMapBase<Cell> map, Size canvasSize);
         Coordinate GetCellCoordinate(Point location, Size cellSize);
     }
 }

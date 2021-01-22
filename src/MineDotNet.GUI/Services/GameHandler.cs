@@ -25,21 +25,11 @@ namespace MineDotNet.GUI.Services
             }
         }
 
-        public Map Map
-        {
-            get => _map;
-            set
-            {
-                _map = value;
-                _currentCellSize = _cellLocator.GetCellSize(_map, _target.Size);
-            }
-        }
+        public Map Map { get; set; }
         
         private readonly ICellLocator _cellLocator;
 
-        private Map _map;
         private PictureBox _target;
-        private Size _currentCellSize;
 
         public GameHandler(ICellLocator cellLocator)
         {
@@ -53,7 +43,8 @@ namespace MineDotNet.GUI.Services
                 return;
             }
 
-            var coordinate = _cellLocator.GetCellCoordinate(eventArgs.Location, _currentCellSize);
+            var size = _cellLocator.GetCellSize(Map, _target.Size);
+            var coordinate = _cellLocator.GetCellCoordinate(eventArgs.Location, size);
             var args = new CellClickEventArgs(coordinate, eventArgs.Button);
             CellClick?.Invoke(this, args);
         }

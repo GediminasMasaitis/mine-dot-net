@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
@@ -9,6 +8,10 @@ using MineDotNet.Common;
 using MineDotNet.Game;
 using MineDotNet.GUI.Models;
 using MineDotNet.GUI.Services;
+using MineDotNet.IO;
+using MineDotNet.ML;
+using MineDotNet.ML.Solvers;
+using MineDotNet.Umsi;
 
 namespace MineDotNet.GUI.Forms
 {
@@ -17,8 +20,7 @@ namespace MineDotNet.GUI.Forms
         private readonly IDisplayService _display;
         private readonly IGameHandler _gameHandler;
         
-        private GameMapGenerator GameMapGenerator { get; set; }
-        private GameEngine CurrentManualGameEngine { get; set; }
+        private GameManager CurrentManualGameEngine { get; set; }
 
         private double MineDensity => MineDensityTrackBar.Value/(double) 100;
         private int MapWidth => (int)WidthNumericUpDown.Value;
@@ -39,9 +41,6 @@ namespace MineDotNet.GUI.Forms
             _gameHandler = IOCC.GetService<IGameHandler>();
             _gameHandler.Target = MainPictureBox;
             _gameHandler.CellClick += DisplayOnCellClick;
-
-            var random = new Random(0);
-            GameMapGenerator = new GameMapGenerator(random);
 
             var defaultMap = new Map(12, 12, null, true);
             SetMapAndMasks(defaultMap, null);
@@ -66,7 +65,7 @@ namespace MineDotNet.GUI.Forms
                 return;
             }
 
-            bool success = true;
+            var gameOver = false;
             if ((args.Buttons & MouseButtons.Right) != 0)
             {
                 if (!CurrentManualGameEngine.GameStarted)
@@ -79,21 +78,24 @@ namespace MineDotNet.GUI.Forms
             {
                 if (!CurrentManualGameEngine.GameStarted)
                 {
-                    CurrentManualGameEngine.StartWithMineDensity(GameMapGenerator, MapWidth, MapHeight, args.Coordinate, true, MineDensity);
+                    CurrentManualGameEngine.StartWithMineDensity(MapWidth, MapHeight, args.Coordinate, true, MineDensity);
                 }
                 else
                 {
-                    success = CurrentManualGameEngine.OpenCell(args.Coordinate);
+                    var openResult = CurrentManualGameEngine.OpenCell(args.Coordinate);
+                    gameOver = !openResult.OpenCorrect;
                 }
             }
-            var regularMap = CurrentManualGameEngine.GameMap.ToRegularMap();
+
+            var gameMap = CurrentManualGameEngine.CurrentMap;
+            var regularMap = gameMap.ToRegularMap();
             MapTextVisualizers.SetMap(regularMap);
             var maskMaps = MapTextVisualizers.GetMasks();
-            _display.DisplayMap(regularMap, maskMaps);
+            _display.DisplayMap(gameMap, maskMaps);
 
-            if (!success)
+            if (gameOver)
             {
-                MessageBox.Show("Boom " + args.Coordinate);
+                MessageBox.Show($"Boom {args.Coordinate}");
             }
         }
 
@@ -124,11 +126,11 @@ namespace MineDotNet.GUI.Forms
 
         private void AutoPlayButton_Click(object sender, EventArgs e)
         {
-            var engine = new GameEngine();
-            engine.StartWithMineDensity(GameMapGenerator, MapWidth, MapHeight, new Coordinate(MapWidth/2, MapHeight/2), true, MineDensity);
+            var engine = new GameManager(new GameMapGenerator(), new GameEngine());
+            engine.StartWithMineDensity(MapWidth, MapHeight, new Coordinate(MapWidth/2, MapHeight/2), true, MineDensity);
             while (true)
             {
-                var regularMap = engine.GameMap.ToRegularMap();
+                var regularMap = engine.CurrentMap.ToRegularMap();
                 MapTextVisualizers.SetMap(regularMap);
                 Application.DoEvents();
                 var results = AI.AI.Solve(regularMap);
@@ -145,13 +147,13 @@ namespace MineDotNet.GUI.Forms
                             engine.SetFlag(result.Key, CellFlag.HasMine);
                             break;
                         case false:
-                            var succesfullyOpened = engine.OpenCell(result.Key);
-                            if (!succesfullyOpened)
+                            var openCorrect = engine.OpenCell(result.Key).OpenCorrect;
+                            if (!openCorrect)
                             {
-                                regularMap[result.Key].Flag = CellFlag.NotSure;
+                                regularMap[result.Key].State = CellState.Mine;
                                 MapTextVisualizers.SetMap(regularMap);
                                 DisplayResults(regularMap, results);
-                                MessageBox.Show("Boom " + result.Key);
+                                MessageBox.Show($"Boom {result.Key}");
                                 return;
                             }
                             break;
@@ -172,9 +174,29 @@ namespace MineDotNet.GUI.Forms
 
         private void ManualPlayButton_Click(object sender, EventArgs e)
         {
-            CurrentManualGameEngine = new GameEngine();
+            CurrentManualGameEngine = new GameManager(new GameMapGenerator(), new GameEngine());
             var emptyMap = new Map(MapWidth, MapHeight, null, true, CellState.Filled);
-            _display.DisplayMap(emptyMap, new List<Mask>());
+            SetMapAndMasks(emptyMap, null);
+        }
+
+        private void MLTestButton_Click(object sender, EventArgs e)
+        {
+            var map = MapTextVisualizers.GetMap();
+            using var umsiProgram = new UmsiProgram();
+            var visualizer = new TextMapVisualizer();
+            var solver = new UmsiSolver(umsiProgram, visualizer);
+            solver.Solve(map);
+
+            //var random = new Random(0);
+            //var gen = new TrainMapGenerator(random, new GameManager(new GameMapGenerator(random), new GameEngine()));
+            //var maps = gen.CreateMaps().Take(1000).ToList();
+            ////foreach (var map in maps)
+            ////{
+            //    _display.DisplayMap(maps[0], null);
+            ////}
+
+            //var solver = new MlSolver();
+            //solver.Run(maps);
         }
     }
 }
