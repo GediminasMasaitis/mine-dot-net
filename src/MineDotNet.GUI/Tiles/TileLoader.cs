@@ -20,7 +20,9 @@ namespace MineDotNet.GUI.Tiles
 
         private Image LoadImage(string tilePath)
         {
-            return Image.FromFile(tilePath);
+            var bytes = File.ReadAllBytes(tilePath);
+            var ms = new MemoryStream(bytes);
+            return Image.FromStream(ms);
         }
 
         private void LoadHints(TileCollection tiles, string path)
