@@ -136,11 +136,16 @@ namespace MineDotNet.GUI.Services
                     }
                 }
             }
+            var oldImage = Target.Image;
             Target.Image = bmp;
+            oldImage?.Dispose();
         }
 
         public void Dispose()
         {
+            _mainFont?.Dispose();
+            _subFont?.Dispose();
+            _textBrush?.Dispose();
         }
     }
 }

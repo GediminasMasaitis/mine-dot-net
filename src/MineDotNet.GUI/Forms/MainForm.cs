@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using MineDotNet.AI.Solvers;
 using MineDotNet.Common;
@@ -21,6 +22,7 @@ namespace MineDotNet.GUI.Forms
         private readonly IGameHandler _gameHandler;
         
         private GameManager CurrentManualGameEngine { get; set; }
+        private CancellationTokenSource _autoPlayCts;
 
         private double MineDensity => MineDensityTrackBar.Value/(double) 100;
         private int MapWidth => (int)WidthNumericUpDown.Value;
@@ -124,46 +126,59 @@ namespace MineDotNet.GUI.Forms
             GetAndDisplayMap(results);
         }
 
-        private void AutoPlayButton_Click(object sender, EventArgs e)
+        private async void AutoPlayButton_Click(object sender, EventArgs e)
         {
-            var engine = new GameManager(new GameMapGenerator(), new GameEngine());
-            engine.StartWithMineDensity(MapWidth, MapHeight, new Coordinate(MapWidth/2, MapHeight/2), true, MineDensity);
-            while (true)
+            _autoPlayCts?.Cancel();
+            _autoPlayCts = new CancellationTokenSource();
+            var token = _autoPlayCts.Token;
+
+            AutoPlayButton.Enabled = false;
+            try
             {
-                var regularMap = engine.CurrentMap.ToRegularMap();
-                MapTextVisualizers.SetMap(regularMap);
-                Application.DoEvents();
-                var results = AI.AI.Solve(regularMap);
-                if (results.Count == 0)
+                var engine = new GameManager(new GameMapGenerator(), new GameEngine());
+                engine.StartWithMineDensity(MapWidth, MapHeight, new Coordinate(MapWidth/2, MapHeight/2), true, MineDensity);
+                while (!token.IsCancellationRequested)
                 {
-                    MessageBox.Show("Done");
-                    return;
-                }
-                foreach (var result in results)
-                {
-                    switch (result.Value.Verdict)
+                    var regularMap = engine.CurrentMap.ToRegularMap();
+                    MapTextVisualizers.SetMap(regularMap);
+                    var results = AI.AI.Solve(regularMap);
+                    if (results.Count == 0)
                     {
-                        case true:
-                            engine.SetFlag(result.Key, CellFlag.HasMine);
-                            break;
-                        case false:
-                            var openCorrect = engine.OpenCell(result.Key).OpenCorrect;
-                            if (!openCorrect)
-                            {
-                                regularMap[result.Key].State = CellState.Mine;
-                                MapTextVisualizers.SetMap(regularMap);
-                                DisplayResults(regularMap, results);
-                                MessageBox.Show($"Boom {result.Key}");
-                                return;
-                            }
-                            break;
-                        case null:
-                            break;
+                        MessageBox.Show("Done");
+                        return;
                     }
+                    foreach (var result in results)
+                    {
+                        switch (result.Value.Verdict)
+                        {
+                            case true:
+                                engine.SetFlag(result.Key, CellFlag.HasMine);
+                                break;
+                            case false:
+                                var openCorrect = engine.OpenCell(result.Key).OpenCorrect;
+                                if (!openCorrect)
+                                {
+                                    regularMap[result.Key].State = CellState.Mine;
+                                    MapTextVisualizers.SetMap(regularMap);
+                                    DisplayResults(regularMap, results);
+                                    MessageBox.Show($"Boom {result.Key}");
+                                    return;
+                                }
+                                break;
+                            case null:
+                                break;
+                        }
+                    }
+                    DisplayResults(regularMap, results);
+                    await Task.Delay(100, token);
                 }
-                DisplayResults(regularMap, results);
-                Application.DoEvents();
-                Thread.Sleep(100);
+            }
+            catch (TaskCanceledException)
+            {
+            }
+            finally
+            {
+                AutoPlayButton.Enabled = true;
             }
         }
 

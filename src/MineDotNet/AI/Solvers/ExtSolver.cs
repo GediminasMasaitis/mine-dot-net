@@ -70,33 +70,39 @@ namespace MineDotNet.AI.Solvers
             var buffer_size = map.Width * map.Height;
             var structSize = Marshal.SizeOf(typeof(ExtSolverResult));
             var buffer = Marshal.AllocHGlobal(structSize * buffer_size);
-            ExtSolve(str, buffer, ref buffer_size);
-            var results = new Dictionary<Coordinate, SolverResult>();
-            for (var i = 0; i < buffer_size; i++)
+            try
             {
-                var ptr = new IntPtr(structSize * i + buffer.ToInt64());
-                var extRes = (ExtSolverResult)Marshal.PtrToStructure(ptr, typeof(ExtSolverResult));
-                var coord = new Coordinate(extRes.pt.x, extRes.pt.y);
-                bool? verdict;
-                switch (extRes.verdict)
+                ExtSolve(str, buffer, ref buffer_size);
+                var results = new Dictionary<Coordinate, SolverResult>();
+                for (var i = 0; i < buffer_size; i++)
                 {
-                    case 0:
-                        verdict = null;
-                        break;
-                    case 1:
-                        verdict = true;
-                        break;
-                    case 2:
-                        verdict = false;
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
+                    var ptr = new IntPtr(structSize * i + buffer.ToInt64());
+                    var extRes = (ExtSolverResult)Marshal.PtrToStructure(ptr, typeof(ExtSolverResult));
+                    var coord = new Coordinate(extRes.pt.x, extRes.pt.y);
+                    bool? verdict;
+                    switch (extRes.verdict)
+                    {
+                        case 0:
+                            verdict = null;
+                            break;
+                        case 1:
+                            verdict = true;
+                            break;
+                        case 2:
+                            verdict = false;
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
+                    }
+                    var res = new SolverResult(coord, extRes.probability, verdict);
+                    results.Add(res.Coordinate, res);
                 }
-                var res = new SolverResult(coord, extRes.probability, verdict);
-                results.Add(res.Coordinate, res);
+                return results;
             }
-            Marshal.FreeHGlobal(buffer);
-            return results;
+            finally
+            {
+                Marshal.FreeHGlobal(buffer);
+            }
         }
     }
 }
