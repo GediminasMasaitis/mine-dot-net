@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 
 namespace MineDotNet.AI.Solvers
 {
@@ -32,7 +32,7 @@ namespace MineDotNet.AI.Solvers
         public bool PartialAllStopOnAnyVerdict { get; set; } = false;
         public bool PartialStopAlways { get; set; } = false;
         public int PartialSolveFromSize { get; set; } = 24;
-        public int PartialOptimalSize { get; set; } = 14;
+        public int PartialOptimalSize { get; set; } = 20;
         public bool PartialSetProbabilityGuesses { get; set; } = true;
 
         public bool ResplitOnPartialVerdict { get; set; } = true;
@@ -44,16 +44,33 @@ namespace MineDotNet.AI.Solvers
 
         public int GiveUpFromSize { get; set; } = 28;
 
-        // TODO
         public bool ValidCombinationSearchOpenCl { get; set; } = true;
-        public bool ValidCombinationSearchOpenClAllowLoopBreak { get; set; } = true;
+        public bool ValidCombinationSearchOpenClAllowLoopBreak { get; set; } = false;
         public int ValidCombinationSearchOpenClUseFromSize { get; set; } = 16;
-        public int ValidCombinationSearchOpenClMaxBatchSize { get; set; } = 20;
-        public int ValidCombinationSearchOpenClPlatformID { get; set; } = 1;
+        public int ValidCombinationSearchOpenClMaxBatchSize { get; set; } = 31;
+        public int ValidCombinationSearchOpenClPlatformID { get; set; } = 0;
         public int ValidCombinationSearchOpenClDeviceID { get; set; } = 0;
 
         public bool ValidCombinationSearchMultithread { get; set; } = true;
-        public int ValidCombinationSearchMultithreadUseFromSize { get; set; } = 8; //2097152
+        public int ValidCombinationSearchMultithreadUseFromSize { get; set; } = 8;
+        public int ValidCombinationSearchMultithreadThreadCount { get; set; } = 16;
+
+        public bool CombinationSearchGaussianReduction { get; set; } = true;
+        public bool CombinationSearchGaussianBacktracking { get; set; } = true;
+
+        // When true, partial_solve is skipped for borders that the full
+        // enumeration will handle anyway. Empirically a small net negative on
+        // expert boards, so defaults to false (always run partial).
+        public bool PartialSolveOnlyWhenGivingUp { get; set; } = false;
+
+        // Master switch for [trace] output in the C++ solver.
+        public bool PrintTrace { get; set; } = false;
+        // Borders whose effective_size is at least this emit full traces.
+        // Set to 0 to trace every border when PrintTrace is on.
+        public int PrintTraceMinEffectiveSize { get; set; } = 20;
+        // solve() calls faster than this (microseconds) don't print the
+        // top-level trace. Set to 0 to print every solve.
+        public long PrintTraceMinSolveUs { get; set; } = 100000;
 
         public int VariableMineCountBordersProbabilitiesMultithreadUseFrom { get; set; } = 128;
         public int VariableMineCountBordersProbabilitiesGiveUpFrom { get; set; } = 131072;
@@ -66,6 +83,12 @@ namespace MineDotNet.AI.Solvers
         public int DebugSetting3 { get; set; } = 0;
     }
 
+    // Field order MUST match the C++ `solver_settings` struct in
+    // src/minedotcpp/solvers/solver_settings.h exactly. This is passed by value
+    // over P/Invoke, so any drift in layout (missing fields, wrong order) will
+    // cause C++ to read uninitialized memory for settings at the tail of the
+    // struct. Bool fields are marshalled as UnmanagedType.U1 (1 byte) to match
+    // C++'s `bool` size.
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
     public struct ExternalBorderSeparationSolverSettings
     {
@@ -138,7 +161,6 @@ namespace MineDotNet.AI.Solvers
 
         public int GiveUpFromSize;
 
-        // TODO
         [MarshalAs(UnmanagedType.U1)]
         public bool ValidCombinationSearchOpenCl;
         [MarshalAs(UnmanagedType.U1)]
@@ -150,7 +172,21 @@ namespace MineDotNet.AI.Solvers
 
         [MarshalAs(UnmanagedType.U1)]
         public bool ValidCombinationSearchMultithread;
-        public int ValidCombinationSearchMultithreadUseFromSize; //2097152
+        public int ValidCombinationSearchMultithreadUseFromSize;
+        public int ValidCombinationSearchMultithreadThreadCount;
+
+        [MarshalAs(UnmanagedType.U1)]
+        public bool CombinationSearchGaussianReduction;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool CombinationSearchGaussianBacktracking;
+
+        [MarshalAs(UnmanagedType.U1)]
+        public bool PartialSolveOnlyWhenGivingUp;
+
+        [MarshalAs(UnmanagedType.U1)]
+        public bool PrintTrace;
+        public int PrintTraceMinEffectiveSize;
+        public long PrintTraceMinSolveUs;
 
         public int VariableMineCountBordersProbabilitiesMultithreadUseFrom;
         public int VariableMineCountBordersProbabilitiesGiveUpFrom;
@@ -206,7 +242,6 @@ namespace MineDotNet.AI.Solvers
 
             GiveUpFromSize = originalSettings.GiveUpFromSize;
 
-            // TODO
             ValidCombinationSearchOpenCl = originalSettings.ValidCombinationSearchOpenCl;
             ValidCombinationSearchOpenClAllowLoopBreak = originalSettings.ValidCombinationSearchOpenClAllowLoopBreak;
             ValidCombinationSearchOpenClUseFromSize = originalSettings.ValidCombinationSearchOpenClUseFromSize;
@@ -215,7 +250,17 @@ namespace MineDotNet.AI.Solvers
             ValidCombinationSearchOpenClDeviceID = originalSettings.ValidCombinationSearchOpenClDeviceID;
 
             ValidCombinationSearchMultithread = originalSettings.ValidCombinationSearchMultithread;
-            ValidCombinationSearchMultithreadUseFromSize = originalSettings.ValidCombinationSearchMultithreadUseFromSize; //2097152
+            ValidCombinationSearchMultithreadUseFromSize = originalSettings.ValidCombinationSearchMultithreadUseFromSize;
+            ValidCombinationSearchMultithreadThreadCount = originalSettings.ValidCombinationSearchMultithreadThreadCount;
+
+            CombinationSearchGaussianReduction = originalSettings.CombinationSearchGaussianReduction;
+            CombinationSearchGaussianBacktracking = originalSettings.CombinationSearchGaussianBacktracking;
+
+            PartialSolveOnlyWhenGivingUp = originalSettings.PartialSolveOnlyWhenGivingUp;
+
+            PrintTrace = originalSettings.PrintTrace;
+            PrintTraceMinEffectiveSize = originalSettings.PrintTraceMinEffectiveSize;
+            PrintTraceMinSolveUs = originalSettings.PrintTraceMinSolveUs;
 
             VariableMineCountBordersProbabilitiesMultithreadUseFrom = originalSettings.VariableMineCountBordersProbabilitiesMultithreadUseFrom;
             VariableMineCountBordersProbabilitiesGiveUpFrom = originalSettings.VariableMineCountBordersProbabilitiesGiveUpFrom;
