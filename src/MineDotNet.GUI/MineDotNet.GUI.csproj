@@ -21,4 +21,9 @@
     <ProjectReference Include="..\MineDotNet\MineDotNet.csproj" />
   </ItemGroup>
 
+  <!-- Tile images consumed at runtime by TileLoader.GetTiles() from a sibling 'assets' folder. -->
+  <ItemGroup>
+    <None Update="assets\*.png" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
