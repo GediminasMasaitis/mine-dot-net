@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,12 +21,19 @@ namespace MineDotNet.GUI
         {
             Designer.IsDesignTime = false;
 
+            // Per-monitor DPI awareness so the app scales correctly on mixed-DPI
+            // setups and 4K displays instead of looking blurry.
+            Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+
+            // Default to Segoe UI 9pt (Windows' standard shell font) instead of
+            // the legacy MS Sans Serif WinForms picks by default.
+            Application.SetDefaultFont(new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point));
+
             var collection = new ServiceCollection();
             collection.AddMineDotNetGUI();
             IOCC.ServiceProvider = collection.BuildServiceProvider();
-
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
 
             IList<Map> maps = new List<Map>();
             for(var i = 0; i < args.Length; i++)

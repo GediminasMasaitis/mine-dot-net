@@ -201,17 +201,6 @@ namespace MineDotNet.GUI.Forms
             var visualizer = new TextMapVisualizer();
             var solver = new UmsiSolver(umsiProgram, visualizer);
             solver.Solve(map);
-
-            //var random = new Random(0);
-            //var gen = new TrainMapGenerator(random, new GameManager(new GameMapGenerator(random), new GameEngine()));
-            //var maps = gen.CreateMaps().Take(1000).ToList();
-            ////foreach (var map in maps)
-            ////{
-            //    _display.DisplayMap(maps[0], null);
-            ////}
-
-            //var solver = new MlSolver();
-            //solver.Run(maps);
         }
     }
 }
