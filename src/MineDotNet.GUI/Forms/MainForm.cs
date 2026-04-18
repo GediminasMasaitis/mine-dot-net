@@ -23,6 +23,7 @@ namespace MineDotNet.GUI.Forms
         
         private GameManager CurrentManualGameEngine { get; set; }
         private CancellationTokenSource _autoPlayCts;
+        private IDictionary<Coordinate, SolverResult> _lastResults;
 
         private double MineDensity => MineDensityTrackBar.Value/(double) 100;
         private int MapWidth => (int)WidthNumericUpDown.Value;
@@ -44,8 +45,14 @@ namespace MineDotNet.GUI.Forms
             _gameHandler.Target = MainPictureBox;
             _gameHandler.CellClick += DisplayOnCellClick;
 
-            var defaultMap = new Map(12, 12, null, true);
+            var defaultMap = new Map(16, 30, null, true);
             SetMapAndMasks(defaultMap, null);
+
+            this.SizeChanged += (s, e) =>
+            {
+                if (MainPictureBox.Width <= 0 || MainPictureBox.Height <= 0) return;
+                GetAndDisplayMap(_lastResults);
+            };
         }
 
         public void SetMapAndMasks(Map map, IList<Mask> masks)
@@ -122,6 +129,7 @@ namespace MineDotNet.GUI.Forms
 
         private void DisplayResults(IMap map, IDictionary<Coordinate, SolverResult> results)
         {
+            _lastResults = results;
             MapTextVisualizers.DisplayResults(map, results);
             GetAndDisplayMap(results);
         }

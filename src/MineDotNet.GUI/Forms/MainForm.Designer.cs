@@ -89,7 +89,7 @@
             this.MineDensityTrackBar.Name = "MineDensityTrackBar";
             this.MineDensityTrackBar.Size = new System.Drawing.Size(115, 45);
             this.MineDensityTrackBar.TabIndex = 26;
-            this.MineDensityTrackBar.Value = 20;
+            this.MineDensityTrackBar.Value = 21;
             this.MineDensityTrackBar.ValueChanged += new System.EventHandler(this.MineDensityTrackBar_ValueChanged);
             // 
             // MineDensityLabel
@@ -141,7 +141,7 @@
             this.WidthNumericUpDown.Size = new System.Drawing.Size(48, 20);
             this.WidthNumericUpDown.TabIndex = 30;
             this.WidthNumericUpDown.Value = new decimal(new int[] {
-            8,
+            16,
             0,
             0,
             0});
@@ -164,7 +164,7 @@
             this.HeightNumericUpDown.Size = new System.Drawing.Size(48, 20);
             this.HeightNumericUpDown.TabIndex = 32;
             this.HeightNumericUpDown.Value = new decimal(new int[] {
-            8,
+            30,
             0,
             0,
             0});
