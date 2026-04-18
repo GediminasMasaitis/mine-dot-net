@@ -1,34 +1,26 @@
-using System;
+using System.IO;
 using System.Windows;
+using Microsoft.Win32;
 using MineDotNet.AI.Solvers;
-using MineDotNet.GUI.Models;
+using Newtonsoft.Json;
 using Wpf.Ui.Controls;
 
 namespace MineDotNet.GUI.Views
 {
     public partial class SolverSettingsDialog : FluentWindow
     {
-        private SolverListEntry _entry;
+        private BorderSeparationSolverSettings _settings;
 
-        public SolverSettingsDialog() : this(null) { }
-
-        public SolverSettingsDialog(SolverListEntry entry)
+        public SolverSettingsDialog(BorderSeparationSolverSettings settings)
         {
             InitializeComponent();
-            _entry = entry ?? new SolverListEntry(null, ExtSolver.Alias, new BorderSeparationSolverSettings());
-            Editor.SetupObject(_entry.Settings);
-            ImplBox.ItemsSource = new[] { ExtSolver.Alias };
-            ImplBox.SelectedIndex = Array.IndexOf(new[] { ExtSolver.Alias }, _entry.SolverImplementation);
-            NameBox.Text = _entry.SolverName ?? "New solver";
-            if (_entry.SolverName == null) NameBox.Focus();
+            _settings = settings ?? new BorderSeparationSolverSettings();
+            Editor.SetupObject(_settings);
         }
 
-        public SolverListEntry GetEntry()
+        public BorderSeparationSolverSettings GetSettings()
         {
-            _entry.SolverName = NameBox.Text;
-            _entry.SolverImplementation = ImplBox.SelectedItem as string;
-            _entry.Settings = (BorderSeparationSolverSettings)Editor.GetObject();
-            return _entry;
+            return (BorderSeparationSolverSettings)Editor.GetObject();
         }
 
         private void OkBtn_Click(object sender, RoutedEventArgs e)
@@ -43,9 +35,23 @@ namespace MineDotNet.GUI.Views
             Close();
         }
 
-        private void ImplBox_OnSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        private void SaveBtn_Click(object sender, RoutedEventArgs e)
         {
-            if (OkBtn != null) OkBtn.IsEnabled = ImplBox.SelectedItem != null;
+            var sfd = new SaveFileDialog { Filter = "JSON Files|*.json", FileName = "solver-settings.json" };
+            if (sfd.ShowDialog(this) != true) return;
+            var current = GetSettings();
+            File.WriteAllText(sfd.FileName, JsonConvert.SerializeObject(current, Formatting.Indented));
+        }
+
+        private void LoadBtn_Click(object sender, RoutedEventArgs e)
+        {
+            var ofd = new OpenFileDialog { Filter = "JSON Files|*.json" };
+            if (ofd.ShowDialog(this) != true) return;
+            var json = File.ReadAllText(ofd.FileName);
+            var loaded = JsonConvert.DeserializeObject<BorderSeparationSolverSettings>(json);
+            if (loaded == null) return;
+            _settings = loaded;
+            Editor.SetupObject(_settings);
         }
     }
 }

@@ -31,7 +31,8 @@
                 <ColumnDefinition Width="360" />
             </Grid.ColumnDefinitions>
 
-            <ui:Card Grid.Column="0" Padding="8" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+            <ui:Card Grid.Column="0" Padding="8"
+                     HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
                 <local:MinesweeperBoardHost x:Name="BoardHost"
                                             HorizontalAlignment="Stretch"
                                             VerticalAlignment="Stretch" />
@@ -41,14 +42,14 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" MinHeight="240" />
+                    <RowDefinition Height="*" MinHeight="200" />
                 </Grid.RowDefinitions>
 
                 <!-- Actions -->
                 <ui:Card Grid.Row="0" Padding="14">
                     <StackPanel>
                         <TextBlock Text="Actions" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,10" />
-                        <UniformGrid Rows="1" Columns="2">
+                        <UniformGrid Rows="1" Columns="2" Margin="0,0,0,6">
                             <ui:Button x:Name="ShowBtn" Content="Show"
                                        Icon="{ui:SymbolIcon Eye24}"
                                        HorizontalAlignment="Stretch"
@@ -59,6 +60,10 @@
                                        HorizontalAlignment="Stretch"
                                        Margin="4,0,0,0" Click="SolveBtn_Click" />
                         </UniformGrid>
+                        <ui:Button x:Name="SettingsBtn" Content="Solver settings..."
+                                   Icon="{ui:SymbolIcon Settings24}"
+                                   HorizontalAlignment="Stretch"
+                                   Click="SettingsBtn_Click" />
                     </StackPanel>
                 </ui:Card>
 
@@ -99,65 +104,46 @@
                     </StackPanel>
                 </ui:Card>
 
-                <!-- Solvers list -->
-                <ui:Card Grid.Row="2" Margin="0,10,0,0" Padding="14" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                <!-- Log -->
+                <ui:Card Grid.Row="2" Margin="0,10,0,0" Padding="14"
+                         HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="Solvers" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,10" />
-                        <local:SolversListEditor Grid.Row="1" x:Name="SolversEditor" />
+                        <Grid Grid.Row="0">
+                            <TextBlock Text="Log" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" />
+                            <ui:Button x:Name="ClearLogBtn" Content="Clear" HorizontalAlignment="Right"
+                                       FontSize="11" Padding="10,3" Click="ClearLogBtn_Click" />
+                        </Grid>
+                        <Border Grid.Row="1" Margin="0,8,0,0"
+                                Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource ControlElevationBorderBrush}"
+                                BorderThickness="1" CornerRadius="4">
+                            <TextBox x:Name="LogBox" IsReadOnly="True"
+                                     Background="Transparent" BorderThickness="0"
+                                     FontFamily="Cascadia Mono, Consolas" FontSize="11"
+                                     VerticalScrollBarVisibility="Auto"
+                                     HorizontalScrollBarVisibility="Auto"
+                                     TextWrapping="NoWrap" AcceptsReturn="True" Padding="6" />
+                        </Border>
                     </Grid>
                 </ui:Card>
             </Grid>
         </Grid>
 
-        <!-- Bottom: Map/masks (left) + Log (right) -->
-        <Grid Grid.Row="2" Margin="16,0,16,16">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="16" />
-                <ColumnDefinition Width="360" />
-            </Grid.ColumnDefinitions>
-
-            <ui:Card Grid.Column="0" Padding="12" VerticalAlignment="Stretch"
-                     HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Text="Map and masks" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,8" />
-                    <local:MapMaskEditor Grid.Row="1" x:Name="MapEditor" />
-                </Grid>
-            </ui:Card>
-
-            <ui:Card Grid.Column="2" Padding="12" VerticalAlignment="Stretch"
-                     HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <Grid Grid.Row="0">
-                        <TextBlock Text="Log" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" />
-                        <ui:Button x:Name="ClearLogBtn" Content="Clear" HorizontalAlignment="Right"
-                                   FontSize="11" Padding="10,3" Click="ClearLogBtn_Click" />
-                    </Grid>
-                    <Border Grid.Row="1" Margin="0,8,0,0"
-                            Background="{DynamicResource ControlFillColorDefaultBrush}"
-                            BorderBrush="{DynamicResource ControlElevationBorderBrush}"
-                            BorderThickness="1" CornerRadius="4">
-                        <TextBox x:Name="LogBox" IsReadOnly="True"
-                                 Background="Transparent" BorderThickness="0"
-                                 FontFamily="Cascadia Mono, Consolas" FontSize="11"
-                                 VerticalScrollBarVisibility="Auto"
-                                 HorizontalScrollBarVisibility="Auto"
-                                 TextWrapping="NoWrap" AcceptsReturn="True" Padding="6" />
-                    </Border>
-                </Grid>
-            </ui:Card>
-        </Grid>
+        <!-- Bottom: Map/masks (full width) -->
+        <ui:Card Grid.Row="2" Margin="16,0,16,16" Padding="12"
+                 HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="Map and masks" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,8" />
+                <local:MapMaskEditor Grid.Row="1" x:Name="MapEditor" />
+            </Grid>
+        </ui:Card>
     </Grid>
 </ui:FluentWindow>

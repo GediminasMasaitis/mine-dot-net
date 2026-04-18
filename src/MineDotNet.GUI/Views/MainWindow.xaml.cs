@@ -26,6 +26,7 @@ namespace MineDotNet.GUI.Views
         private CancellationTokenSource _autoPlayCts;
         private IDictionary<Coordinate, SolverResult> _lastResults;
         private MinesweeperBoard _board;
+        private BorderSeparationSolverSettings _solverSettings = new BorderSeparationSolverSettings();
 
         private double MineDensity => DensitySlider.Value / 100.0;
         private int MapWidth => (int)WidthBox.Value;
@@ -128,28 +129,27 @@ namespace MineDotNet.GUI.Views
             DisplayResults(map, results);
         }
 
-        // Runs solvers the user has checked in the SolversListEditor, merging verdicts
-        // with later entries winning on collision. Falls back to the default AI pipeline
-        // when nothing is checked so the button still works out of the box. If no
-        // definitive verdict gets produced, append a LowestProbabilityGuesser guess —
-        // same fallback AI.AI.Solve uses internally.
+        // Runs the UMSI solver with the currently configured settings. If no definitive
+        // verdict is produced, append a LowestProbabilityGuesser guess — same fallback
+        // AI.AI.Solve uses internally, so auto-play always has something to advance on.
         private IDictionary<Coordinate, SolverResult> SolveMap(IMap map)
         {
-            var entries = SolversEditor.GetCheckedEntries();
-            if (entries.Count == 0) return AI.AI.Solve(map);
-
+            ExtSolver.Instance.InitSolver(_solverSettings);
             var results = new Dictionary<Coordinate, SolverResult>();
-            foreach (var entry in entries)
-            {
-                ExtSolver.Instance.InitSolver(entry.Settings);
-                foreach (var kv in ExtSolver.Instance.Solve(map)) results[kv.Key] = kv.Value;
-            }
+            foreach (var kv in ExtSolver.Instance.Solve(map)) results[kv.Key] = kv.Value;
+
             if (!results.Any(x => x.Value.Verdict.HasValue))
             {
                 var guess = new LowestProbabilityGuesser().Guess(map, results);
                 if (guess != null) results[guess.Coordinate] = guess;
             }
             return results;
+        }
+
+        private void SettingsBtn_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new SolverSettingsDialog(_solverSettings) { Owner = this };
+            if (dialog.ShowDialog() == true) _solverSettings = dialog.GetSettings();
         }
 
         private void DisplayResults(IMap map, IDictionary<Coordinate, SolverResult> results)
