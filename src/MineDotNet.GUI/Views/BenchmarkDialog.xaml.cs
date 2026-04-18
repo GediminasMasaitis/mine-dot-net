@@ -1,15 +1,13 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 using MineDotNet.AI.Solvers;
 using MineDotNet.GUI.Models;
 using MineDotNet.GUI.Services;
@@ -21,7 +19,6 @@ namespace MineDotNet.GUI.Views
     {
         private readonly ObservableCollection<SolverRow> _solverRows = new ObservableCollection<SolverRow>();
         private readonly ObservableCollection<ResultRow> _resultRows = new ObservableCollection<ResultRow>();
-        private CancellationTokenSource _cts;
 
         public BenchmarkDialog()
         {
@@ -73,10 +70,10 @@ namespace MineDotNet.GUI.Views
             var selected = SolversList.SelectedIndex >= 0;
             EditBtn.IsEnabled = selected;
             DeleteBtn.IsEnabled = selected;
-            RunBtn.IsEnabled = _solverRows.Count > 0 && _cts == null;
+            RunBtn.IsEnabled = _solverRows.Count > 0;
         }
 
-        private async void RunBtn_Click(object sender, RoutedEventArgs e)
+        private void RunBtn_Click(object sender, RoutedEventArgs e)
         {
             if (_solverRows.Count == 0) return;
 
@@ -89,32 +86,37 @@ namespace MineDotNet.GUI.Views
                 Solvers = _solverRows.Select(r => r.Config).ToList()
             };
 
-            // Seed empty result rows so the UI shows all solvers before any
-            // games complete. Each row stays bound in place and just ticks.
             _resultRows.Clear();
             foreach (var cfg in config.Solvers) _resultRows.Add(new ResultRow(cfg.Name));
 
-            _cts = new CancellationTokenSource();
             RunBtn.IsEnabled = false;
-            StopBtn.IsEnabled = true;
+            ProgressLabel.Text = "Running...";
+            ProgressBar.Value = 0;
+
+            // Force a render pass so "Running..." paints before we block the
+            // dispatcher with the synchronous benchmark call.
+            Dispatcher.Invoke(() => { }, DispatcherPriority.Render);
 
             var sw = Stopwatch.StartNew();
-            var progress = new Progress<BenchmarkProgressUpdate>(update =>
+
+            // Synchronous direct callback (no Progress<T> / SynchronizationContext
+            // queueing). Updates apply inline during Run(); WPF won't render them
+            // until the dispatcher pumps again after Run() returns, so in practice
+            // the user just sees the final "Done" state — which is what we want.
+            Action<BenchmarkProgressUpdate> onProgress = update =>
             {
-                var solverRow = _resultRows[update.SolverIndex];
-                solverRow.Apply(update.LastResult);
+                _resultRows[update.SolverIndex].Apply(update.LastResult);
                 ProgressLabel.Text = $"Game {update.GamesCompleted} of {update.TotalGames}";
                 ProgressBar.Value = 100.0 * (update.GamesCompleted * config.Solvers.Count - (config.Solvers.Count - 1 - update.SolverIndex))
                                          / (update.TotalGames * config.Solvers.Count);
-                ElapsedLabel.Text = $"{sw.Elapsed:mm\\:ss} elapsed";
-            });
+            };
 
             try
             {
                 var runner = new BenchmarkRunner();
-                await runner.RunAsync(config, progress, _cts.Token);
-                ProgressLabel.Text = _cts.IsCancellationRequested ? "Cancelled" : "Done";
-                ProgressBar.Value = _cts.IsCancellationRequested ? ProgressBar.Value : 100;
+                runner.Run(config, onProgress);
+                ProgressBar.Value = 100;
+                ProgressLabel.Text = "Done";
             }
             catch (Exception ex)
             {
@@ -124,24 +126,11 @@ namespace MineDotNet.GUI.Views
             {
                 sw.Stop();
                 ElapsedLabel.Text = $"{sw.Elapsed:mm\\:ss} total";
-                _cts?.Dispose();
-                _cts = null;
-                StopBtn.IsEnabled = false;
                 UpdateButtonStates();
             }
         }
 
-        private void StopBtn_Click(object sender, RoutedEventArgs e)
-        {
-            _cts?.Cancel();
-            StopBtn.IsEnabled = false;
-        }
-
-        private void CloseBtn_Click(object sender, RoutedEventArgs e)
-        {
-            _cts?.Cancel();
-            Close();
-        }
+        private void CloseBtn_Click(object sender, RoutedEventArgs e) => Close();
 
         // View-model for one row in the solver list. Wrapped because
         // BenchmarkSolverConfig mutates through the settings dialog and we

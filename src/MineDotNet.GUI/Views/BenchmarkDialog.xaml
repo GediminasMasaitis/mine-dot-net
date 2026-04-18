@@ -163,9 +163,6 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <ui:Button x:Name="RunBtn" Content="Run benchmark" Icon="{ui:SymbolIcon Play24}"
                            Appearance="Primary" Width="180" Margin="0,0,8,0" Click="RunBtn_Click" />
-                <ui:Button x:Name="StopBtn" Content="Stop" Icon="{ui:SymbolIcon Stop24}"
-                           Appearance="Caution" Width="120" Margin="0,0,8,0"
-                           IsEnabled="False" Click="StopBtn_Click" />
                 <ui:Button x:Name="CloseBtn" Content="Close" Width="100" Click="CloseBtn_Click" />
             </StackPanel>
         </Grid>

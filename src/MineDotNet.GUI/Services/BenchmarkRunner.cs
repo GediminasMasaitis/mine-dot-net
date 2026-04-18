@@ -21,52 +21,45 @@ namespace MineDotNet.GUI.Services
         // in tens to low hundreds of iterations.
         private const int MaxIterationsPerGame = 1000;
 
-        // Runs the configured benchmark end-to-end on a background thread.
+        // Runs the configured benchmark end-to-end on the caller's thread.
         // Each game generates one board; every enabled solver plays the same
-        // board so win-rate deltas reflect settings, not RNG luck.
+        // board so win-rate deltas reflect settings, not RNG luck. Any
+        // parallelism comes from the solver's own settings — we don't layer
+        // a Task.Run on top, which would conflict with ExtSolver's own threading.
         //
-        // progress fires after each solver-on-board completes so the UI can
-        // tick counters between board regenerations. The returned list is
-        // always in solver-index order and is already final when the task
-        // completes.
-        public Task<IReadOnlyList<BenchmarkSolverRun>> RunAsync(
+        // progress fires after each solver-on-board completes so the caller
+        // can pump UI updates between regenerations.
+        public IReadOnlyList<BenchmarkSolverRun> Run(
             BenchmarkConfig config,
-            IProgress<BenchmarkProgressUpdate> progress,
-            CancellationToken cancel)
+            Action<BenchmarkProgressUpdate> onProgress = null)
         {
-            return Task.Run(() =>
+            var runs = config.Solvers
+                .Select((s, i) => new BenchmarkSolverRun(i, s.Name))
+                .ToList();
+
+            for (var gameIdx = 0; gameIdx < config.GameCount; gameIdx++)
             {
-                var runs = config.Solvers
-                    .Select((s, i) => new BenchmarkSolverRun(i, s.Name))
-                    .ToList();
+                var snapshot = GenerateSnapshot(config);
 
-                for (var gameIdx = 0; gameIdx < config.GameCount; gameIdx++)
+                for (var solverIdx = 0; solverIdx < config.Solvers.Count; solverIdx++)
                 {
-                    if (cancel.IsCancellationRequested) break;
-
-                    var snapshot = GenerateSnapshot(config);
-
-                    for (var solverIdx = 0; solverIdx < config.Solvers.Count; solverIdx++)
+                    var result = PlayOneGame(snapshot, config.Solvers[solverIdx].Settings, gameIdx);
+                    var run = runs[solverIdx];
+                    run.Games.Add(result);
+                    switch (result.Outcome)
                     {
-                        if (cancel.IsCancellationRequested) break;
-                        var result = PlayOneGame(snapshot, config.Solvers[solverIdx].Settings, gameIdx);
-                        var run = runs[solverIdx];
-                        run.Games.Add(result);
-                        switch (result.Outcome)
-                        {
-                            case BenchmarkOutcome.Won: run.Won++; break;
-                            case BenchmarkOutcome.Lost: run.Lost++; break;
-                            case BenchmarkOutcome.Stuck: run.Stuck++; break;
-                        }
-                        run.TotalMs += result.ElapsedMs;
-                        run.TotalIterations += result.Iterations;
-
-                        progress?.Report(new BenchmarkProgressUpdate(gameIdx + 1, config.GameCount, solverIdx, result));
+                        case BenchmarkOutcome.Won: run.Won++; break;
+                        case BenchmarkOutcome.Lost: run.Lost++; break;
+                        case BenchmarkOutcome.Stuck: run.Stuck++; break;
                     }
-                }
+                    run.TotalMs += result.ElapsedMs;
+                    run.TotalIterations += result.Iterations;
 
-                return (IReadOnlyList<BenchmarkSolverRun>)runs;
-            }, cancel);
+                    onProgress?.Invoke(new BenchmarkProgressUpdate(gameIdx + 1, config.GameCount, solverIdx, result));
+                }
+            }
+
+            return runs;
         }
 
         // Generates one random board and captures enough state (player view +
