@@ -43,6 +43,7 @@
             this.MapTextVisualizers = new MineDotNet.GUI.UserControls.MapTextVisualizers();
             this.solversListEditor1 = new MineDotNet.GUI.UserControls.SolversListEditor();
             this.CommLogTextBox = new System.Windows.Forms.RichTextBox();
+            this.ClearLogButton = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.MineDensityTrackBar)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.WidthNumericUpDown)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.HeightNumericUpDown)).BeginInit();
@@ -227,14 +228,25 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.CommLogTextBox.BackColor = System.Drawing.Color.White;
             this.CommLogTextBox.Font = new System.Drawing.Font("Consolas", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.CommLogTextBox.Location = new System.Drawing.Point(545, 317);
+            this.CommLogTextBox.Location = new System.Drawing.Point(545, 342);
             this.CommLogTextBox.Name = "CommLogTextBox";
             this.CommLogTextBox.ReadOnly = true;
             this.CommLogTextBox.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Both;
-            this.CommLogTextBox.Size = new System.Drawing.Size(482, 222);
+            this.CommLogTextBox.Size = new System.Drawing.Size(482, 197);
             this.CommLogTextBox.TabIndex = 36;
             this.CommLogTextBox.Text = "";
             this.CommLogTextBox.WordWrap = false;
+            //
+            // ClearLogButton
+            //
+            this.ClearLogButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.ClearLogButton.Location = new System.Drawing.Point(977, 317);
+            this.ClearLogButton.Name = "ClearLogButton";
+            this.ClearLogButton.Size = new System.Drawing.Size(50, 22);
+            this.ClearLogButton.TabIndex = 37;
+            this.ClearLogButton.Text = "Clear";
+            this.ClearLogButton.UseVisualStyleBackColor = true;
+            this.ClearLogButton.Click += new System.EventHandler(this.ClearLogButton_Click);
             //
             // MainForm
             // 
@@ -243,6 +255,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1034, 779);
             this.Controls.Add(this.MapTextVisualizers);
+            this.Controls.Add(this.ClearLogButton);
             this.Controls.Add(this.CommLogTextBox);
             this.Controls.Add(this.solversListEditor1);
             this.Controls.Add(this.HeightNumericUpDown);
@@ -284,6 +297,7 @@
         private System.Windows.Forms.PictureBox MainPictureBox;
         private UserControls.MapTextVisualizers MapTextVisualizers;
         private System.Windows.Forms.RichTextBox CommLogTextBox;
+        private System.Windows.Forms.Button ClearLogButton;
     }
 }
 

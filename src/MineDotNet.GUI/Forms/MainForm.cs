@@ -65,6 +65,11 @@ namespace MineDotNet.GUI.Forms
             ExtSolver.Logged += OnExtSolverLogged;
         }
 
+        private void ClearLogButton_Click(object sender, EventArgs e)
+        {
+            CommLogTextBox.Clear();
+        }
+
         private void OnExtSolverLogged(string line, bool sent)
         {
             if (InvokeRequired)
