@@ -91,7 +91,47 @@ namespace MineDotNet.GUI.UserControls
             var json = File.ReadAllText(path);
             var entries = JsonConvert.DeserializeObject<SolverListEntry[]>(json);
             SolversCheckedListBox.Items.Clear();
-            SolversCheckedListBox.Items.AddRange(entries);
+            for (var i = 0; i < entries.Length; i++)
+            {
+                SolversCheckedListBox.Items.Add(entries[i], true);
+            }
+            EnableDisableButtons();
+        }
+
+        private void DeleteSolverButton_Click(object sender, EventArgs e)
+        {
+            var idx = SolversCheckedListBox.SelectedIndex;
+            if (idx < 0) return;
+            SolversCheckedListBox.Items.RemoveAt(idx);
+            EnableDisableButtons();
+        }
+
+        private void MoveUpButton_Click(object sender, EventArgs e)
+        {
+            MoveSelected(-1);
+        }
+
+        private void MoveDownButton_Click(object sender, EventArgs e)
+        {
+            MoveSelected(+1);
+        }
+
+        private void MoveSelected(int delta)
+        {
+            var idx = SolversCheckedListBox.SelectedIndex;
+            var newIdx = idx + delta;
+            if (idx < 0 || newIdx < 0 || newIdx >= SolversCheckedListBox.Items.Count) return;
+            var isChecked = SolversCheckedListBox.GetItemChecked(idx);
+            var item = SolversCheckedListBox.Items[idx];
+            SolversCheckedListBox.Items.RemoveAt(idx);
+            SolversCheckedListBox.Items.Insert(newIdx, item);
+            SolversCheckedListBox.SetItemChecked(newIdx, isChecked);
+            SolversCheckedListBox.SelectedIndex = newIdx;
+        }
+
+        internal IList<SolverListEntry> GetCheckedEntries()
+        {
+            return SolversCheckedListBox.CheckedItems.Cast<SolverListEntry>().ToList();
         }
     }
 }

@@ -82,6 +82,7 @@
             this.DeleteSolverButton.TabIndex = 3;
             this.DeleteSolverButton.Text = "Delete solver";
             this.DeleteSolverButton.UseVisualStyleBackColor = true;
+            this.DeleteSolverButton.Click += new System.EventHandler(this.DeleteSolverButton_Click);
             // 
             // LoadSolversButton
             // 
@@ -114,6 +115,7 @@
             this.MoveUpButton.TabIndex = 6;
             this.MoveUpButton.Text = "Move up";
             this.MoveUpButton.UseVisualStyleBackColor = true;
+            this.MoveUpButton.Click += new System.EventHandler(this.MoveUpButton_Click);
             // 
             // MoveDownButton
             // 
@@ -124,6 +126,7 @@
             this.MoveDownButton.TabIndex = 7;
             this.MoveDownButton.Text = "Move down";
             this.MoveDownButton.UseVisualStyleBackColor = true;
+            this.MoveDownButton.Click += new System.EventHandler(this.MoveDownButton_Click);
             // 
             // SolversListEditor
             // 

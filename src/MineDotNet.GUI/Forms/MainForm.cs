@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using MineDotNet.AI.Guessers;
 using MineDotNet.AI.Solvers;
 using MineDotNet.Common;
 using MineDotNet.Game;
@@ -123,8 +124,56 @@ namespace MineDotNet.GUI.Forms
         private void SolveMapButton_Click(object sender, EventArgs e)
         {
             var map = MapTextVisualizers.GetMap();
-            var results = AI.AI.Solve(map);
+            var results = SolveMap(map);
             DisplayResults(map, results);
+        }
+
+        // Runs the solvers the user has checked in the SolversListEditor, in
+        // list order, merging verdicts/probabilities (later entries win on
+        // collision). Falls back to the app-wide default (ExtSolver with
+        // built-in defaults) when nothing is checked, so the button still
+        // works out of the box. After running solvers, if no definitive
+        // verdict is produced, a LowestProbabilityGuesser guess is appended
+        // — same fallback that AI.AI.Solve applies.
+        private IDictionary<Coordinate, SolverResult> SolveMap(IMap map)
+        {
+            var entries = solversListEditor1.GetCheckedEntries();
+            IDictionary<Coordinate, SolverResult> results;
+            if (entries.Count == 0)
+            {
+                results = AI.AI.Solve(map);
+            }
+            else
+            {
+                results = new Dictionary<Coordinate, SolverResult>();
+                foreach (var entry in entries)
+                {
+                    var solver = CreateSolver(entry);
+                    foreach (var kv in solver.Solve(map))
+                    {
+                        results[kv.Key] = kv.Value;
+                    }
+                }
+                if (!results.Any(x => x.Value.Verdict.HasValue))
+                {
+                    var guess = new LowestProbabilityGuesser().Guess(map, results);
+                    if (guess != null)
+                    {
+                        results[guess.Coordinate] = guess;
+                    }
+                }
+            }
+            return results;
+        }
+
+        private static ISolver CreateSolver(SolverListEntry entry)
+        {
+            if (entry.SolverImplementation == ExtSolver.Alias)
+            {
+                ExtSolver.Instance.InitSolver(entry.Settings);
+                return ExtSolver.Instance;
+            }
+            return new BorderSeparationSolver(entry.Settings);
         }
 
         private void DisplayResults(IMap map, IDictionary<Coordinate, SolverResult> results)
@@ -149,7 +198,7 @@ namespace MineDotNet.GUI.Forms
                 {
                     var regularMap = engine.CurrentMap.ToRegularMap();
                     MapTextVisualizers.SetMap(regularMap);
-                    var results = AI.AI.Solve(regularMap);
+                    var results = SolveMap(regularMap);
                     if (results.Count == 0)
                     {
                         MessageBox.Show("Done");
