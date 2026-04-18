@@ -42,6 +42,7 @@
             this.MainPictureBox = new System.Windows.Forms.PictureBox();
             this.MapTextVisualizers = new MineDotNet.GUI.UserControls.MapTextVisualizers();
             this.solversListEditor1 = new MineDotNet.GUI.UserControls.SolversListEditor();
+            this.CommLogTextBox = new System.Windows.Forms.RichTextBox();
             ((System.ComponentModel.ISupportInitialize)(this.MineDensityTrackBar)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.WidthNumericUpDown)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.HeightNumericUpDown)).BeginInit();
@@ -220,6 +221,21 @@
             this.solversListEditor1.Size = new System.Drawing.Size(313, 311);
             this.solversListEditor1.TabIndex = 33;
             //
+            // CommLogTextBox
+            //
+            this.CommLogTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.CommLogTextBox.BackColor = System.Drawing.Color.White;
+            this.CommLogTextBox.Font = new System.Drawing.Font("Consolas", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.CommLogTextBox.Location = new System.Drawing.Point(545, 317);
+            this.CommLogTextBox.Name = "CommLogTextBox";
+            this.CommLogTextBox.ReadOnly = true;
+            this.CommLogTextBox.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Both;
+            this.CommLogTextBox.Size = new System.Drawing.Size(482, 222);
+            this.CommLogTextBox.TabIndex = 36;
+            this.CommLogTextBox.Text = "";
+            this.CommLogTextBox.WordWrap = false;
+            //
             // MainForm
             // 
             this.AcceptButton = this.ShowMapsButton;
@@ -227,6 +243,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1034, 779);
             this.Controls.Add(this.MapTextVisualizers);
+            this.Controls.Add(this.CommLogTextBox);
             this.Controls.Add(this.solversListEditor1);
             this.Controls.Add(this.HeightNumericUpDown);
             this.Controls.Add(this.HeightLabel);
@@ -266,6 +283,7 @@
         private UserControls.SolversListEditor solversListEditor1;
         private System.Windows.Forms.PictureBox MainPictureBox;
         private UserControls.MapTextVisualizers MapTextVisualizers;
+        private System.Windows.Forms.RichTextBox CommLogTextBox;
     }
 }
 

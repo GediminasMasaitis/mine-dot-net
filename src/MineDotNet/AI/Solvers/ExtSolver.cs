@@ -25,6 +25,12 @@ namespace MineDotNet.AI.Solvers
             new Lazy<ExtSolver>(() => new ExtSolver());
         public static ExtSolver Instance => InstanceLazy.Value;
 
+        // Raised on every line sent to or received from the UMSI engine.
+        // `sent` is true for GUI->engine, false for engine->GUI. Fires on
+        // whichever thread is driving the solver — subscribers touching UI
+        // state must marshal to the UI thread themselves.
+        public static event Action<string, bool> Logged;
+
         // Most C# setting names convert cleanly to the engine's snake_case
         // option names via ToSnakeCase below. These three historically drop
         // the `All` segment that the C++ side still has, so they need
@@ -94,7 +100,7 @@ namespace MineDotNet.AI.Solvers
         {
             Send("umsi");
             string line;
-            while ((line = _stdout.ReadLine()) != null)
+            while ((line = ReadResponse()) != null)
             {
                 if (line == "umsiok") return;
                 if (line.StartsWith("option name ", StringComparison.Ordinal))
@@ -142,7 +148,7 @@ namespace MineDotNet.AI.Solvers
                 // pipe ahead of the readyok we're waiting for; skip them.
                 Send("isready");
                 string line;
-                while ((line = _stdout.ReadLine()) != null)
+                while ((line = ReadResponse()) != null)
                 {
                     if (line == "readyok") break;
                 }
@@ -173,7 +179,7 @@ namespace MineDotNet.AI.Solvers
 
                 var results = new Dictionary<Coordinate, SolverResult>();
                 string line;
-                while ((line = _stdout.ReadLine()) != null)
+                while ((line = ReadResponse()) != null)
                 {
                     if (line == "done") break;
                     if (!line.StartsWith("result ", StringComparison.Ordinal)) continue;
@@ -202,6 +208,17 @@ namespace MineDotNet.AI.Solvers
         {
             _stdin.WriteLine(line);
             _stdin.Flush();
+            Logged?.Invoke(line, true);
+        }
+
+        // Wraps _stdout.ReadLine with the Logged event so every response
+        // line gets surfaced to subscribers. Callers should use this
+        // instead of hitting _stdout directly.
+        private string ReadResponse()
+        {
+            var line = _stdout.ReadLine();
+            if (line != null) Logged?.Invoke(line, false);
+            return line;
         }
 
         private static string GetUmsiName(string pascal)

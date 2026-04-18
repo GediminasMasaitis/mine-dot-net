@@ -57,6 +57,34 @@ namespace MineDotNet.GUI.Forms
                 if (MainPictureBox.Width <= 0 || MainPictureBox.Height <= 0) return;
                 GetAndDisplayMap(_lastResults);
             };
+
+            // Stream the UMSI transcript into the log textbox. Fires from
+            // whatever thread is driving the solver (currently the UI thread,
+            // since Solve is synchronous), but we marshal defensively so
+            // this keeps working once Solve goes async.
+            ExtSolver.Logged += OnExtSolverLogged;
+        }
+
+        private void OnExtSolverLogged(string line, bool sent)
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke(new Action<string, bool>(OnExtSolverLogged), line, sent);
+                return;
+            }
+            CommLogTextBox.AppendText((sent ? "→ " : "← ") + line + Environment.NewLine);
+
+            // Cap growth — trim the oldest quarter when we're over budget so
+            // a long session doesn't balloon memory. Cheap because it only
+            // triggers every few hundred lines.
+            const int MaxChars = 50000;
+            if (CommLogTextBox.TextLength > MaxChars)
+            {
+                var keepFrom = CommLogTextBox.TextLength - (MaxChars * 3 / 4);
+                CommLogTextBox.Text = CommLogTextBox.Text.Substring(keepFrom);
+                CommLogTextBox.SelectionStart = CommLogTextBox.TextLength;
+            }
+            CommLogTextBox.ScrollToCaret();
         }
 
         public void SetMapAndMasks(Map map, IList<Mask> masks)
