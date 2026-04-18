@@ -1,5 +1,3 @@
-using System.Runtime.InteropServices;
-
 namespace MineDotNet.AI.Solvers
 {
     public class BorderSeparationSolverSettings
@@ -63,13 +61,12 @@ namespace MineDotNet.AI.Solvers
         // expert boards, so defaults to false (always run partial).
         public bool PartialSolveOnlyWhenGivingUp { get; set; } = false;
 
-        // Master switch for [trace] output in the C++ solver.
+        // Master switch for [trace] output in the C++ solver. Not exposed via
+        // UMSI (its printf output would corrupt the protocol channel), so
+        // setting this from the client does nothing — tracing is force-off
+        // in the engine.
         public bool PrintTrace { get; set; } = false;
-        // Borders whose effective_size is at least this emit full traces.
-        // Set to 0 to trace every border when PrintTrace is on.
         public int PrintTraceMinEffectiveSize { get; set; } = 20;
-        // solve() calls faster than this (microseconds) don't print the
-        // top-level trace. Set to 0 to print every solve.
         public long PrintTraceMinSolveUs { get; set; } = 100000;
 
         public int VariableMineCountBordersProbabilitiesMultithreadUseFrom { get; set; } = 128;
@@ -81,196 +78,5 @@ namespace MineDotNet.AI.Solvers
         public int DebugSetting1 { get; set; } = 0;
         public int DebugSetting2 { get; set; } = 0;
         public int DebugSetting3 { get; set; } = 0;
-    }
-
-    // Field order MUST match the C++ `solver_settings` struct in
-    // src/minedotcpp/solvers/solver_settings.h exactly. This is passed by value
-    // over P/Invoke, so any drift in layout (missing fields, wrong order) will
-    // cause C++ to read uninitialized memory for settings at the tail of the
-    // struct. Bool fields are marshalled as UnmanagedType.U1 (1 byte) to match
-    // C++'s `bool` size.
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-    public struct ExternalBorderSeparationSolverSettings
-    {
-        [MarshalAs(UnmanagedType.U1)]
-        public bool TrivialSolve;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool TrivialStopOnNoMineVerdict;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool TrivialStopOnAnyVerdict;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool TrivialStopAlways;
-
-        [MarshalAs(UnmanagedType.U1)]
-        public bool GaussianSolve;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool GaussianResolveOnSuccess;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool GaussianSingleStopOnNoMineVerdict;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool GaussianSingleStopOnAnyVerdict;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool GaussianSingleStopAlways;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool GaussianStopOnNoMineVerdict;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool GaussianStopOnAnyVerdict;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool GaussianStopAlways;
-
-        [MarshalAs(UnmanagedType.U1)]
-        public bool SeparationSolve;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool SeparationOrderBordersBySize;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool SeparationOrderBordersBySizeDescending;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool SeparationSingleBorderStopOnNoMineVerdict;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool SeparationSingleBorderStopOnAnyVerdict;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool SeparationSingleBorderStopAlways;
-
-        [MarshalAs(UnmanagedType.U1)]
-        public bool PartialSolve;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool PartialSingleStopOnNoMineVerdict;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool PartialSingleStopOnAnyVerdict;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool PartialAllStopOnNoMineVerdict;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool PartialAllStopOnAnyVerdict;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool PartialStopAlways;
-        public int PartialSolveFromSize;
-        public int PartialOptimalSize;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool PartialSetProbabilityGuesses;
-
-        [MarshalAs(UnmanagedType.U1)]
-        public bool ResplitOnPartialVerdict;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool ResplitOnCompleteVerdict;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool MineCountIgnoreCompletely;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool MineCountSolve;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool MineCountSolveNonBorder;
-
-        public int GiveUpFromSize;
-
-        [MarshalAs(UnmanagedType.U1)]
-        public bool ValidCombinationSearchOpenCl;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool ValidCombinationSearchOpenClAllowLoopBreak;
-        public int ValidCombinationSearchOpenClUseFromSize;
-        public int ValidCombinationSearchOpenClMaxBatchSize;
-        public int ValidCombinationSearchOpenClPlatformID;
-        public int ValidCombinationSearchOpenClDeviceID;
-
-        [MarshalAs(UnmanagedType.U1)]
-        public bool ValidCombinationSearchMultithread;
-        public int ValidCombinationSearchMultithreadUseFromSize;
-        public int ValidCombinationSearchMultithreadThreadCount;
-
-        [MarshalAs(UnmanagedType.U1)]
-        public bool CombinationSearchGaussianReduction;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool CombinationSearchGaussianBacktracking;
-
-        [MarshalAs(UnmanagedType.U1)]
-        public bool PartialSolveOnlyWhenGivingUp;
-
-        [MarshalAs(UnmanagedType.U1)]
-        public bool PrintTrace;
-        public int PrintTraceMinEffectiveSize;
-        public long PrintTraceMinSolveUs;
-
-        public int VariableMineCountBordersProbabilitiesMultithreadUseFrom;
-        public int VariableMineCountBordersProbabilitiesGiveUpFrom;
-
-        [MarshalAs(UnmanagedType.U1)]
-        public bool GuessIfNoNoMineVerdict;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool GuessIfNoVerdict;
-
-        public int DebugSetting1;
-        public int DebugSetting2;
-        public int DebugSetting3;
-
-        public ExternalBorderSeparationSolverSettings(BorderSeparationSolverSettings originalSettings)
-        {
-            TrivialSolve = originalSettings.TrivialSolve;
-            TrivialStopOnNoMineVerdict = originalSettings.TrivialStopOnNoMineVerdict;
-            TrivialStopOnAnyVerdict = originalSettings.TrivialStopOnAnyVerdict;
-            TrivialStopAlways = originalSettings.TrivialStopAlways;
-
-            GaussianSolve = originalSettings.GaussianSolve;
-            GaussianResolveOnSuccess = originalSettings.GaussianResolveOnSuccess;
-            GaussianSingleStopOnNoMineVerdict = originalSettings.GaussianSingleStopOnNoMineVerdict;
-            GaussianSingleStopOnAnyVerdict = originalSettings.GaussianSingleStopOnAnyVerdict;
-            GaussianSingleStopAlways = originalSettings.GaussianSingleStopAlways;
-            GaussianStopOnNoMineVerdict = originalSettings.GaussianStopOnNoMineVerdict;
-            GaussianStopOnAnyVerdict = originalSettings.GaussianStopOnAnyVerdict;
-            GaussianStopAlways = originalSettings.GaussianStopAlways;
-
-            SeparationSolve = originalSettings.SeparationSolve;
-            SeparationOrderBordersBySize = originalSettings.SeparationOrderBordersBySize;
-            SeparationOrderBordersBySizeDescending = originalSettings.SeparationOrderBordersBySizeDescending;
-            SeparationSingleBorderStopOnNoMineVerdict = originalSettings.SeparationSingleBorderStopOnNoMineVerdict;
-            SeparationSingleBorderStopOnAnyVerdict = originalSettings.SeparationSingleBorderStopOnAnyVerdict;
-            SeparationSingleBorderStopAlways = originalSettings.SeparationSingleBorderStopAlways;
-
-            PartialSolve = originalSettings.PartialSolve;
-            PartialSingleStopOnNoMineVerdict = originalSettings.PartialSingleStopOnNoMineVerdict;
-            PartialSingleStopOnAnyVerdict = originalSettings.PartialSingleStopOnAnyVerdict;
-            PartialAllStopOnNoMineVerdict = originalSettings.PartialAllStopOnNoMineVerdict;
-            PartialAllStopOnAnyVerdict = originalSettings.PartialAllStopOnAnyVerdict;
-            PartialStopAlways = originalSettings.PartialStopAlways;
-            PartialSolveFromSize = originalSettings.PartialSolveFromSize;
-            PartialOptimalSize = originalSettings.PartialOptimalSize;
-            PartialSetProbabilityGuesses = originalSettings.PartialSetProbabilityGuesses;
-
-            ResplitOnPartialVerdict = originalSettings.ResplitOnPartialVerdict;
-            ResplitOnCompleteVerdict = originalSettings.ResplitOnCompleteVerdict;
-
-            MineCountIgnoreCompletely = originalSettings.MineCountIgnoreCompletely;
-            MineCountSolve = originalSettings.MineCountSolve;
-            MineCountSolveNonBorder = originalSettings.MineCountSolveNonBorder;
-
-            GiveUpFromSize = originalSettings.GiveUpFromSize;
-
-            ValidCombinationSearchOpenCl = originalSettings.ValidCombinationSearchOpenCl;
-            ValidCombinationSearchOpenClAllowLoopBreak = originalSettings.ValidCombinationSearchOpenClAllowLoopBreak;
-            ValidCombinationSearchOpenClUseFromSize = originalSettings.ValidCombinationSearchOpenClUseFromSize;
-            ValidCombinationSearchOpenClMaxBatchSize = originalSettings.ValidCombinationSearchOpenClMaxBatchSize;
-            ValidCombinationSearchOpenClPlatformID = originalSettings.ValidCombinationSearchOpenClPlatformID;
-            ValidCombinationSearchOpenClDeviceID = originalSettings.ValidCombinationSearchOpenClDeviceID;
-
-            ValidCombinationSearchMultithread = originalSettings.ValidCombinationSearchMultithread;
-            ValidCombinationSearchMultithreadUseFromSize = originalSettings.ValidCombinationSearchMultithreadUseFromSize;
-            ValidCombinationSearchMultithreadThreadCount = originalSettings.ValidCombinationSearchMultithreadThreadCount;
-
-            CombinationSearchGaussianReduction = originalSettings.CombinationSearchGaussianReduction;
-            CombinationSearchGaussianBacktracking = originalSettings.CombinationSearchGaussianBacktracking;
-
-            PartialSolveOnlyWhenGivingUp = originalSettings.PartialSolveOnlyWhenGivingUp;
-
-            PrintTrace = originalSettings.PrintTrace;
-            PrintTraceMinEffectiveSize = originalSettings.PrintTraceMinEffectiveSize;
-            PrintTraceMinSolveUs = originalSettings.PrintTraceMinSolveUs;
-
-            VariableMineCountBordersProbabilitiesMultithreadUseFrom = originalSettings.VariableMineCountBordersProbabilitiesMultithreadUseFrom;
-            VariableMineCountBordersProbabilitiesGiveUpFrom = originalSettings.VariableMineCountBordersProbabilitiesGiveUpFrom;
-
-            GuessIfNoNoMineVerdict = originalSettings.GuessIfNoNoMineVerdict;
-            GuessIfNoVerdict = originalSettings.GuessIfNoVerdict;
-
-            DebugSetting1 = originalSettings.DebugSetting1;
-            DebugSetting2 = originalSettings.DebugSetting2;
-            DebugSetting3 = originalSettings.DebugSetting3;
-        }
     }
 }

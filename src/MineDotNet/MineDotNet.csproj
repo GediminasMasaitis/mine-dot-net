@@ -13,11 +13,12 @@
   <!--
     Native C++ build integration.
 
-    On every build, we configure (if needed) and build the sibling mine-dot-cpp
-    project with CMake, then copy the resulting shared library into this
-    project's output directory as `minedotcpp.dll` (matching the P/Invoke name
-    used by ExtSolver). Consumers referencing this project pick up the DLL
-    via MSBuild's transitive copy of Content items.
+    On every build, we configure (if needed) and build the UMSI engine
+    target from the sibling mine-dot-cpp project with CMake, then copy the
+    resulting binary (minedotcpp_umsi[.exe]) into this project's output
+    directory so ExtSolver can spawn it at runtime. Consumers referencing
+    this project pick up the binary via MSBuild's transitive copy of
+    Content items.
 
     Override any of these properties per-environment via `dotnet build /p:...`
     or a Directory.Build.props.
@@ -108,37 +109,31 @@
           Condition="'$(SkipNativeBuild)' != 'true'"
           DependsOnTargets="_ResolveNativeCMakeExe;_ResolveNativeCMakeExeFallback;ConfigureNative"
           BeforeTargets="AssignTargetPaths">
-    <Message Importance="high" Text="[native] Building mine-dot-cpp ($(NativeBuildConfig))..." />
-    <Exec Command="&quot;$(NativeCMakeExe)&quot; --build &quot;$(NativeBuildDir)&quot; --config $(NativeBuildConfig)" />
+    <Message Importance="high" Text="[native] Building minedotcpp_umsi ($(NativeBuildConfig))..." />
+    <Exec Command="&quot;$(NativeCMakeExe)&quot; --build &quot;$(NativeBuildDir)&quot; --target minedotcpp_umsi --config $(NativeBuildConfig)" />
 
     <!--
-      The shared-library name varies by toolchain:
-        - MinGW/GCC:   lib/libminedotcpp.dll or bin/libminedotcpp.dll
-        - MSVC:        bin/$(Config)/minedotcpp.dll
-        - Linux:       lib/libminedotcpp.so (not used by the Windows P/Invoke)
-      We include every candidate with Condition=Exists so only the one that
-      actually exists on disk is added. All copies rename to `minedotcpp.dll`
-      to match the [DllImport] name.
+      Binary location varies by generator:
+        - MSVC (multi-config):   bin/$(Config)/minedotcpp_umsi.exe
+        - Single-config (Make):  bin/minedotcpp_umsi
+      Include every candidate with Condition=Exists so only the one that
+      actually exists on disk is added, and rely on the Link attribute to
+      land it next to the managed assembly with a stable filename.
     -->
     <ItemGroup>
-      <Content Include="$(NativeBuildDir)\bin\libminedotcpp.dll"
-               Condition="Exists('$(NativeBuildDir)\bin\libminedotcpp.dll')"
-               Link="minedotcpp.dll"
+      <Content Include="$(NativeBuildDir)\bin\$(NativeBuildConfig)\minedotcpp_umsi.exe"
+               Condition="Exists('$(NativeBuildDir)\bin\$(NativeBuildConfig)\minedotcpp_umsi.exe')"
+               Link="minedotcpp_umsi.exe"
                CopyToOutputDirectory="PreserveNewest"
                Visible="false" />
-      <Content Include="$(NativeBuildDir)\bin\minedotcpp.dll"
-               Condition="Exists('$(NativeBuildDir)\bin\minedotcpp.dll')"
-               Link="minedotcpp.dll"
+      <Content Include="$(NativeBuildDir)\bin\minedotcpp_umsi"
+               Condition="Exists('$(NativeBuildDir)\bin\minedotcpp_umsi')"
+               Link="minedotcpp_umsi"
                CopyToOutputDirectory="PreserveNewest"
                Visible="false" />
-      <Content Include="$(NativeBuildDir)\bin\$(NativeBuildConfig)\minedotcpp.dll"
-               Condition="Exists('$(NativeBuildDir)\bin\$(NativeBuildConfig)\minedotcpp.dll')"
-               Link="minedotcpp.dll"
-               CopyToOutputDirectory="PreserveNewest"
-               Visible="false" />
-      <Content Include="$(NativeBuildDir)\lib\libminedotcpp.dll"
-               Condition="Exists('$(NativeBuildDir)\lib\libminedotcpp.dll')"
-               Link="minedotcpp.dll"
+      <Content Include="$(NativeBuildDir)\bin\minedotcpp_umsi.exe"
+               Condition="Exists('$(NativeBuildDir)\bin\minedotcpp_umsi.exe')"
+               Link="minedotcpp_umsi.exe"
                CopyToOutputDirectory="PreserveNewest"
                Visible="false" />
     </ItemGroup>
