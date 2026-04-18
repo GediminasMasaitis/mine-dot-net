@@ -12,9 +12,6 @@ using MineDotNet.Game.Models;
 using MineDotNet.GUI.Models;
 using MineDotNet.GUI.Services;
 using MineDotNet.IO;
-using MineDotNet.ML;
-using MineDotNet.ML.Solvers;
-using MineDotNet.Umsi;
 
 namespace MineDotNet.GUI.Forms
 {
@@ -366,13 +363,5 @@ namespace MineDotNet.GUI.Forms
             return engine;
         }
 
-        private void MLTestButton_Click(object sender, EventArgs e)
-        {
-            var map = MapTextVisualizers.GetMap();
-            using var umsiProgram = new UmsiProgram();
-            var visualizer = new TextMapVisualizer();
-            var solver = new UmsiSolver(umsiProgram, visualizer);
-            solver.Solve(map);
-        }
     }
 }

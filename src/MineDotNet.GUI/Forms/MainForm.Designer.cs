@@ -42,7 +42,6 @@
             this.MainPictureBox = new System.Windows.Forms.PictureBox();
             this.MapTextVisualizers = new MineDotNet.GUI.UserControls.MapTextVisualizers();
             this.solversListEditor1 = new MineDotNet.GUI.UserControls.SolversListEditor();
-            this.MLTestButton = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.MineDensityTrackBar)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.WidthNumericUpDown)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.HeightNumericUpDown)).BeginInit();
@@ -220,25 +219,13 @@
             this.solversListEditor1.Name = "solversListEditor1";
             this.solversListEditor1.Size = new System.Drawing.Size(313, 311);
             this.solversListEditor1.TabIndex = 33;
-            // 
-            // MLTestButton
-            // 
-            this.MLTestButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.MLTestButton.Location = new System.Drawing.Point(917, 305);
-            this.MLTestButton.Name = "MLTestButton";
-            this.MLTestButton.Size = new System.Drawing.Size(110, 23);
-            this.MLTestButton.TabIndex = 35;
-            this.MLTestButton.Text = "ML";
-            this.MLTestButton.UseVisualStyleBackColor = true;
-            this.MLTestButton.Click += new System.EventHandler(this.MLTestButton_Click);
-            // 
+            //
             // MainForm
             // 
             this.AcceptButton = this.ShowMapsButton;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1034, 779);
-            this.Controls.Add(this.MLTestButton);
             this.Controls.Add(this.MapTextVisualizers);
             this.Controls.Add(this.solversListEditor1);
             this.Controls.Add(this.HeightNumericUpDown);
@@ -279,7 +266,6 @@
         private UserControls.SolversListEditor solversListEditor1;
         private System.Windows.Forms.PictureBox MainPictureBox;
         private UserControls.MapTextVisualizers MapTextVisualizers;
-        private System.Windows.Forms.Button MLTestButton;
     }
 }
 

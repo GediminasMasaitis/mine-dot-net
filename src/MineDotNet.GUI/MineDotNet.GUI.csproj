@@ -17,7 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MineDotNet.ML\MineDotNet.ML.csproj" />
     <ProjectReference Include="..\MineDotNet\MineDotNet.csproj" />
   </ItemGroup>
 
