@@ -2,7 +2,7 @@
 
 namespace MineDotNet.GUI.Models
 {
-    class SolverListEntry
+    public class SolverListEntry
     {
         public SolverListEntry(string solverName, string solverImplementation, BorderSeparationSolverSettings settings)
         {

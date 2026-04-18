@@ -1,11 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
-    <UseWindowsForms>true</UseWindowsForms>
+    <UseWPF>true</UseWPF>
     <LangVersion>12.0</LangVersion>
-    <!-- Per-monitor DPI awareness is set in Program.cs via SetHighDpiMode. -->
+    <Nullable>disable</Nullable>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <Authors>Gediminas Masaitis</Authors>
     <Company />
@@ -14,15 +14,17 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="WPF-UI" Version="3.0.5" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\MineDotNet\MineDotNet.csproj" />
   </ItemGroup>
 
-  <!-- Tile images consumed at runtime by TileLoader.GetTiles() from a sibling 'assets' folder. -->
   <ItemGroup>
-    <None Update="assets\*.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="assets\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

@@ -2,7 +2,7 @@
 
 namespace MineDotNet.GUI.Models
 {
-    class Mask
+    public class Mask
     {
         public int Width { get; set; }
         public int Height { get; set; }

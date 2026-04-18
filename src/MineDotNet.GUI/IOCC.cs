@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MineDotNet.GUI
@@ -11,14 +7,6 @@ namespace MineDotNet.GUI
     {
         public static IServiceProvider ServiceProvider { private get; set; }
 
-        public static T GetService<T>()
-        {
-            if (Designer.IsDesignTime)
-            {
-                return default;
-            }
-
-            return ServiceProvider.GetService<T>();
-        }
+        public static T GetService<T>() => ServiceProvider.GetService<T>();
     }
 }
