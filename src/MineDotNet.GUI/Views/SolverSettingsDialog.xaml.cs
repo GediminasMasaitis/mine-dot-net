@@ -11,16 +11,33 @@ namespace MineDotNet.GUI.Views
     {
         private BorderSeparationSolverSettings _settings;
 
-        public SolverSettingsDialog(BorderSeparationSolverSettings settings)
+        // `name` is optional — passing non-null opts into showing the name field
+        // at the top of the dialog. The main window's global-settings case
+        // passes null (single config, no name) and the name UI stays hidden.
+        public SolverSettingsDialog(BorderSeparationSolverSettings settings, string name = null)
         {
             InitializeComponent();
             _settings = settings ?? new BorderSeparationSolverSettings();
             Editor.SetupObject(_settings);
+            if (name != null)
+            {
+                NamePanel.Visibility = Visibility.Visible;
+                NameBox.Text = name;
+                Loaded += (_, __) => { NameBox.Focus(); NameBox.SelectAll(); };
+            }
         }
 
         public BorderSeparationSolverSettings GetSettings()
         {
             return (BorderSeparationSolverSettings)Editor.GetObject();
+        }
+
+        // Trimmed user-entered name, or null if the name field wasn't shown.
+        public string GetName()
+        {
+            if (NamePanel.Visibility != Visibility.Visible) return null;
+            var text = (NameBox.Text ?? "").Trim();
+            return string.IsNullOrEmpty(text) ? null : text;
         }
 
         private void OkBtn_Click(object sender, RoutedEventArgs e)

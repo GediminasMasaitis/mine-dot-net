@@ -3,8 +3,9 @@
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
                  xmlns:local="clr-namespace:MineDotNet.GUI.Controls"
+                 xmlns:charts="clr-namespace:MineDotNet.GUI.Controls.Charts"
                  Title="Benchmark"
-                 Width="960" Height="720"
+                 Width="1440" Height="880"
                  WindowStartupLocation="CenterOwner"
                  WindowBackdropType="Mica"
                  ExtendsContentIntoTitleBar="True">
@@ -36,7 +37,7 @@
                     <StackPanel>
                         <TextBlock Text="Board" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,10" />
 
-                        <Grid>
+                        <Grid x:Name="FixedBoardPanel">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="*" />
@@ -55,6 +56,34 @@
                         <Slider x:Name="DensitySlider" Minimum="1" Maximum="99" Value="20"
                                 ValueChanged="DensitySlider_OnValueChanged"
                                 TickPlacement="None" IsSnapToTickEnabled="True" SmallChange="1" LargeChange="5" />
+
+                        <TextBlock Text="Sweep" Opacity="0.7" FontSize="12" Margin="0,14,0,2" />
+                        <ComboBox x:Name="SweepBox" SelectionChanged="SweepBox_OnSelectionChanged">
+                            <ComboBoxItem Content="None" IsSelected="True" />
+                            <ComboBoxItem Content="Width" />
+                            <ComboBoxItem Content="Height" />
+                            <ComboBoxItem Content="Mine density" />
+                        </ComboBox>
+
+                        <Grid x:Name="SweepPanel" Margin="0,10,0,0" Visibility="Collapsed">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,4,0">
+                                <TextBlock x:Name="SweepFromLabel" Text="From" Opacity="0.7" FontSize="12" />
+                                <ui:NumberBox x:Name="SweepFromBox" Value="10" Margin="0,2,0,0" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="4,0,4,0">
+                                <TextBlock x:Name="SweepToLabel" Text="To" Opacity="0.7" FontSize="12" />
+                                <ui:NumberBox x:Name="SweepToBox" Value="30" Margin="0,2,0,0" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Margin="4,0,0,0">
+                                <TextBlock x:Name="SweepStepLabel" Text="Step" Opacity="0.7" FontSize="12" />
+                                <ui:NumberBox x:Name="SweepStepBox" Value="5" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </Grid>
 
                         <TextBlock Text="Games per solver" Opacity="0.7" FontSize="12" Margin="0,14,0,2" />
                         <ui:NumberBox x:Name="GamesBox" Value="100" Minimum="1" Maximum="100000" />
@@ -105,14 +134,15 @@
                 </ui:Card>
             </Grid>
 
-            <!-- RIGHT: progress (top) + UMSI log (bottom) -->
+            <!-- RIGHT: progress (top) + charts (middle) + UMSI log (bottom) -->
             <ui:Card Grid.Column="2" Padding="14"
                      VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="2*" MinHeight="240" />
                         <RowDefinition Height="12" />
-                        <RowDefinition Height="*" />
+                        <RowDefinition Height="*" MinHeight="140" />
                     </Grid.RowDefinitions>
 
                     <!-- Progress -->
@@ -120,7 +150,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <TextBlock Grid.Row="0" Text="Progress" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,10" />
@@ -136,7 +166,8 @@
                         <Border Grid.Row="2"
                                 BorderBrush="{DynamicResource ControlElevationBorderBrush}"
                                 BorderThickness="1" CornerRadius="6"
-                                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                MaxHeight="160">
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
                                 <ItemsControl x:Name="ResultsList" Margin="8">
                                     <ItemsControl.ItemTemplate>
@@ -164,8 +195,32 @@
                         </Border>
                     </Grid>
 
+                    <!-- Charts: fixed-mode (3 charts) vs sweep-mode (3 charts).
+                         Only one Border at a time is Visible; the other stays
+                         Collapsed so it consumes no layout space. -->
+                    <Border Grid.Row="1" Margin="0,14,0,0" x:Name="FixedChartsPanel"
+                            BorderBrush="{DynamicResource ControlElevationBorderBrush}"
+                            BorderThickness="1" CornerRadius="6"
+                            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                        <UniformGrid Rows="1" Columns="3" Margin="4">
+                            <charts:OutcomeBarChart x:Name="OutcomeChart" Margin="4" />
+                            <charts:TimeCdfChart x:Name="CdfChart" Margin="4" />
+                            <charts:WinRateVsTimeScatter x:Name="ScatterChart" Margin="4" />
+                        </UniformGrid>
+                    </Border>
+                    <Border Grid.Row="1" Margin="0,14,0,0" x:Name="SweepChartsPanel" Visibility="Collapsed"
+                            BorderBrush="{DynamicResource ControlElevationBorderBrush}"
+                            BorderThickness="1" CornerRadius="6"
+                            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                        <UniformGrid Rows="1" Columns="3" Margin="4">
+                            <charts:WinRateSweepChart x:Name="WinRateSweepChart" Margin="4" />
+                            <charts:AvgTimeSweepChart x:Name="AvgTimeSweepChart" Margin="4" />
+                            <charts:AvgIterationsSweepChart x:Name="AvgIterationsSweepChart" Margin="4" />
+                        </UniformGrid>
+                    </Border>
+
                     <!-- Log -->
-                    <Grid Grid.Row="2">
+                    <Grid Grid.Row="3">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
@@ -196,6 +251,9 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <ui:Button x:Name="RunBtn" Content="Run benchmark" Icon="{ui:SymbolIcon Play24}"
                            Appearance="Primary" Width="180" Margin="0,0,8,0" Click="RunBtn_Click" />
+                <ui:Button x:Name="StopBtn" Content="Stop" Icon="{ui:SymbolIcon Stop24}"
+                           Appearance="Caution" Width="120" Margin="0,0,8,0"
+                           IsEnabled="False" Click="StopBtn_Click" />
                 <ui:Button x:Name="CloseBtn" Content="Close" Width="100" Click="CloseBtn_Click" />
             </StackPanel>
         </Grid>

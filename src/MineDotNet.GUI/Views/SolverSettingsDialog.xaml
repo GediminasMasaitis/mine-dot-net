@@ -11,13 +11,23 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <ui:TitleBar Grid.Row="0" Title="Solver settings" ShowMaximize="False" ShowMinimize="False" />
 
-        <Border Grid.Row="1" Margin="16,8,16,8"
+        <Grid Grid.Row="1" x:Name="NamePanel" Margin="16,8,16,0" Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Name" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0" />
+            <ui:TextBox Grid.Column="1" x:Name="NameBox" />
+        </Grid>
+
+        <Border Grid.Row="2" Margin="16,8,16,8"
                 BorderBrush="{DynamicResource ControlElevationBorderBrush}"
                 BorderThickness="1"
                 CornerRadius="6"
@@ -25,7 +35,7 @@
             <local:ObjectEditor x:Name="Editor" />
         </Border>
 
-        <Grid Grid.Row="2" Margin="16,0,16,16">
+        <Grid Grid.Row="3" Margin="16,0,16,16">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                 <ui:Button x:Name="SaveBtn" Content="Save..." Icon="{ui:SymbolIcon Save24}"
                            Margin="0,0,4,0" Click="SaveBtn_Click" />

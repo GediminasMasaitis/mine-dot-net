@@ -31,35 +31,96 @@ namespace MineDotNet.GUI.Services
         // can pump UI updates between regenerations.
         public IReadOnlyList<BenchmarkSolverRun> Run(
             BenchmarkConfig config,
-            Action<BenchmarkProgressUpdate> onProgress = null)
+            Action<BenchmarkProgressUpdate> onProgress = null,
+            Func<bool> shouldStop = null)
         {
-            var runs = config.Solvers
-                .Select((s, i) => new BenchmarkSolverRun(i, s.Name))
-                .ToList();
+            // In sweep mode we produce SolverCount × AxisValues.Count runs and
+            // iterate the outer loop over axis values, reusing each generated
+            // board across solvers at that axis value. In non-sweep mode the
+            // axis-value list degenerates to a single "virtual" entry so the
+            // same control flow handles both cases.
+            var axisValues = config.SweepAxis == BenchmarkSweepAxis.None
+                ? new[] { double.NaN }
+                : config.SweepValues().ToArray();
 
-            for (var gameIdx = 0; gameIdx < config.GameCount; gameIdx++)
+            var runs = new List<BenchmarkSolverRun>();
+            foreach (var v in axisValues)
             {
-                var snapshot = GenerateSnapshot(config);
-
-                for (var solverIdx = 0; solverIdx < config.Solvers.Count; solverIdx++)
+                for (var i = 0; i < config.Solvers.Count; i++)
                 {
-                    var result = PlayOneGame(snapshot, config.Solvers[solverIdx].Settings, gameIdx);
-                    var run = runs[solverIdx];
-                    run.Games.Add(result);
-                    switch (result.Outcome)
-                    {
-                        case BenchmarkOutcome.Won: run.Won++; break;
-                        case BenchmarkOutcome.Lost: run.Lost++; break;
-                        case BenchmarkOutcome.Stuck: run.Stuck++; break;
-                    }
-                    run.TotalMs += result.ElapsedMs;
-                    run.TotalIterations += result.Iterations;
+                    runs.Add(new BenchmarkSolverRun(i, config.Solvers[i].Name, double.IsNaN(v) ? (double?)null : v));
+                }
+            }
 
-                    onProgress?.Invoke(new BenchmarkProgressUpdate(gameIdx + 1, config.GameCount, solverIdx, result));
+            // How many total "solver-games" we need — one per game per solver
+            // per axis value. Progress reports use this so a sweep of 3 axis
+            // values × 2 solvers × 100 games shows correctly as "300 of 600".
+            var totalGamesAcrossAxes = config.GameCount * axisValues.Length;
+
+            for (var axisIdx = 0; axisIdx < axisValues.Length; axisIdx++)
+            {
+                var axisValue = axisValues[axisIdx];
+                var effectiveConfig = ApplySweep(config, axisValue);
+
+                for (var gameIdx = 0; gameIdx < config.GameCount; gameIdx++)
+                {
+                    // Cancellation is polled between games and between solvers — mid-game
+                    // cancellation would need cooperation from ExtSolver, which we don't
+                    // have. A single solve on a reasonable board finishes in hundreds of
+                    // ms so this granularity is acceptable.
+                    if (shouldStop?.Invoke() == true) return runs;
+
+                    var snapshot = GenerateSnapshot(effectiveConfig);
+
+                    for (var solverIdx = 0; solverIdx < config.Solvers.Count; solverIdx++)
+                    {
+                        if (shouldStop?.Invoke() == true) return runs;
+
+                        var result = PlayOneGame(snapshot, config.Solvers[solverIdx].Settings, gameIdx);
+                        var runIdxInList = axisIdx * config.Solvers.Count + solverIdx;
+                        var run = runs[runIdxInList];
+                        run.Games.Add(result);
+                        switch (result.Outcome)
+                        {
+                            case BenchmarkOutcome.Won: run.Won++; break;
+                            case BenchmarkOutcome.Lost: run.Lost++; break;
+                            case BenchmarkOutcome.Stuck: run.Stuck++; break;
+                        }
+                        run.TotalMs += result.ElapsedMs;
+                        run.TotalIterations += result.Iterations;
+
+                        var gamesCompletedOverall = axisIdx * config.GameCount + gameIdx + 1;
+                        onProgress?.Invoke(new BenchmarkProgressUpdate(gamesCompletedOverall, totalGamesAcrossAxes, solverIdx, result, runs));
+                    }
                 }
             }
 
             return runs;
+        }
+
+        // Clones the config with only the sweep axis's field replaced by the
+        // current axis value. Non-sweep case (NaN) just passes the original
+        // settings through. Density values are clamped to (0, 1) so a bad
+        // sweep input can't crash the map generator.
+        private static BenchmarkConfig ApplySweep(BenchmarkConfig config, double axisValue)
+        {
+            if (double.IsNaN(axisValue)) return config;
+            var clone = new BenchmarkConfig
+            {
+                Width = config.Width,
+                Height = config.Height,
+                MineDensity = config.MineDensity,
+                GameCount = config.GameCount,
+                Solvers = config.Solvers,
+                SweepAxis = BenchmarkSweepAxis.None
+            };
+            switch (config.SweepAxis)
+            {
+                case BenchmarkSweepAxis.Width: clone.Width = Math.Max(1, (int)Math.Round(axisValue)); break;
+                case BenchmarkSweepAxis.Height: clone.Height = Math.Max(1, (int)Math.Round(axisValue)); break;
+                case BenchmarkSweepAxis.MineDensity: clone.MineDensity = Math.Min(0.99, Math.Max(0.01, axisValue)); break;
+            }
+            return clone;
         }
 
         // Generates one random board and captures enough state (player view +
@@ -212,16 +273,18 @@ namespace MineDotNet.GUI.Services
 
     internal sealed class BenchmarkProgressUpdate
     {
-        public BenchmarkProgressUpdate(int gamesCompleted, int totalGames, int solverIndex, BenchmarkGameResult lastResult)
+        public BenchmarkProgressUpdate(int gamesCompleted, int totalGames, int solverIndex, BenchmarkGameResult lastResult, IReadOnlyList<BenchmarkSolverRun> runs)
         {
             GamesCompleted = gamesCompleted;
             TotalGames = totalGames;
             SolverIndex = solverIndex;
             LastResult = lastResult;
+            Runs = runs;
         }
         public int GamesCompleted { get; }
         public int TotalGames { get; }
         public int SolverIndex { get; }
         public BenchmarkGameResult LastResult { get; }
+        public IReadOnlyList<BenchmarkSolverRun> Runs { get; }
     }
 }
