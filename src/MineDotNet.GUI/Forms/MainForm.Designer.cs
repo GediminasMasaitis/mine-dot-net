@@ -30,6 +30,7 @@
         {
             this.ShowMapsButton = new System.Windows.Forms.Button();
             this.SolveMapButton = new System.Windows.Forms.Button();
+            this.GenerateButton = new System.Windows.Forms.Button();
             this.AutoPlayButton = new System.Windows.Forms.Button();
             this.MineDensityTrackBar = new System.Windows.Forms.TrackBar();
             this.MineDensityLabel = new System.Windows.Forms.Label();
@@ -70,10 +71,21 @@
             this.SolveMapButton.UseVisualStyleBackColor = true;
             this.SolveMapButton.Click += new System.EventHandler(this.SolveMapButton_Click);
             // 
+            // GenerateButton
+            //
+            this.GenerateButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.GenerateButton.Location = new System.Drawing.Point(917, 218);
+            this.GenerateButton.Name = "GenerateButton";
+            this.GenerateButton.Size = new System.Drawing.Size(110, 23);
+            this.GenerateButton.TabIndex = 35;
+            this.GenerateButton.Text = "Generate";
+            this.GenerateButton.UseVisualStyleBackColor = true;
+            this.GenerateButton.Click += new System.EventHandler(this.GenerateButton_Click);
+            //
             // AutoPlayButton
-            // 
+            //
             this.AutoPlayButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.AutoPlayButton.Location = new System.Drawing.Point(917, 218);
+            this.AutoPlayButton.Location = new System.Drawing.Point(917, 247);
             this.AutoPlayButton.Name = "AutoPlayButton";
             this.AutoPlayButton.Size = new System.Drawing.Size(110, 23);
             this.AutoPlayButton.TabIndex = 25;
@@ -105,7 +117,7 @@
             // ManualPlayButton
             // 
             this.ManualPlayButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.ManualPlayButton.Location = new System.Drawing.Point(917, 247);
+            this.ManualPlayButton.Location = new System.Drawing.Point(917, 276);
             this.ManualPlayButton.Name = "ManualPlayButton";
             this.ManualPlayButton.Size = new System.Drawing.Size(110, 23);
             this.ManualPlayButton.TabIndex = 28;
@@ -212,7 +224,7 @@
             // MLTestButton
             // 
             this.MLTestButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.MLTestButton.Location = new System.Drawing.Point(917, 276);
+            this.MLTestButton.Location = new System.Drawing.Point(917, 305);
             this.MLTestButton.Name = "MLTestButton";
             this.MLTestButton.Size = new System.Drawing.Size(110, 23);
             this.MLTestButton.TabIndex = 35;
@@ -236,6 +248,7 @@
             this.Controls.Add(this.ManualPlayButton);
             this.Controls.Add(this.MineDensityLabel);
             this.Controls.Add(this.MineDensityTrackBar);
+            this.Controls.Add(this.GenerateButton);
             this.Controls.Add(this.AutoPlayButton);
             this.Controls.Add(this.SolveMapButton);
             this.Controls.Add(this.ShowMapsButton);
@@ -254,6 +267,7 @@
         #endregion
         private System.Windows.Forms.Button ShowMapsButton;
         private System.Windows.Forms.Button SolveMapButton;
+        private System.Windows.Forms.Button GenerateButton;
         private System.Windows.Forms.Button AutoPlayButton;
         private System.Windows.Forms.TrackBar MineDensityTrackBar;
         private System.Windows.Forms.Label MineDensityLabel;

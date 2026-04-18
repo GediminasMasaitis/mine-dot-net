@@ -180,17 +180,41 @@ namespace MineDotNet.GUI.UserControls
 
         public void DisplayResults(IMap map, IDictionary<Coordinate, SolverResult> results)
         {
-            SetMaskCount(2);
+            // Mask 0 is reserved for ground-truth mines (written by Generate /
+            // used by Auto play). Solver verdicts go in Mask 1 ("mine") and
+            // Mask 2 ("safe") so Mask 0 survives a Solve click.
+            SetMaskCount(3);
             if (results != null)
             {
                 var maskHasMine = _maskConverter.ConvertToMask(results, true, map.Width, map.Height);
                 var mapHasMine = _maskConverter.ConvertToMap(maskHasMine);
-                _maskTextBoxes[0].Text = _visualizer.VisualizeToString(mapHasMine);
+                _maskTextBoxes[1].Text = _visualizer.VisualizeToString(mapHasMine);
 
                 var maskDoesntHaveMine = _maskConverter.ConvertToMask(results, false, map.Width, map.Height);
                 var mapDoesntHaveMine = _maskConverter.ConvertToMap(maskDoesntHaveMine);
-                _maskTextBoxes[1].Text = _visualizer.VisualizeToString(mapDoesntHaveMine);
+                _maskTextBoxes[2].Text = _visualizer.VisualizeToString(mapDoesntHaveMine);
             }
+        }
+
+        public void SetMask(int index, Map map)
+        {
+            if (index < 0 || index >= _maskTextBoxes.Count) return;
+            _maskTextBoxes[index].Text = _visualizer.VisualizeToString(map);
+        }
+
+        public void ClearMask(int index)
+        {
+            if (index < 0 || index >= _maskTextBoxes.Count) return;
+            _maskTextBoxes[index].Text = string.Empty;
+        }
+
+        public Mask GetMask(int index)
+        {
+            if (index < 0 || index >= _maskTextBoxes.Count) return null;
+            var text = _maskTextBoxes[index].Text.Replace(";", Environment.NewLine);
+            if (string.IsNullOrWhiteSpace(text)) return null;
+            var map = _parser.Parse(text);
+            return _maskConverter.ConvertToMask(map);
         }
     }
 }
