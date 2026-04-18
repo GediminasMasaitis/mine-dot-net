@@ -84,20 +84,23 @@ namespace MineDotNet.GUI.UserControls
                 newLabel.Parent = this;
                 var yPosLabel = previousLabel.Top;
                 newLabel.Location = new Point(xPosBox, yPosLabel);
-                newLabel.Text = $"Mask {i}:";
-                newLabel.ForeColor = _brushes.Brushes[i].Color;
+                newLabel.Text = $"MASK {i}";
+                newLabel.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold);
+                newLabel.ForeColor = _brushes.LabelColors[i];
                 newLabel.Anchor = MapLabel.Anchor;
+                newLabel.AutoSize = true;
                 previousLabel = newLabel;
 
                 _maskTextBoxes.Add(newTextBox);
                 _maskLabels.Add(newLabel);
-                
+
             }
 
             for (var i = 0; i < _maskTextBoxes.Count; i++)
             {
-                _maskTextBoxes[i].ForeColor = _brushes.Brushes[i].Color;
-                //_maskTextBoxes[i].Font = Font;
+                _maskTextBoxes[i].ForeColor = _brushes.LabelColors[i];
+                _maskTextBoxes[i].BackColor = Theme.SurfaceAlt;
+                _maskTextBoxes[i].BorderStyle = BorderStyle.FixedSingle;
             }
         }
 

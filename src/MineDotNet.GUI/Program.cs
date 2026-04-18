@@ -60,6 +60,8 @@ namespace MineDotNet.GUI
                 form = new MainForm();
             }
 
+            Theme.Apply(form);
+
             Application.Run(form);
         }
     }

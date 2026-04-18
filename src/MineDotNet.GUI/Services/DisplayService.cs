@@ -33,15 +33,16 @@ namespace MineDotNet.GUI.Services
             _cellLocator = cellLocator;
             _brushProvider = brushProvider;
 
-            _mainFont = new Font(FontFamily.GenericMonospace, 8, FontStyle.Bold);
-            _subFont = new Font(FontFamily.GenericMonospace, 6, FontStyle.Bold);
+            _mainFont = new Font("Segoe UI", 7.5F, FontStyle.Bold);
+            _subFont = new Font("Segoe UI", 6F, FontStyle.Regular);
 
             DrawCoordinates = true;
             DrawHiddenMines = true;
             DrawHintProbabilities = false;
 
-            var textColor = Color.DarkRed;
-            _textBrush = new SolidBrush(textColor);
+            // High-contrast warning amber — pops against both the dark board
+            // background and the lighter revealed cell tiles.
+            _textBrush = new SolidBrush(Color.FromArgb(255, 200, 90));
         }
         
         private void DrawTile(Graphics graphics, Cell cell, Rectangle cellRectangle)
@@ -91,7 +92,10 @@ namespace MineDotNet.GUI.Services
                     borderWidth += borderIncrement;
                 }
             }
-            if(DrawCoordinates)
+            // Skip the per-cell coordinate overlay when cells are too small for
+            // the text to be readable — it just becomes noise on dense boards.
+            // The text visualizer at the bottom still shows coordinates implicitly.
+            if(DrawCoordinates && cellSize.Height >= 28)
             {
                 var posStr = $"[{cell.X};{cell.Y}]";
                 graphics.DrawString(posStr, _mainFont, textBrush, cellX, cellY + cellSize.Height - 15);

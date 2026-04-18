@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using MineDotNet.AI.Solvers;
 using MineDotNet.GUI.Forms;
 using MineDotNet.GUI.Models;
+using MineDotNet.GUI.Services;
 using Newtonsoft.Json;
 
 namespace MineDotNet.GUI.UserControls
@@ -25,6 +26,7 @@ namespace MineDotNet.GUI.UserControls
         private void AddSolverButton_Click(object sender, EventArgs e)
         {
             var editor = new SolverSettingsEditorForm();
+            Theme.Apply(editor);
             var result = editor.ShowDialog();
             if (result != DialogResult.OK)
             {
@@ -54,6 +56,7 @@ namespace MineDotNet.GUI.UserControls
         {
             var entry = (SolverListEntry) SolversCheckedListBox.SelectedItem;
             var editor = new SolverSettingsEditorForm(entry);
+            Theme.Apply(editor);
             var result = editor.ShowDialog();
             if (result != DialogResult.OK)
             {
