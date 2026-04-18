@@ -36,7 +36,6 @@ namespace MineDotNet.GUI.Forms
             MainObjectEditor.SetupObject(entry.Settings);
             var implNames = new[]
             {
-                BorderSeparationSolver.Alias,
                 ExtSolver.Alias
             };
             var currentIndex = Array.IndexOf(implNames, entry.SolverImplementation);

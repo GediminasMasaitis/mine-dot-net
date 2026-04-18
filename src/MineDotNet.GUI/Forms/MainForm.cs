@@ -199,12 +199,13 @@ namespace MineDotNet.GUI.Forms
 
         private static ISolver CreateSolver(SolverListEntry entry)
         {
-            if (entry.SolverImplementation == ExtSolver.Alias)
-            {
-                ExtSolver.Instance.InitSolver(entry.Settings);
-                return ExtSolver.Instance;
-            }
-            return new BorderSeparationSolver(entry.Settings);
+            // Only one implementation exists now — the external UMSI engine
+            // (ExtSolver). The C# BorderSeparationSolver was removed as
+            // strictly less capable than the C++ version it was mirroring.
+            // `entry.SolverImplementation` is ignored for now; kept on the
+            // entry for forward compatibility if more engines arrive.
+            ExtSolver.Instance.InitSolver(entry.Settings);
+            return ExtSolver.Instance;
         }
 
         private void DisplayResults(IMap map, IDictionary<Coordinate, SolverResult> results)

@@ -43,11 +43,9 @@ namespace TestConsole
             BenchmarkSolver();
             //PlaySingleFromFile();
 
-            //TestMatrixSolving();
             //SolveMapFromFile();
-            
+
             //SolveMapFromFile();
-            //TestGaussianSolving();
             Console.ReadKey();
         }
 
@@ -72,52 +70,6 @@ namespace TestConsole
             return result;
         }
 
-        private static void TestMatrixSolving()
-        {
-            var matrixSolving = new GaussianSolvingService();
-            //var matrix = matrixSolving.GetMatrixFromMap(map);
-
-            //var matrix = new int[][]
-            //{
-            //    new int[] {1, 1, 0, 1},
-            //    new int[] {1, 1, 1, 2},
-            //    new int[] {0, 1, 1, 1},
-            //};
-
-            //var matrix = new int[][]
-            //{
-            //    new int[] {1, 1, 0, 0, 0, 1},
-            //    new int[] {1, 1, 1, 0, 0, 2},
-            //    new int[] {0, 1, 1, 1, 1, 3},
-            //};
-
-
-            var matrix = (IList<int[]>)new List<int[]>
-            {
-                new int[] {1,1,1,0,0,0,0,0,0,0,0,0,1},
-                new int[] {0,1,1,1,0,0,0,0,0,0,0,0,2},
-                new int[] {0,0,1,1,1,0,0,0,0,0,0,0,1},
-                new int[] {0,0,0,1,1,1,0,0,0,0,0,0,2},
-                new int[] {0,0,0,0,1,1,1,0,0,0,0,0,1},
-                new int[] {0,0,0,0,0,1,1,1,1,1,0,0,2},
-                new int[] {0,0,0,0,0,0,0,0,1,1,1,0,1},
-                new int[] {0,0,0,0,0,0,0,0,0,1,1,1,2},
-                new int[] {0,0,0,0,0,0,0,0,0,0,1,1,1},
-            };
-
-            //var matrix = new int[][]
-            //{
-            //    new int[] {1, 1, 0, 0, 0, 1},
-            //    new int[] {1, 1, 1, 0, 0, 2},
-            //    new int[] {0, 1, 1, 1, 0, 2},
-            //    new int[] {0, 0, 1, 1, 1, 2},
-            //    new int[] {0, 0, 0, 1, 1, 1},
-            //    new int[] {1, 1, 1, 1, 1, 3},
-            //};
-
-            //matrixSolving.ReduceMatrix(ref matrix);
-        }
-
         private static void BenchmarkSolver()
         {
             var settings = new BorderSeparationSolverSettings();
@@ -138,9 +90,7 @@ namespace TestConsole
             //settings.SeparationSingleBorderStopOnNoMineVerdict = false;
 
             var solver = ExtSolver.Instance; solver.InitSolver(settings);
-            //var solver = new BorderSeparationSolver(settings);
 
-            var secondarySolver = new BorderSeparationSolver(settings);
             var guesser = new LowestProbabilityGuesser();
             var testsToRun = 100;
             var visualizer = new TextMapVisualizer();
@@ -339,23 +289,5 @@ namespace TestConsole
             Console.WriteLine("Press any key to close...");
         }
 
-        private static void TestGaussianSolving()
-        {
-            var guesser = new LowestProbabilityGuesser();
-
-            var solver = new BorderSeparationSolver();
-            solver.Settings.TrivialSolve = false;
-            solver.Settings.GaussianSolve = true;
-            solver.Settings.GaussianStopAlways = true;
-
-            var secondarySolver = new BorderSeparationSolver();
-            secondarySolver.Settings.PartialSolve = false;
-            secondarySolver.Settings.GiveUpFromSize = 30;
-            
-            var benchmarker = new Benchmarker();
-
-
-            var benchmarkResults = benchmarker.BenchmarkMultipleDensities(solver, guesser, 5,5, 0.01, 0.4, 0.01, 20, secondarySolver).Select(x => x.Entries.ToList()).ToList();
-        }
     }
 }
