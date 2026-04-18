@@ -258,25 +258,47 @@ namespace MineDotNet.GUI.Views
                 }
             }
 
-            Action<string, bool> logHandler = (line, sent) =>
+            // When the log is on, ExtSolver.Logged fires once per line sent to and
+            // received from the engine — that's thousands of events per second on
+            // a chatty solver. Each fire does a StringBuilder.Append and, every
+            // 50ms, a full TextBox flush + chart redraw + dispatcher pump. Letting
+            // the user turn all of that off is the quickest way to see how much
+            // the logging is actually costing on a given run.
+            var liveLog = LiveLogCheck.IsChecked == true;
+            Action<string, bool> logHandler = null;
+            if (liveLog)
             {
-                logBuffer.Append(sent ? "→ " : "← ").Append(line).Append('\n');
-                if (logBuffer.Length > MaxLogChars * 2)
+                logHandler = (line, sent) =>
                 {
-                    // Keep only the tail so memory stays bounded on long runs.
-                    var tail = logBuffer.ToString(logBuffer.Length - MaxLogChars, MaxLogChars);
-                    logBuffer.Clear();
-                    logBuffer.Append(tail);
-                }
-                if (Environment.TickCount - lastFlushTick > 50)
-                {
-                    FlushLog();
-                    UpdateCharts();
-                    PumpDispatcher();
-                    lastFlushTick = Environment.TickCount;
-                }
-            };
-            ExtSolver.Logged += logHandler;
+                    logBuffer.Append(sent ? "→ " : "← ").Append(line).Append('\n');
+                    if (logBuffer.Length > MaxLogChars * 2)
+                    {
+                        // Keep only the tail so memory stays bounded on long runs.
+                        var tail = logBuffer.ToString(logBuffer.Length - MaxLogChars, MaxLogChars);
+                        logBuffer.Clear();
+                        logBuffer.Append(tail);
+                    }
+                    PumpIfDue();
+                };
+                ExtSolver.Logged += logHandler;
+            }
+            else
+            {
+                LogBox.Text = "(UMSI log disabled for this run — check to re-enable)";
+            }
+
+            // Throttled UI pump shared by the log handler and the progress
+            // callback. Whichever fires first after the 50ms window triggers
+            // the paint — so even with logging off, progress updates keep the
+            // dialog alive.
+            void PumpIfDue()
+            {
+                if (Environment.TickCount - lastFlushTick <= 50) return;
+                if (liveLog) FlushLog();
+                UpdateCharts();
+                PumpDispatcher();
+                lastFlushTick = Environment.TickCount;
+            }
 
             Action<BenchmarkProgressUpdate> onProgress = update =>
             {
@@ -285,6 +307,7 @@ namespace MineDotNet.GUI.Views
                 ProgressLabel.Text = $"Game {update.GamesCompleted} of {update.TotalGames}";
                 ProgressBar.Value = 100.0 * (update.GamesCompleted * config.Solvers.Count - (config.Solvers.Count - 1 - update.SolverIndex))
                                          / (update.TotalGames * config.Solvers.Count);
+                PumpIfDue();
             };
 
             try
@@ -307,8 +330,8 @@ namespace MineDotNet.GUI.Views
             }
             finally
             {
-                ExtSolver.Logged -= logHandler;
-                FlushLog();
+                if (logHandler != null) ExtSolver.Logged -= logHandler;
+                if (liveLog) FlushLog();
                 UpdateCharts();
                 sw.Stop();
                 ElapsedLabel.Text = $"{sw.Elapsed:mm\\:ss} total";
