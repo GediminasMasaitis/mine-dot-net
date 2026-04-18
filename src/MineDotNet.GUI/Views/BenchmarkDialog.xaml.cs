@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
@@ -92,17 +93,50 @@ namespace MineDotNet.GUI.Views
             RunBtn.IsEnabled = false;
             ProgressLabel.Text = "Running...";
             ProgressBar.Value = 0;
+            LogBox.Clear();
 
-            // Force a render pass so "Running..." paints before we block the
-            // dispatcher with the synchronous benchmark call.
-            Dispatcher.Invoke(() => { }, DispatcherPriority.Render);
+            PumpDispatcher();
 
             var sw = Stopwatch.StartNew();
 
-            // Synchronous direct callback (no Progress<T> / SynchronizationContext
-            // queueing). Updates apply inline during Run(); WPF won't render them
-            // until the dispatcher pumps again after Run() returns, so in practice
-            // the user just sees the final "Done" state — which is what we want.
+            // Buffer log lines in memory during the run and flush to the TextBox
+            // on a throttled schedule (~20fps) via PumpDispatcher(). Appending
+            // per-line to a WPF TextBox is O(n) in existing content, so thousands
+            // of chatty solver messages would tank perf; setting Text once per
+            // tick is much cheaper. Cap buffer growth to keep memory bounded.
+            const int MaxLogChars = 200_000;
+            var logBuffer = new StringBuilder();
+            var lastFlushTick = Environment.TickCount;
+
+            void FlushLog()
+            {
+                var text = logBuffer.Length > MaxLogChars
+                    ? logBuffer.ToString(logBuffer.Length - MaxLogChars, MaxLogChars)
+                    : logBuffer.ToString();
+                LogBox.Text = text;
+                LogBox.CaretIndex = LogBox.Text.Length;
+                LogBox.ScrollToEnd();
+            }
+
+            Action<string, bool> logHandler = (line, sent) =>
+            {
+                logBuffer.Append(sent ? "→ " : "← ").Append(line).Append('\n');
+                if (logBuffer.Length > MaxLogChars * 2)
+                {
+                    // Keep only the tail so memory stays bounded on long runs.
+                    var tail = logBuffer.ToString(logBuffer.Length - MaxLogChars, MaxLogChars);
+                    logBuffer.Clear();
+                    logBuffer.Append(tail);
+                }
+                if (Environment.TickCount - lastFlushTick > 50)
+                {
+                    FlushLog();
+                    PumpDispatcher();
+                    lastFlushTick = Environment.TickCount;
+                }
+            };
+            ExtSolver.Logged += logHandler;
+
             Action<BenchmarkProgressUpdate> onProgress = update =>
             {
                 _resultRows[update.SolverIndex].Apply(update.LastResult);
@@ -124,11 +158,27 @@ namespace MineDotNet.GUI.Views
             }
             finally
             {
+                ExtSolver.Logged -= logHandler;
+                FlushLog();
                 sw.Stop();
                 ElapsedLabel.Text = $"{sw.Elapsed:mm\\:ss} total";
                 UpdateButtonStates();
             }
         }
+
+        // Classic DoEvents pattern — spin the dispatcher until our sentinel
+        // fires. Queueing at Loaded priority means items at Render, DataBind,
+        // Normal, Send (all higher-priority) drain first, which lets WPF paint
+        // the log + progress updates. Input (priority 5, below Loaded=6) stays
+        // queued, so clicks can't re-enter the handler mid-run.
+        private void PumpDispatcher()
+        {
+            var frame = new DispatcherFrame();
+            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => frame.Continue = false));
+            Dispatcher.PushFrame(frame);
+        }
+
+        private void ClearLogBtn_Click(object sender, RoutedEventArgs e) => LogBox.Clear();
 
         private void CloseBtn_Click(object sender, RoutedEventArgs e) => Close();
 

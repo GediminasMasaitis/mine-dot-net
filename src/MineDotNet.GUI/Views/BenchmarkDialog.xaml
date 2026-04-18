@@ -105,55 +105,88 @@
                 </ui:Card>
             </Grid>
 
-            <!-- RIGHT: progress + results -->
+            <!-- RIGHT: progress (top) + UMSI log (bottom) -->
             <ui:Card Grid.Column="2" Padding="14"
                      VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="12" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="0" Text="Progress" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,10" />
+                    <!-- Progress -->
+                    <Grid Grid.Row="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                    <StackPanel Grid.Row="1" Margin="0,0,0,10">
-                        <Grid>
-                            <TextBlock x:Name="ProgressLabel" Text="Not started" FontSize="12" Opacity="0.7" />
-                            <TextBlock x:Name="ElapsedLabel" Text="" FontSize="12" Opacity="0.7" HorizontalAlignment="Right" />
+                        <TextBlock Grid.Row="0" Text="Progress" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,10" />
+
+                        <StackPanel Grid.Row="1" Margin="0,0,0,10">
+                            <Grid>
+                                <TextBlock x:Name="ProgressLabel" Text="Not started" FontSize="12" Opacity="0.7" />
+                                <TextBlock x:Name="ElapsedLabel" Text="" FontSize="12" Opacity="0.7" HorizontalAlignment="Right" />
+                            </Grid>
+                            <ProgressBar x:Name="ProgressBar" Height="4" Margin="0,6,0,0" Minimum="0" Maximum="100" Value="0" />
+                        </StackPanel>
+
+                        <Border Grid.Row="2"
+                                BorderBrush="{DynamicResource ControlElevationBorderBrush}"
+                                BorderThickness="1" CornerRadius="6"
+                                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <ItemsControl x:Name="ResultsList" Margin="8">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Column="1" Text="{Binding GamesPlayedText}" Margin="12,0,0,0" VerticalAlignment="Center" Opacity="0.7" FontSize="12" />
+                                                <TextBlock Grid.Column="2" Text="{Binding WinRateText}" Margin="12,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{Binding WinRateBrush}" />
+                                                <TextBlock Grid.Column="3" Text="{Binding TallyText}" Margin="12,0,0,0" VerticalAlignment="Center" Opacity="0.7" FontSize="12" />
+                                                <TextBlock Grid.Column="4" Text="{Binding AvgTimeText}" Margin="12,0,0,0" VerticalAlignment="Center" Opacity="0.7" FontSize="12" />
+                                                <TextBlock Grid.Column="5" Text="{Binding AvgIterText}" Margin="12,0,0,0" VerticalAlignment="Center" Opacity="0.7" FontSize="12" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
+                    </Grid>
+
+                    <!-- Log -->
+                    <Grid Grid.Row="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid Grid.Row="0" Margin="0,0,0,8">
+                            <TextBlock Text="UMSI log" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" />
+                            <ui:Button x:Name="ClearLogBtn" Content="Clear" HorizontalAlignment="Right"
+                                       FontSize="11" Padding="10,3" Click="ClearLogBtn_Click" />
                         </Grid>
-                        <ProgressBar x:Name="ProgressBar" Height="4" Margin="0,6,0,0" Minimum="0" Maximum="100" Value="0" />
-                    </StackPanel>
-
-                    <Border Grid.Row="2"
-                            BorderBrush="{DynamicResource ControlElevationBorderBrush}"
-                            BorderThickness="1" CornerRadius="6"
-                            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <ItemsControl x:Name="ResultsList" Margin="8">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid Margin="0,4">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Grid.Column="1" Text="{Binding GamesPlayedText}" Margin="12,0,0,0" VerticalAlignment="Center" Opacity="0.7" FontSize="12" />
-                                            <TextBlock Grid.Column="2" Text="{Binding WinRateText}" Margin="12,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{Binding WinRateBrush}" />
-                                            <TextBlock Grid.Column="3" Text="{Binding TallyText}" Margin="12,0,0,0" VerticalAlignment="Center" Opacity="0.7" FontSize="12" />
-                                            <TextBlock Grid.Column="4" Text="{Binding AvgTimeText}" Margin="12,0,0,0" VerticalAlignment="Center" Opacity="0.7" FontSize="12" />
-                                            <TextBlock Grid.Column="5" Text="{Binding AvgIterText}" Margin="12,0,0,0" VerticalAlignment="Center" Opacity="0.7" FontSize="12" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-                    </Border>
+                        <Border Grid.Row="1"
+                                Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource ControlElevationBorderBrush}"
+                                BorderThickness="1" CornerRadius="4">
+                            <TextBox x:Name="LogBox" IsReadOnly="True"
+                                     Background="Transparent" BorderThickness="0"
+                                     FontFamily="Cascadia Mono, Consolas" FontSize="11"
+                                     VerticalScrollBarVisibility="Auto"
+                                     HorizontalScrollBarVisibility="Auto"
+                                     TextWrapping="NoWrap" AcceptsReturn="True" Padding="6" />
+                        </Border>
+                    </Grid>
                 </Grid>
             </ui:Card>
         </Grid>
