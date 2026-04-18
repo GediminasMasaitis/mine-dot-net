@@ -60,10 +60,16 @@
                                        HorizontalAlignment="Stretch"
                                        Margin="4,0,0,0" Click="SolveBtn_Click" />
                         </UniformGrid>
-                        <ui:Button x:Name="SettingsBtn" Content="Solver settings..."
-                                   Icon="{ui:SymbolIcon Settings24}"
-                                   HorizontalAlignment="Stretch"
-                                   Click="SettingsBtn_Click" />
+                        <UniformGrid Rows="1" Columns="2">
+                            <ui:Button x:Name="SettingsBtn" Content="Settings"
+                                       Icon="{ui:SymbolIcon Settings24}"
+                                       HorizontalAlignment="Stretch"
+                                       Margin="0,0,4,0" Click="SettingsBtn_Click" />
+                            <ui:Button x:Name="BenchmarkBtn" Content="Benchmark"
+                                       Icon="{ui:SymbolIcon DataBarHorizontal24}"
+                                       HorizontalAlignment="Stretch"
+                                       Margin="4,0,0,0" Click="BenchmarkBtn_Click" />
+                        </UniformGrid>
                     </StackPanel>
                 </ui:Card>
 

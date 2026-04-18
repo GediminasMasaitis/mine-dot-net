@@ -152,6 +152,12 @@ namespace MineDotNet.GUI.Views
             if (dialog.ShowDialog() == true) _solverSettings = dialog.GetSettings();
         }
 
+        private void BenchmarkBtn_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new BenchmarkDialog { Owner = this };
+            dialog.ShowDialog();
+        }
+
         private void DisplayResults(IMap map, IDictionary<Coordinate, SolverResult> results)
         {
             _lastResults = results;
