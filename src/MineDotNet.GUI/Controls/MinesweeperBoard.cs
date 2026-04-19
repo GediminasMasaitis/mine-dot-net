@@ -22,7 +22,14 @@ namespace MineDotNet.GUI.Controls
         private IDictionary<Coordinate, SolverResult> _results;
 
         private static readonly Brush EmptyCellBrush = Frozen(Color.FromRgb(28, 28, 32));
-        private static readonly Brush ProbabilityBrush = Frozen(Color.FromRgb(255, 200, 90));
+        // Three-point palette for probability overlays: bright green for
+        // certain safes (0%), amber for uncertain middle probabilities,
+        // bright red for certain mines (100%). Interpolated linearly in RGB
+        // so a 20%-ish probability still reads as mostly-green-with-a-warning
+        // and a 75% reads as mostly-red — quick visual triage at a glance.
+        private static readonly Color ProbSafeColor = Color.FromRgb(110, 230, 130);
+        private static readonly Color ProbMidColor = Color.FromRgb(235, 200, 90);
+        private static readonly Color ProbMineColor = Color.FromRgb(235, 80, 80);
         private static readonly Typeface ProbabilityFace = new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
 
         private static Brush Frozen(Color c)
@@ -160,14 +167,51 @@ namespace MineDotNet.GUI.Controls
             }
         }
 
+        private static readonly Pen ProbabilityOutlinePen = FrozenPen(Color.FromRgb(18, 18, 22), 1.1);
+
         private void DrawProbability(DrawingContext dc, Coordinate coord, Rect rect, Typeface face, double fontSize)
         {
             if (_results == null) return;
             if (!_results.TryGetValue(coord, out var result)) return;
             var text = $"{result.Probability:##0.00%}";
+            var brush = ProbabilityColorFor(result.Probability);
             var ft = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-                face, fontSize, ProbabilityBrush, VisualTreeHelper.GetDpi(this).PixelsPerDip);
-            dc.DrawText(ft, new Point(rect.X + 2, rect.Y + 2));
+                face, fontSize, brush, VisualTreeHelper.GetDpi(this).PixelsPerDip);
+            // Paint a dark outline underneath via the geometry path, then the
+            // filled text on top. Keeps the colour legible over any cell shade
+            // (pale tile, red mine mask, green safe mask) without dimming the
+            // fill itself — the outline does the contrast work.
+            var origin = new Point(rect.X + 2, rect.Y + 2);
+            var geom = ft.BuildGeometry(origin);
+            dc.DrawGeometry(brush, ProbabilityOutlinePen, geom);
+        }
+
+        private static Pen FrozenPen(Color c, double thickness)
+        {
+            var pen = new Pen(new SolidColorBrush(c), thickness);
+            pen.Brush.Freeze();
+            pen.Freeze();
+            return pen;
+        }
+
+        // Green-to-amber-to-red gradient keyed on mine probability. Two-stop
+        // interpolation (safe→mid for p≤0.5, mid→mine for p>0.5) so the
+        // middle reads cleanly as "uncertain" rather than a murky brown.
+        private static Brush ProbabilityColorFor(double probability)
+        {
+            var p = Math.Min(1.0, Math.Max(0.0, probability));
+            Color c = p <= 0.5
+                ? Lerp(ProbSafeColor, ProbMidColor, p * 2.0)
+                : Lerp(ProbMidColor, ProbMineColor, (p - 0.5) * 2.0);
+            var brush = new SolidColorBrush(c);
+            brush.Freeze();
+            return brush;
+        }
+
+        private static Color Lerp(Color a, Color b, double t)
+        {
+            byte L(byte x, byte y) => (byte)(x + (y - x) * t);
+            return Color.FromRgb(L(a.R, b.R), L(a.G, b.G), L(a.B, b.B));
         }
 
         private void OnMouseUpHandler(object sender, MouseButtonEventArgs e)
