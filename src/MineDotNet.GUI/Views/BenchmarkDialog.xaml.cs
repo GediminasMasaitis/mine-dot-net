@@ -31,6 +31,9 @@ namespace MineDotNet.GUI.Views
             ResultsList.ItemsSource = _resultRows;
             // Start with one reasonable default so the Run button works out of the box.
             _solverRows.Add(new SolverRow(new BenchmarkSolverConfig("Default", new BorderSeparationSolverSettings())));
+            // Inherit the main window's solver choice as the starting point — user
+            // can override per-run via this checkbox if they want A/B timing.
+            DirectSolverCheck.IsChecked = SolverSelection.UseDirect;
             UpdateButtonStates();
             Closing += OnClosing;
         }
@@ -217,6 +220,7 @@ namespace MineDotNet.GUI.Views
             PumpDispatcher();
 
             var sw = Stopwatch.StartNew();
+            var uiPumpMs = 0.0;
 
             // Buffer log lines in memory during the run and flush to the TextBox
             // on a throttled schedule (~20fps) via PumpDispatcher(). Appending
@@ -294,9 +298,12 @@ namespace MineDotNet.GUI.Views
             void PumpIfDue()
             {
                 if (Environment.TickCount - lastFlushTick <= 50) return;
+                var pumpSw = Stopwatch.StartNew();
+                ElapsedLabel.Text = $"{sw.Elapsed:mm\\:ss}";
                 if (liveLog) FlushLog();
                 UpdateCharts();
                 PumpDispatcher();
+                uiPumpMs += pumpSw.Elapsed.TotalMilliseconds;
                 lastFlushTick = Environment.TickCount;
             }
 
@@ -310,9 +317,10 @@ namespace MineDotNet.GUI.Views
                 PumpIfDue();
             };
 
+            BenchmarkRunner runner = null;
             try
             {
-                var runner = new BenchmarkRunner();
+                runner = new BenchmarkRunner { UseDirectSolver = DirectSolverCheck.IsChecked == true };
                 runner.Run(config, onProgress, () => _stopRequested);
                 if (_stopRequested)
                 {
@@ -335,6 +343,39 @@ namespace MineDotNet.GUI.Views
                 UpdateCharts();
                 sw.Stop();
                 ElapsedLabel.Text = $"{sw.Elapsed:mm\\:ss} total";
+
+                // Where did the time go? Runner categories + UI-pump time we track
+                // here + remainder ("other") should sum to wall time. Prints
+                // directly into the LogBox (log-off mode clears the placeholder
+                // so the breakdown still shows).
+                if (runner != null)
+                {
+                    var total = sw.Elapsed.TotalMilliseconds;
+                    var solver = runner.TotalSolverMs;
+                    var init = runner.TotalInitMs;
+                    var snap = runner.TotalSnapshotMs;
+                    var build = runner.TotalEngineBuildMs;
+                    var ops = runner.TotalEngineOpsMs;
+                    var guesser = runner.TotalGuesserMs;
+                    var other = Math.Max(0, total - solver - init - snap - build - ops - guesser - uiPumpMs);
+                    string Pct(double ms) => total <= 0 ? "   0.0%" : $"{100.0 * ms / total,6:F1}%";
+                    var lines = new StringBuilder();
+                    lines.AppendLine();
+                    lines.AppendLine("────────── timing breakdown ──────────");
+                    lines.AppendLine($"total          {total,9:F0} ms");
+                    lines.AppendLine($"  solver.Solve {solver,9:F0} ms  {Pct(solver)}  ({runner.TotalSolveCalls} calls, {(runner.TotalSolveCalls > 0 ? solver / runner.TotalSolveCalls : 0):F2} ms avg)");
+                    lines.AppendLine($"  solver.Init  {init,9:F0} ms  {Pct(init)}");
+                    lines.AppendLine($"  guesser      {guesser,9:F0} ms  {Pct(guesser)}");
+                    lines.AppendLine($"  gen snapshot {snap,9:F0} ms  {Pct(snap)}");
+                    lines.AppendLine($"  build engine {build,9:F0} ms  {Pct(build)}");
+                    lines.AppendLine($"  engine ops   {ops,9:F0} ms  {Pct(ops)}");
+                    lines.AppendLine($"  ui pump      {uiPumpMs,9:F0} ms  {Pct(uiPumpMs)}");
+                    lines.AppendLine($"  other        {other,9:F0} ms  {Pct(other)}");
+                    if (!liveLog) LogBox.Clear();
+                    LogBox.AppendText(lines.ToString());
+                    LogBox.ScrollToEnd();
+                }
+
                 _running = false;
                 StopBtn.IsEnabled = false;
                 CloseBtn.IsEnabled = true;

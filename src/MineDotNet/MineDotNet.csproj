@@ -4,6 +4,8 @@
     <TargetFramework>net8.0</TargetFramework>
     <LangVersion>12.0</LangVersion>
     <Authors>Gediminas Masaitis</Authors>
+    <!-- DirectSolver P/Invokes into minedotcpp_direct.dll using pinned fixed pointers. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -113,6 +115,15 @@
     <Exec Command="&quot;$(NativeCMakeExe)&quot; --build &quot;$(NativeBuildDir)&quot; --target minedotcpp_umsi --config $(NativeBuildConfig)" />
 
     <!--
+      Also build the shared-library variant so the C# side can opt into a
+      direct P/Invoke path (DirectSolver) instead of piping through UMSI.
+      It's the same sources built with SHARED_LIB + MINE_EXPORTS so the
+      MINE_API macro emits __declspec(dllexport) on its entry points.
+    -->
+    <Message Importance="high" Text="[native] Building minedotcpp_shared ($(NativeBuildConfig))..." />
+    <Exec Command="&quot;$(NativeCMakeExe)&quot; --build &quot;$(NativeBuildDir)&quot; --target minedotcpp_shared --config $(NativeBuildConfig)" />
+
+    <!--
       Binary location varies by generator:
         - MSVC (multi-config):   bin/$(Config)/minedotcpp_umsi.exe
         - Single-config (Make):  bin/minedotcpp_umsi
@@ -134,6 +145,19 @@
       <Content Include="$(NativeBuildDir)\bin\minedotcpp_umsi.exe"
                Condition="Exists('$(NativeBuildDir)\bin\minedotcpp_umsi.exe')"
                Link="minedotcpp_umsi.exe"
+               CopyToOutputDirectory="PreserveNewest"
+               Visible="false" />
+
+      <!-- Shared-lib variant for DirectSolver P/Invoke. Named minedotcpp_direct
+           to avoid clashing with any future static minedotcpp.dll. -->
+      <Content Include="$(NativeBuildDir)\bin\$(NativeBuildConfig)\minedotcpp_direct.dll"
+               Condition="Exists('$(NativeBuildDir)\bin\$(NativeBuildConfig)\minedotcpp_direct.dll')"
+               Link="minedotcpp_direct.dll"
+               CopyToOutputDirectory="PreserveNewest"
+               Visible="false" />
+      <Content Include="$(NativeBuildDir)\bin\libminedotcpp_direct.so"
+               Condition="Exists('$(NativeBuildDir)\bin\libminedotcpp_direct.so')"
+               Link="libminedotcpp_direct.so"
                CopyToOutputDirectory="PreserveNewest"
                Visible="false" />
     </ItemGroup>

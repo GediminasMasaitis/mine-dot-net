@@ -89,6 +89,7 @@
                         <ui:NumberBox x:Name="GamesBox" Value="100" Minimum="1" Maximum="100000" />
 
                         <CheckBox x:Name="LiveLogCheck" Content="Show UMSI log (slower)" IsChecked="True" Margin="0,14,0,0" />
+                        <CheckBox x:Name="DirectSolverCheck" Content="Use direct P/Invoke (skip UMSI)" IsChecked="False" Margin="0,6,0,0" />
                     </StackPanel>
                 </ui:Card>
 

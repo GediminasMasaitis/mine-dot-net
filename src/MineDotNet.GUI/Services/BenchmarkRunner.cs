@@ -21,6 +21,16 @@ namespace MineDotNet.GUI.Services
         // in tens to low hundreds of iterations.
         private const int MaxIterationsPerGame = 1000;
 
+        // Category-level timers, summed across the whole run. Surfaced so the
+        // dialog can print a "where did the time go" block at the end.
+        public double TotalSolverMs { get; private set; }
+        public double TotalInitMs { get; private set; }
+        public double TotalSnapshotMs { get; private set; }
+        public double TotalEngineBuildMs { get; private set; }
+        public double TotalEngineOpsMs { get; private set; }
+        public double TotalGuesserMs { get; private set; }
+        public int TotalSolveCalls { get; private set; }
+
         // Runs the configured benchmark end-to-end on the caller's thread.
         // Each game generates one board; every enabled solver plays the same
         // board so win-rate deltas reflect settings, not RNG luck. Any
@@ -29,6 +39,12 @@ namespace MineDotNet.GUI.Services
         //
         // progress fires after each solver-on-board completes so the caller
         // can pump UI updates between regenerations.
+        // When true, benchmark calls DirectSolver (P/Invoke into the shared
+        // library) instead of ExtSolver (stdio to UMSI). Set via the dialog
+        // checkbox before Run(). Defaults off — ExtSolver path is the proven
+        // one, direct is experimental.
+        public bool UseDirectSolver { get; set; }
+
         public IReadOnlyList<BenchmarkSolverRun> Run(
             BenchmarkConfig config,
             Action<BenchmarkProgressUpdate> onProgress = null,
@@ -70,7 +86,9 @@ namespace MineDotNet.GUI.Services
                     // ms so this granularity is acceptable.
                     if (shouldStop?.Invoke() == true) return runs;
 
+                    var snapSw = Stopwatch.StartNew();
                     var snapshot = GenerateSnapshot(effectiveConfig);
+                    TotalSnapshotMs += snapSw.Elapsed.TotalMilliseconds;
 
                     for (var solverIdx = 0; solverIdx < config.Solvers.Count; solverIdx++)
                     {
@@ -150,26 +168,39 @@ namespace MineDotNet.GUI.Services
             };
         }
 
-        private static BenchmarkGameResult PlayOneGame(BoardSnapshot snapshot, BorderSeparationSolverSettings settings, int gameIdx)
+        private BenchmarkGameResult PlayOneGame(BoardSnapshot snapshot, BorderSeparationSolverSettings settings, int gameIdx)
         {
             var result = new BenchmarkGameResult { GameIndex = gameIdx };
             var sw = Stopwatch.StartNew();
 
+            var buildSw = Stopwatch.StartNew();
             var engine = BuildEngineFromSnapshot(snapshot);
-            ExtSolver.Instance.InitSolver(settings);
+            TotalEngineBuildMs += buildSw.Elapsed.TotalMilliseconds;
+
+            var initSw = Stopwatch.StartNew();
+            if (UseDirectSolver) DirectSolver.Instance.InitSolver(settings);
+            else ExtSolver.Instance.InitSolver(settings);
+            TotalInitMs += initSw.Elapsed.TotalMilliseconds;
 
             var initialOpened = CountOpened(engine.CurrentMap);
 
             for (var iter = 0; iter < MaxIterationsPerGame; iter++)
             {
                 var view = engine.CurrentMap.ToRegularMap();
-                var results = ExtSolver.Instance.Solve(view);
+                var solveSw = Stopwatch.StartNew();
+                var results = UseDirectSolver
+                    ? DirectSolver.Instance.Solve(view)
+                    : ExtSolver.Instance.Solve(view);
+                TotalSolverMs += solveSw.Elapsed.TotalMilliseconds;
+                TotalSolveCalls++;
 
                 // Guesser fallback mirrors AI.AI.Solve / SolveMap in MainWindow so
                 // the benchmark exercises the same play path the user sees.
                 if (!results.Any(x => x.Value.Verdict.HasValue))
                 {
+                    var guessSw = Stopwatch.StartNew();
                     var guess = new LowestProbabilityGuesser().Guess(view, results);
+                    TotalGuesserMs += guessSw.Elapsed.TotalMilliseconds;
                     if (guess != null) results[guess.Coordinate] = guess;
                 }
 
@@ -181,6 +212,7 @@ namespace MineDotNet.GUI.Services
                     break;
                 }
 
+                var opsSw = Stopwatch.StartNew();
                 var hitMine = false;
                 foreach (var r in results)
                 {
@@ -198,6 +230,7 @@ namespace MineDotNet.GUI.Services
                     }
                     if (hitMine) break;
                 }
+                TotalEngineOpsMs += opsSw.Elapsed.TotalMilliseconds;
 
                 if (hitMine)
                 {

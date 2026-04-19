@@ -12,6 +12,7 @@ using MineDotNet.Game;
 using MineDotNet.Game.Models;
 using MineDotNet.GUI.Controls;
 using MineDotNet.GUI.Models;
+using MineDotNet.GUI.Services;
 using Wpf.Ui.Controls;
 
 namespace MineDotNet.GUI.Views
@@ -129,14 +130,24 @@ namespace MineDotNet.GUI.Views
             DisplayResults(map, results);
         }
 
-        // Runs the UMSI solver with the currently configured settings. If no definitive
-        // verdict is produced, append a LowestProbabilityGuesser guess — same fallback
-        // AI.AI.Solve uses internally, so auto-play always has something to advance on.
+        // Runs the solver with the currently configured settings. Routes through
+        // DirectSolver (in-process P/Invoke) or ExtSolver (UMSI stdio child
+        // process) based on SolverSelection.UseDirect — set by the main window's
+        // checkbox. Falls back to the guesser if no definitive verdict is
+        // produced, same as AI.AI.Solve does.
         private IDictionary<Coordinate, SolverResult> SolveMap(IMap map)
         {
-            ExtSolver.Instance.InitSolver(_solverSettings);
             var results = new Dictionary<Coordinate, SolverResult>();
-            foreach (var kv in ExtSolver.Instance.Solve(map)) results[kv.Key] = kv.Value;
+            if (SolverSelection.UseDirect)
+            {
+                DirectSolver.Instance.InitSolver(_solverSettings);
+                foreach (var kv in DirectSolver.Instance.Solve(map)) results[kv.Key] = kv.Value;
+            }
+            else
+            {
+                ExtSolver.Instance.InitSolver(_solverSettings);
+                foreach (var kv in ExtSolver.Instance.Solve(map)) results[kv.Key] = kv.Value;
+            }
 
             if (!results.Any(x => x.Value.Verdict.HasValue))
             {
@@ -150,6 +161,11 @@ namespace MineDotNet.GUI.Views
         {
             var dialog = new SolverSettingsDialog(_solverSettings) { Owner = this };
             if (dialog.ShowDialog() == true) _solverSettings = dialog.GetSettings();
+        }
+
+        private void DirectSolverCheck_OnChanged(object sender, RoutedEventArgs e)
+        {
+            SolverSelection.UseDirect = DirectSolverCheck.IsChecked == true;
         }
 
         private void BenchmarkBtn_Click(object sender, RoutedEventArgs e)
