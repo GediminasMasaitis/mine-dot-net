@@ -286,14 +286,27 @@ namespace MineDotNet.GUI.Views
 
             void FlushLog()
             {
-                string text;
+                // Incremental flush: grab and clear whatever the worker threads
+                // accumulated since the last tick, then append that delta to
+                // the TextBox. Writing only the new slice is O(delta) instead
+                // of O(full-buffer) per flush — at a chatty 20Hz cadence on a
+                // 200K-char buffer, the old "LogBox.Text = fullBuffer" pattern
+                // was moving megabytes per second through WPF layout.
+                string delta;
                 lock (logBufferLock)
                 {
-                    text = logBuffer.Length > MaxLogChars
-                        ? logBuffer.ToString(logBuffer.Length - MaxLogChars, MaxLogChars)
-                        : logBuffer.ToString();
+                    if (logBuffer.Length == 0) return;
+                    delta = logBuffer.ToString();
+                    logBuffer.Clear();
                 }
-                LogBox.Text = text;
+                LogBox.AppendText(delta);
+                // Cap the TextBox content so a long run doesn't grow the text
+                // store unboundedly. Trim the oldest quarter when over cap,
+                // same pattern MainWindow uses.
+                if (LogBox.Text.Length > MaxLogChars)
+                {
+                    LogBox.Text = LogBox.Text.Substring(LogBox.Text.Length - MaxLogChars * 3 / 4);
+                }
                 LogBox.CaretIndex = LogBox.Text.Length;
                 LogBox.ScrollToEnd();
             }
@@ -364,7 +377,6 @@ namespace MineDotNet.GUI.Views
                 ElapsedLabel.Text = $"{sw.Elapsed:mm\\:ss}";
                 if (liveLog) FlushLog();
                 UpdateCharts();
-                PumpDispatcher();
                 uiPumpMs += pumpSw.Elapsed.TotalMilliseconds;
                 lastFlushTick = Environment.TickCount;
             }

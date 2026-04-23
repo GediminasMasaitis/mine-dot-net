@@ -77,15 +77,16 @@ namespace MineDotNet.GUI.Services
             // workers enqueue completion events.
             var totalSolverGames = config.GameCount * config.Solvers.Count * axisValues.Length;
 
-            // Worker 0 reuses ExtSolver.Instance so the common parallelism=1
-            // case doesn't spawn a second UMSI process. Extras get disposed in
-            // the finally. DirectSolver can't actually parallelize — its native
-            // state is process-global — so all workers share the singleton and
-            // its internal lock serializes them.
+            // Worker 0 reuses the appropriate shared singleton so the common
+            // parallelism=1 case doesn't spin up extra native state. Additional
+            // workers get fresh instances (own UMSI subprocess for ExtSolver,
+            // own solver handle for DirectSolver) and are disposed in finally.
+            // Both paths now parallelize: DirectSolver's C++ globals were
+            // refactored into per-handle state (see global_wrappers.cpp).
             var workerCount = Math.Max(1, config.Parallelism);
             var solvers = new ISolver[workerCount];
             var stats = new WorkerStats[workerCount];
-            var ownedExtSolvers = new List<ExtSolver>();
+            var ownedDisposables = new List<IDisposable>();
             try
             {
                 for (var w = 0; w < workerCount; w++)
@@ -93,7 +94,16 @@ namespace MineDotNet.GUI.Services
                     stats[w] = new WorkerStats();
                     if (UseDirectSolver)
                     {
-                        solvers[w] = DirectSolver.Instance;
+                        if (w == 0)
+                        {
+                            solvers[w] = DirectSolver.Instance;
+                        }
+                        else
+                        {
+                            var ds = new DirectSolver();
+                            solvers[w] = ds;
+                            ownedDisposables.Add(ds);
+                        }
                     }
                     else if (w == 0)
                     {
@@ -103,7 +113,7 @@ namespace MineDotNet.GUI.Services
                     {
                         var es = new ExtSolver();
                         solvers[w] = es;
-                        ownedExtSolvers.Add(es);
+                        ownedDisposables.Add(es);
                     }
                 }
 
@@ -190,9 +200,9 @@ namespace MineDotNet.GUI.Services
             }
             finally
             {
-                foreach (var es in ownedExtSolvers)
+                foreach (var d in ownedDisposables)
                 {
-                    try { es.Dispose(); } catch { /* best effort */ }
+                    try { d.Dispose(); } catch { /* best effort */ }
                 }
             }
 

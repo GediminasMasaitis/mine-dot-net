@@ -13,8 +13,12 @@ namespace MineDotNet.AI.Solvers
     // serialization of results, no line-buffered readback. Useful for
     // benchmark runs where the stdio round-trip dominates per-call cost.
     //
-    // Singleton pattern mirrors ExtSolver so existing callers (BenchmarkRunner)
-    // can swap between the two without structural changes.
+    // Each instance owns one native solver handle (create_solver/destroy_solver
+    // in global_wrappers.cpp) with fully independent state — thread pool,
+    // OpenCL context, scratch buffers. That's what lets the benchmark runner
+    // spawn multiple workers, each with its own DirectSolver, and run them
+    // concurrently. The Instance singleton is kept for existing callers
+    // (MainWindow etc.); additional instances are constructed directly.
     public sealed class DirectSolver : ISolver, IDisposable
     {
         public const string Alias = "C++ (direct)";
@@ -27,6 +31,7 @@ namespace MineDotNet.AI.Solvers
 
         private readonly TextMapVisualizer _visualizer = new TextMapVisualizer();
         private readonly object _lock = new object();
+        private IntPtr _handle = IntPtr.Zero;
         private NativeSolverSettings _lastAppliedSettings;
         private bool _settingsApplied;
 
@@ -37,7 +42,9 @@ namespace MineDotNet.AI.Solvers
         private const int MaxResults = 8192;
         private readonly NativeSolverResult[] _resultsBuffer = new NativeSolverResult[MaxResults];
 
-        private DirectSolver() { }
+        // Public so the benchmark runner (and anyone who wants independent
+        // native state) can instantiate workers beyond the shared singleton.
+        public DirectSolver() { }
 
         public void InitSolver(BorderSeparationSolverSettings settings)
         {
@@ -45,11 +52,21 @@ namespace MineDotNet.AI.Solvers
             lock (_lock)
             {
                 var ns = ToNative(settings);
-                // Skip the native call if settings haven't changed since last
-                // init. Saves ~25+ field copies per benchmark game and keeps
-                // the static solver instance reused.
-                if (_settingsApplied && NativeSolverSettings.Equal(ref _lastAppliedSettings, ref ns)) return;
-                init_solver(ns);
+                // Skip re-creating the handle when settings haven't changed
+                // since last init. Saves ~25+ field copies per benchmark game
+                // AND avoids tearing down a fresh solver/thread-pool/OpenCL
+                // context only to build an identical one.
+                if (_settingsApplied && _handle != IntPtr.Zero && NativeSolverSettings.Equal(ref _lastAppliedSettings, ref ns)) return;
+                if (_handle != IntPtr.Zero)
+                {
+                    destroy_solver(_handle);
+                    _handle = IntPtr.Zero;
+                }
+                _handle = create_solver(ns);
+                if (_handle == IntPtr.Zero)
+                {
+                    throw new InvalidOperationException("create_solver returned null handle");
+                }
                 _lastAppliedSettings = ns;
                 _settingsApplied = true;
             }
@@ -60,7 +77,7 @@ namespace MineDotNet.AI.Solvers
             if (map == null) throw new ArgumentNullException(nameof(map));
             lock (_lock)
             {
-                if (!_settingsApplied)
+                if (!_settingsApplied || _handle == IntPtr.Zero)
                 {
                     InitSolver(new BorderSeparationSolverSettings());
                 }
@@ -78,7 +95,7 @@ namespace MineDotNet.AI.Solvers
                     fixed (byte* pText = bytes)
                     fixed (NativeSolverResult* pResults = _resultsBuffer)
                     {
-                        rc = solve((sbyte*)pText, pResults, &count);
+                        rc = solve(_handle, (sbyte*)pText, pResults, &count);
                     }
                 }
                 if (rc != 1) throw new InvalidOperationException($"Native solve returned {rc} (buffer={MaxResults}, requested={count})");
@@ -124,7 +141,18 @@ namespace MineDotNet.AI.Solvers
             }
         }
 
-        public void Dispose() { /* native state is a static singleton inside the dll */ }
+        public void Dispose()
+        {
+            lock (_lock)
+            {
+                if (_handle != IntPtr.Zero)
+                {
+                    destroy_solver(_handle);
+                    _handle = IntPtr.Zero;
+                }
+                _settingsApplied = false;
+            }
+        }
 
         // Mirrors minedotcpp::solvers::solver_settings exactly. Field order,
         // types, and alignment must match the C++ struct — the MSVC default
@@ -279,9 +307,12 @@ namespace MineDotNet.AI.Solvers
         };
 
         [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void init_solver(NativeSolverSettings settings);
+        private static extern IntPtr create_solver(NativeSolverSettings settings);
 
         [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
-        private static extern unsafe int solve(sbyte* map_str, NativeSolverResult* results_buffer, int* buffer_size);
+        private static extern void destroy_solver(IntPtr handle);
+
+        [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
+        private static extern unsafe int solve(IntPtr handle, sbyte* map_str, NativeSolverResult* results_buffer, int* buffer_size);
     }
 }
