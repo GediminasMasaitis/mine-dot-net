@@ -77,13 +77,18 @@ namespace MineDotNet.GUI.Services
             // workers enqueue completion events.
             var totalSolverGames = config.GameCount * config.Solvers.Count * axisValues.Length;
 
-            // Worker 0 reuses the appropriate shared singleton so the common
-            // parallelism=1 case doesn't spin up extra native state. Additional
-            // workers get fresh instances (own UMSI subprocess for ExtSolver,
-            // own solver handle for DirectSolver) and are disposed in finally.
-            // Both paths now parallelize: DirectSolver's C++ globals were
-            // refactored into per-handle state (see global_wrappers.cpp).
+            // ExtSolver: worker 0 reuses the shared singleton (app-wide UMSI
+            // subprocess) so parallelism=1 doesn't spawn a second one;
+            // workers 1..N-1 get fresh subprocesses, disposed in finally.
+            //
+            // DirectSolver: all N workers get fresh instances, each sized to
+            // hw_conc/N internal threads, so the combined pools fit on the
+            // machine. The Instance singleton is kept untouched for MainWindow
+            // (which wants the full hw_conc pool for its one-shot solves).
             var workerCount = Math.Max(1, config.Parallelism);
+            var threadsPerWorker = workerCount > 1
+                ? Math.Max(1, Environment.ProcessorCount / workerCount)
+                : 0; // 0 = let the native default use hardware_concurrency
             var solvers = new ISolver[workerCount];
             var stats = new WorkerStats[workerCount];
             var ownedDisposables = new List<IDisposable>();
@@ -94,13 +99,16 @@ namespace MineDotNet.GUI.Services
                     stats[w] = new WorkerStats();
                     if (UseDirectSolver)
                     {
-                        if (w == 0)
+                        if (workerCount == 1)
                         {
+                            // Single-worker case: reuse the app-shared handle
+                            // configured at hw_conc threads, no need for a
+                            // fresh instance.
                             solvers[w] = DirectSolver.Instance;
                         }
                         else
                         {
-                            var ds = new DirectSolver();
+                            var ds = new DirectSolver(threadsPerWorker);
                             solvers[w] = ds;
                             ownedDisposables.Add(ds);
                         }
@@ -153,14 +161,17 @@ namespace MineDotNet.GUI.Services
                                 {
                                     if (shouldStop?.Invoke() == true) return;
 
-                                    // In a SolverParameter sweep we can't mutate the user's
-                                    // configured settings — clone per-iteration with the
-                                    // picked property overridden to the current axis value.
-                                    var settings = config.SweepAxis == BenchmarkSweepAxis.SolverParameter
-                                                   && !double.IsNaN(axisValue)
-                                                   && !string.IsNullOrEmpty(config.SweepParameterName)
-                                        ? OverrideSetting(config.Solvers[solverIdx].Settings, config.SweepParameterName, axisValue)
-                                        : config.Solvers[solverIdx].Settings;
+                                    // Per-worker settings: start from the
+                                    // user's config, then clone+override when
+                                    // either a SolverParameter sweep is active
+                                    // or we need to cap the work-splitting
+                                    // thread count to the reduced pool size.
+                                    var settings = BuildWorkerSettings(
+                                        config.Solvers[solverIdx].Settings,
+                                        config.SweepAxis,
+                                        config.SweepParameterName,
+                                        axisValue,
+                                        threadsPerWorker);
                                     var result = PlayOneGame(snapshot, settings, gameIdx, solver, workerStats);
                                     queue.Enqueue(new ResultEvent(capturedAxisIdx, solverIdx, result));
                                 }
@@ -263,10 +274,34 @@ namespace MineDotNet.GUI.Services
             return clone;
         }
 
-        // Shallow-copies a settings instance via reflection and writes axisValue
-        // into the named property. Only int/long/double/bool properties are
-        // supported; unknown/unsupported names fall through as a no-op clone.
-        private static BorderSeparationSolverSettings OverrideSetting(BorderSeparationSolverSettings src, string propName, double value)
+        // Builds the per-worker settings: returns the user's instance directly
+        // when no overrides are needed (hot path), otherwise clones once and
+        // applies all overrides to the clone. Overrides currently applied:
+        //   - SolverParameter sweep: override the swept property
+        //   - Oversubscription cap: shrink the work-splitting thread count to
+        //     the per-worker pool size so we don't submit 16 parallel tasks to
+        //     a 2-thread pool.
+        private static BorderSeparationSolverSettings BuildWorkerSettings(
+            BorderSeparationSolverSettings src,
+            BenchmarkSweepAxis sweepAxis,
+            string sweepParameterName,
+            double axisValue,
+            int threadsPerWorker)
+        {
+            var sweepOverride = sweepAxis == BenchmarkSweepAxis.SolverParameter
+                                && !double.IsNaN(axisValue)
+                                && !string.IsNullOrEmpty(sweepParameterName);
+            var capOverride = threadsPerWorker > 0
+                              && src.ValidCombinationSearchMultithreadThreadCount > threadsPerWorker;
+            if (!sweepOverride && !capOverride) return src;
+
+            var clone = CloneSettings(src);
+            if (sweepOverride) SetProperty(clone, sweepParameterName, axisValue);
+            if (capOverride) clone.ValidCombinationSearchMultithreadThreadCount = threadsPerWorker;
+            return clone;
+        }
+
+        private static BorderSeparationSolverSettings CloneSettings(BorderSeparationSolverSettings src)
         {
             var clone = new BorderSeparationSolverSettings();
             foreach (var p in typeof(BorderSeparationSolverSettings).GetProperties())
@@ -274,17 +309,23 @@ namespace MineDotNet.GUI.Services
                 if (!p.CanRead || !p.CanWrite) continue;
                 p.SetValue(clone, p.GetValue(src));
             }
-            var target = typeof(BorderSeparationSolverSettings).GetProperty(propName);
-            if (target == null || !target.CanWrite) return clone;
-            var t = target.PropertyType;
+            return clone;
+        }
+
+        // Writes value into the named property. Only int/long/double/bool are
+        // supported; unknown/unsupported names are silently ignored.
+        private static void SetProperty(BorderSeparationSolverSettings target, string propName, double value)
+        {
+            var prop = typeof(BorderSeparationSolverSettings).GetProperty(propName);
+            if (prop == null || !prop.CanWrite) return;
+            var t = prop.PropertyType;
             object converted;
             if (t == typeof(int)) converted = (int)Math.Round(value);
             else if (t == typeof(long)) converted = (long)Math.Round(value);
             else if (t == typeof(double)) converted = value;
             else if (t == typeof(bool)) converted = value != 0;
-            else return clone;
-            target.SetValue(clone, converted);
-            return clone;
+            else return;
+            prop.SetValue(target, converted);
         }
 
         // Generates one random board and captures enough state (player view +

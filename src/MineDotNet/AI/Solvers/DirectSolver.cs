@@ -34,6 +34,10 @@ namespace MineDotNet.AI.Solvers
         private IntPtr _handle = IntPtr.Zero;
         private NativeSolverSettings _lastAppliedSettings;
         private bool _settingsApplied;
+        // Pool size for the native solver's internal thread pool. 0 = native
+        // default (hardware_concurrency). Set via ctor for benchmark workers
+        // that want hw_conc / parallelism to avoid oversubscription.
+        private readonly int _threadCount;
 
         // 4096 is comfortably above any realistic board's result count
         // (max board ~200×200 = 40k cells, but only border cells appear in
@@ -44,7 +48,15 @@ namespace MineDotNet.AI.Solvers
 
         // Public so the benchmark runner (and anyone who wants independent
         // native state) can instantiate workers beyond the shared singleton.
-        public DirectSolver() { }
+        public DirectSolver() : this(0) { }
+
+        // threadCount = 0 uses the native default (hardware_concurrency).
+        // Pass a smaller value when you're running N solvers in parallel and
+        // want their combined pools to fit on the machine.
+        public DirectSolver(int threadCount)
+        {
+            _threadCount = threadCount;
+        }
 
         public void InitSolver(BorderSeparationSolverSettings settings)
         {
@@ -62,7 +74,7 @@ namespace MineDotNet.AI.Solvers
                     destroy_solver(_handle);
                     _handle = IntPtr.Zero;
                 }
-                _handle = create_solver(ns);
+                _handle = create_solver(ns, _threadCount);
                 if (_handle == IntPtr.Zero)
                 {
                     throw new InvalidOperationException("create_solver returned null handle");
@@ -307,7 +319,7 @@ namespace MineDotNet.AI.Solvers
         };
 
         [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr create_solver(NativeSolverSettings settings);
+        private static extern IntPtr create_solver(NativeSolverSettings settings, int thread_count);
 
         [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
         private static extern void destroy_solver(IntPtr handle);
