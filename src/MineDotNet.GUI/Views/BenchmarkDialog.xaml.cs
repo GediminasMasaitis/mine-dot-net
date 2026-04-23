@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -193,7 +194,7 @@ namespace MineDotNet.GUI.Views
             RunBtn.IsEnabled = _solverRows.Count > 0;
         }
 
-        private void RunBtn_Click(object sender, RoutedEventArgs e)
+        private async void RunBtn_Click(object sender, RoutedEventArgs e)
         {
             if (_solverRows.Count == 0) return;
 
@@ -265,8 +266,6 @@ namespace MineDotNet.GUI.Views
             ProgressBar.Value = 0;
             LogBox.Clear();
 
-            PumpDispatcher();
-
             var sw = Stopwatch.StartNew();
             var uiPumpMs = 0.0;
 
@@ -277,14 +276,23 @@ namespace MineDotNet.GUI.Views
             // tick is much cheaper. Cap buffer growth to keep memory bounded.
             const int MaxLogChars = 200_000;
             var logBuffer = new StringBuilder();
+            // ExtSolver.Logged fires on whichever thread calls Send/Read. With
+            // Parallelism > 1 that's a pool of worker threads racing to append
+            // to logBuffer. Lock guards every read/write so we don't corrupt
+            // the StringBuilder.
+            var logBufferLock = new object();
             var lastFlushTick = Environment.TickCount;
             IReadOnlyList<BenchmarkSolverRun> lastRuns = null;
 
             void FlushLog()
             {
-                var text = logBuffer.Length > MaxLogChars
-                    ? logBuffer.ToString(logBuffer.Length - MaxLogChars, MaxLogChars)
-                    : logBuffer.ToString();
+                string text;
+                lock (logBufferLock)
+                {
+                    text = logBuffer.Length > MaxLogChars
+                        ? logBuffer.ToString(logBuffer.Length - MaxLogChars, MaxLogChars)
+                        : logBuffer.ToString();
+                }
                 LogBox.Text = text;
                 LogBox.CaretIndex = LogBox.Text.Length;
                 LogBox.ScrollToEnd();
@@ -320,17 +328,23 @@ namespace MineDotNet.GUI.Views
             Action<string, bool> logHandler = null;
             if (liveLog)
             {
+                // Handler runs on worker threads — must NOT touch WPF controls
+                // (ElapsedLabel, LogBox, etc.) or call PumpIfDue, which does.
+                // Only append to the shared buffer under lock; the UI-side
+                // PumpIfDue triggered by onProgress handles flushing.
                 logHandler = (line, sent) =>
                 {
-                    logBuffer.Append(sent ? "→ " : "← ").Append(line).Append('\n');
-                    if (logBuffer.Length > MaxLogChars * 2)
+                    lock (logBufferLock)
                     {
-                        // Keep only the tail so memory stays bounded on long runs.
-                        var tail = logBuffer.ToString(logBuffer.Length - MaxLogChars, MaxLogChars);
-                        logBuffer.Clear();
-                        logBuffer.Append(tail);
+                        logBuffer.Append(sent ? "→ " : "← ").Append(line).Append('\n');
+                        if (logBuffer.Length > MaxLogChars * 2)
+                        {
+                            // Keep only the tail so memory stays bounded on long runs.
+                            var tail = logBuffer.ToString(logBuffer.Length - MaxLogChars, MaxLogChars);
+                            logBuffer.Clear();
+                            logBuffer.Append(tail);
+                        }
                     }
-                    PumpIfDue();
                 };
                 ExtSolver.Logged += logHandler;
             }
@@ -371,10 +385,21 @@ namespace MineDotNet.GUI.Views
             };
 
             BenchmarkRunner runner = null;
+            // Marshal progress back to the UI thread. Task.Run puts the runner
+            // and its worker drain loop on the threadpool, so onProgress would
+            // otherwise fire from a background thread; touching WPF from there
+            // would throw. InvokeAsync queues on the UI dispatcher — fire and
+            // forget, UI processes each at its own pace.
+            var uiDispatcher = Dispatcher;
+            Action<BenchmarkProgressUpdate> marshaledOnProgress = update =>
+                uiDispatcher.InvokeAsync(() => onProgress(update));
             try
             {
                 runner = new BenchmarkRunner { UseDirectSolver = DirectSolverCheck.IsChecked == true };
-                runner.Run(config, onProgress, () => _stopRequested);
+                // Run on a threadpool thread so the UI thread stays free to
+                // pump input, paint, and handle queued InvokeAsync callbacks
+                // throughout the whole benchmark.
+                await Task.Run(() => runner.Run(config, marshaledOnProgress, () => _stopRequested));
                 if (_stopRequested)
                 {
                     ProgressLabel.Text = "Stopped";

@@ -51,7 +51,8 @@ namespace MineDotNet.GUI.Services
         public IReadOnlyList<BenchmarkSolverRun> Run(
             BenchmarkConfig config,
             Action<BenchmarkProgressUpdate> onProgress = null,
-            Func<bool> shouldStop = null)
+            Func<bool> shouldStop = null,
+            Action onTick = null)
         {
             // In sweep mode we produce SolverCount × AxisValues.Count runs and
             // iterate the outer loop over axis values, reusing each generated
@@ -160,11 +161,16 @@ namespace MineDotNet.GUI.Services
                     // Drain on the calling thread so onProgress (which touches
                     // WPF in the dialog) runs on the UI thread. 30ms polling
                     // is tight enough for responsive progress without spin.
+                    // onTick fires every iteration — even when the queue is
+                    // empty — so the caller can keep its UI alive during long
+                    // solves that don't enqueue frequently.
                     while (!Task.WaitAll(workers, 30))
                     {
                         completed = DrainQueue(queue, runs, config, totalSolverGames, completed, onProgress);
+                        onTick?.Invoke();
                     }
                     completed = DrainQueue(queue, runs, config, totalSolverGames, completed, onProgress);
+                    onTick?.Invoke();
                 }
 
                 // Fold per-worker timings into the runner-level totals the
