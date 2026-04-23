@@ -80,15 +80,15 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" Margin="0,0,4,0">
                                 <TextBlock x:Name="SweepFromLabel" Text="From" Opacity="0.7" FontSize="12" />
-                                <ui:NumberBox x:Name="SweepFromBox" Value="10" Margin="0,2,0,0" />
+                                <ui:NumberBox x:Name="SweepFromBox" Value="10" Margin="0,2,0,0" ClearButtonEnabled="False" />
                             </StackPanel>
                             <StackPanel Grid.Column="1" Margin="4,0,4,0">
                                 <TextBlock x:Name="SweepToLabel" Text="To" Opacity="0.7" FontSize="12" />
-                                <ui:NumberBox x:Name="SweepToBox" Value="30" Margin="0,2,0,0" />
+                                <ui:NumberBox x:Name="SweepToBox" Value="30" Margin="0,2,0,0" ClearButtonEnabled="False" />
                             </StackPanel>
                             <StackPanel Grid.Column="2" Margin="4,0,0,0">
                                 <TextBlock x:Name="SweepStepLabel" Text="Step" Opacity="0.7" FontSize="12" />
-                                <ui:NumberBox x:Name="SweepStepBox" Value="5" Margin="0,2,0,0" />
+                                <ui:NumberBox x:Name="SweepStepBox" Value="5" Margin="0,2,0,0" ClearButtonEnabled="False" />
                             </StackPanel>
                         </Grid>
 
