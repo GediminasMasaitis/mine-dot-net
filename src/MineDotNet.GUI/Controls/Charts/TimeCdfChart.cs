@@ -9,8 +9,18 @@ namespace MineDotNet.GUI.Controls.Charts
     // Reads as "fraction of games ≤ X ms." Way easier than overlaid histograms
     // when comparing 3+ configs — fast configs hug the left edge, slow tails
     // show as long rightward extensions.
+    //
+    // X-axis is log10 because solve times routinely span 4–5 decades (sub-ms
+    // trivial boards vs. occasional multi-second full enumerations). On a
+    // linear axis a single 100 s outlier compresses the useful 10–100 ms
+    // range into one pixel; log space keeps every decade equally visible.
     internal sealed class TimeCdfChart : ChartBase
     {
+        // Floor for log mapping — games that solve faster than this round up.
+        // 0.1 ms is below the per-call stdio round-trip floor anyway, so the
+        // visual loss is zero.
+        private const double MinMs = 0.1;
+
         protected override void OnRender(DrawingContext dc)
         {
             var w = ActualWidth;
@@ -24,12 +34,23 @@ namespace MineDotNet.GUI.Controls.Charts
             var plotH = h - padT - padB;
             if (plotW <= 4 || plotH <= 4 || Runs.Count == 0) return;
 
-            var maxMs = 0.0;
+            var rawMax = 0.0;
             for (var i = 0; i < Runs.Count; i++)
                 for (var j = 0; j < Runs[i].Games.Count; j++)
-                    if (Runs[i].Games[j].ElapsedMs > maxMs) maxMs = Runs[i].Games[j].ElapsedMs;
-            if (maxMs <= 0) return;
-            maxMs = NiceCeiling(maxMs);
+                    if (Runs[i].Games[j].ElapsedMs > rawMax) rawMax = Runs[i].Games[j].ElapsedMs;
+            if (rawMax <= 0) return;
+
+            // Snap the axis to whole decades so ticks fall at round numbers.
+            var logMin = Math.Log10(MinMs);
+            var logMax = Math.Ceiling(Math.Log10(Math.Max(rawMax, MinMs * 10)));
+            var logRange = logMax - logMin;
+            if (logRange <= 0) return;
+
+            double XForMs(double ms)
+            {
+                var clamped = Math.Max(MinMs, ms);
+                return padL + plotW * (Math.Log10(clamped) - logMin) / logRange;
+            }
 
             for (var p = 0; p <= 100; p += 25)
             {
@@ -43,10 +64,16 @@ namespace MineDotNet.GUI.Controls.Charts
             dc.DrawLine(AxisPen, origin, new Point(padL + plotW, origin.Y));
             dc.DrawLine(AxisPen, origin, new Point(origin.X, padT));
 
-            var t0 = Label("0");
-            dc.DrawText(t0, new Point(padL - t0.Width / 2, origin.Y + 3));
-            var tMax = Label($"{maxMs:F0} ms");
-            dc.DrawText(tMax, new Point(padL + plotW - tMax.Width, origin.Y + 3));
+            // Vertical gridlines + labels at each whole decade (1 ms, 10 ms,
+            // 100 ms, 1 s, 10 s, ...). Labels use compact units past 1000 ms.
+            for (var d = (int)Math.Ceiling(logMin); d <= (int)logMax; d++)
+            {
+                var ms = Math.Pow(10, d);
+                var x = XForMs(ms);
+                dc.DrawLine(GridPen, new Point(x, padT), new Point(x, padT + plotH));
+                var tick = Label(FormatMs(ms));
+                dc.DrawText(tick, new Point(x - tick.Width / 2, origin.Y + 3));
+            }
 
             for (var i = 0; i < Runs.Count; i++)
             {
@@ -61,7 +88,7 @@ namespace MineDotNet.GUI.Controls.Charts
                     ctx.BeginFigure(new Point(padL, padT + plotH), false, false);
                     for (var k = 0; k < n; k++)
                     {
-                        var x = padL + plotW * times[k] / maxMs;
+                        var x = XForMs(times[k]);
                         // Step up at each sample: horizontal to new x at old percentile,
                         // then vertical to new percentile.
                         var yPrev = padT + plotH - plotH * k / (double)n;
@@ -76,6 +103,16 @@ namespace MineDotNet.GUI.Controls.Charts
             }
 
             DrawLegend(dc, padL + plotW + 10, padT + 2, padR - 10);
+        }
+
+        // Compact axis tick labels. Sub-millisecond and sub-second go in ms;
+        // seconds get their own unit so "100 s" reads cleaner than "100000 ms".
+        private static string FormatMs(double ms)
+        {
+            if (ms < 1) return $"{ms:0.##} ms";
+            if (ms < 1000) return $"{ms:0} ms";
+            var s = ms / 1000.0;
+            return s < 10 ? $"{s:0.#} s" : $"{s:0} s";
         }
     }
 }
