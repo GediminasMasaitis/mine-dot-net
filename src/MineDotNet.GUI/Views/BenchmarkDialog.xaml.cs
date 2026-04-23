@@ -90,11 +90,11 @@ namespace MineDotNet.GUI.Views
             {
                 case BenchmarkSweepAxis.Width:
                 case BenchmarkSweepAxis.Height:
-                    SweepFromBox.Value = 10; SweepToBox.Value = 30; SweepStepBox.Value = 5;
+                    SweepFromBox.Value = 10; SweepToBox.Value = 30; SweepStepBox.Value = 1;
                     break;
                 case BenchmarkSweepAxis.MineDensity:
                     // Density values are percent in the UI; we convert on commit.
-                    SweepFromBox.Value = 10; SweepToBox.Value = 30; SweepStepBox.Value = 5;
+                    SweepFromBox.Value = 10; SweepToBox.Value = 30; SweepStepBox.Value = 1;
                     break;
                 case BenchmarkSweepAxis.SolverParameter:
                     // Re-apply param-based presets (centred on the property's
@@ -122,10 +122,12 @@ namespace MineDotNet.GUI.Views
             var current = prop.GetValue(_solverRows[0].Config.Settings);
             double v;
             try { v = Convert.ToDouble(current); } catch { v = 0; }
-            var step = Math.Max(1, Math.Round(Math.Abs(v) / 10));
-            SweepFromBox.Value = Math.Max(0, v - 5 * step);
-            SweepToBox.Value = v + 5 * step;
-            SweepStepBox.Value = step;
+            // Step always defaults to 1 per user preference. From/To centre
+            // on the property's current value with a fixed ±5 window; user
+            // can widen manually for large-valued params.
+            SweepFromBox.Value = Math.Max(0, v - 5);
+            SweepToBox.Value = v + 5;
+            SweepStepBox.Value = 1;
         }
 
         private BenchmarkSweepAxis CurrentSweepAxis()

@@ -72,6 +72,7 @@
                         </UniformGrid>
                         <CheckBox x:Name="DirectSolverCheck"
                                   Content="Direct P/Invoke (skip UMSI)"
+                                  IsChecked="True"
                                   Margin="0,8,0,0"
                                   Checked="DirectSolverCheck_OnChanged"
                                   Unchecked="DirectSolverCheck_OnChanged" />

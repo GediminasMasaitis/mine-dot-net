@@ -88,7 +88,7 @@
                             </StackPanel>
                             <StackPanel Grid.Column="2" Margin="4,0,0,0">
                                 <TextBlock x:Name="SweepStepLabel" Text="Step" Opacity="0.7" FontSize="12" />
-                                <ui:NumberBox x:Name="SweepStepBox" Value="5" Margin="0,2,0,0" ClearButtonEnabled="False" />
+                                <ui:NumberBox x:Name="SweepStepBox" Value="1" Margin="0,2,0,0" ClearButtonEnabled="False" />
                             </StackPanel>
                         </Grid>
 
@@ -96,9 +96,9 @@
                         <ui:NumberBox x:Name="GamesBox" Value="100" Minimum="1" Maximum="100000" />
 
                         <TextBlock Text="Parallelism" Opacity="0.7" FontSize="12" Margin="0,14,0,2" />
-                        <ui:NumberBox x:Name="ParallelismBox" Value="1" Minimum="1" Maximum="64" ClearButtonEnabled="False" />
+                        <ui:NumberBox x:Name="ParallelismBox" Value="12" Minimum="1" Maximum="64" ClearButtonEnabled="False" />
 
-                        <CheckBox x:Name="LiveLogCheck" Content="Show UMSI log (slower)" IsChecked="True" Margin="0,14,0,0" />
+                        <CheckBox x:Name="LiveLogCheck" Content="Show UMSI log (slower)" IsChecked="False" Margin="0,14,0,0" />
                         <CheckBox x:Name="DirectSolverCheck" Content="Use direct P/Invoke (skip UMSI)" IsChecked="False" Margin="0,6,0,0" />
                     </StackPanel>
                 </ui:Card>
