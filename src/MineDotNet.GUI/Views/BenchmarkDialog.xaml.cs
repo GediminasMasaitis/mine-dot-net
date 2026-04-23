@@ -34,8 +34,22 @@ namespace MineDotNet.GUI.Views
             // Inherit the main window's solver choice as the starting point — user
             // can override per-run via this checkbox if they want A/B timing.
             DirectSolverCheck.IsChecked = SolverSelection.UseDirect;
+            // Populate the solver-parameter sweep picker. Only numeric properties
+            // are meaningful to sweep (bools can be A/B'd by adding two solvers).
+            foreach (var name in GetSweepableParameterNames()) ParamBox.Items.Add(name);
+            if (ParamBox.Items.Count > 0) ParamBox.SelectedIndex = 0;
             UpdateButtonStates();
             Closing += OnClosing;
+        }
+
+        private static IEnumerable<string> GetSweepableParameterNames()
+        {
+            foreach (var p in typeof(BorderSeparationSolverSettings).GetProperties())
+            {
+                if (!p.CanRead || !p.CanWrite) continue;
+                var t = p.PropertyType;
+                if (t == typeof(int) || t == typeof(long) || t == typeof(double)) yield return p.Name;
+            }
         }
 
         private void OnClosing(object sender, CancelEventArgs e)
@@ -67,6 +81,7 @@ namespace MineDotNet.GUI.Views
 
             var axis = CurrentSweepAxis();
             SweepPanel.Visibility = axis == BenchmarkSweepAxis.None ? Visibility.Collapsed : Visibility.Visible;
+            ParamPanel.Visibility = axis == BenchmarkSweepAxis.SolverParameter ? Visibility.Visible : Visibility.Collapsed;
 
             // Preset sensible From/To/Step values per axis so the user gets
             // something reasonable on first toggle without having to think.
@@ -80,7 +95,36 @@ namespace MineDotNet.GUI.Views
                     // Density values are percent in the UI; we convert on commit.
                     SweepFromBox.Value = 10; SweepToBox.Value = 30; SweepStepBox.Value = 5;
                     break;
+                case BenchmarkSweepAxis.SolverParameter:
+                    // Re-apply param-based presets (centred on the property's
+                    // current value) now that the param panel is visible.
+                    ApplyParamPresets();
+                    break;
             }
+        }
+
+        private void ParamBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (SweepFromBox == null) return;
+            if (CurrentSweepAxis() == BenchmarkSweepAxis.SolverParameter) ApplyParamPresets();
+        }
+
+        // Pick a starting range centred on the property's current value in the
+        // first configured solver, so the user doesn't have to hunt for a sane
+        // From/To. Bools skip this (the sweep will binarize via OverrideSetting).
+        private void ApplyParamPresets()
+        {
+            var name = ParamBox.SelectedItem as string;
+            if (string.IsNullOrEmpty(name)) return;
+            var prop = typeof(BorderSeparationSolverSettings).GetProperty(name);
+            if (prop == null || _solverRows.Count == 0) return;
+            var current = prop.GetValue(_solverRows[0].Config.Settings);
+            double v;
+            try { v = Convert.ToDouble(current); } catch { v = 0; }
+            var step = Math.Max(1, Math.Round(Math.Abs(v) / 10));
+            SweepFromBox.Value = Math.Max(0, v - 5 * step);
+            SweepToBox.Value = v + 5 * step;
+            SweepStepBox.Value = step;
         }
 
         private BenchmarkSweepAxis CurrentSweepAxis()
@@ -91,15 +135,17 @@ namespace MineDotNet.GUI.Views
                 1 => BenchmarkSweepAxis.Width,
                 2 => BenchmarkSweepAxis.Height,
                 3 => BenchmarkSweepAxis.MineDensity,
+                4 => BenchmarkSweepAxis.SolverParameter,
                 _ => BenchmarkSweepAxis.None
             };
         }
 
-        private static string SweepAxisLabel(BenchmarkSweepAxis a) => a switch
+        private string SweepAxisLabel(BenchmarkSweepAxis a) => a switch
         {
             BenchmarkSweepAxis.Width => "Width",
             BenchmarkSweepAxis.Height => "Height",
             BenchmarkSweepAxis.MineDensity => "Mine density",
+            BenchmarkSweepAxis.SolverParameter => (ParamBox?.SelectedItem as string) ?? "Parameter",
             _ => ""
         };
 
@@ -164,7 +210,8 @@ namespace MineDotNet.GUI.Views
                 // converted to a fraction for the runner in the MineDensity case.
                 SweepFrom = axis == BenchmarkSweepAxis.MineDensity ? (SweepFromBox.Value ?? 0) / 100.0 : (SweepFromBox.Value ?? 0),
                 SweepTo = axis == BenchmarkSweepAxis.MineDensity ? (SweepToBox.Value ?? 0) / 100.0 : (SweepToBox.Value ?? 0),
-                SweepStep = axis == BenchmarkSweepAxis.MineDensity ? (SweepStepBox.Value ?? 1) / 100.0 : (SweepStepBox.Value ?? 1)
+                SweepStep = axis == BenchmarkSweepAxis.MineDensity ? (SweepStepBox.Value ?? 1) / 100.0 : (SweepStepBox.Value ?? 1),
+                SweepParameterName = axis == BenchmarkSweepAxis.SolverParameter ? ParamBox.SelectedItem as string : null
             };
 
             _resultRows.Clear();

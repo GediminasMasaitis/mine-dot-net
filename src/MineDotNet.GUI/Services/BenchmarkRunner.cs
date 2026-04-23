@@ -94,7 +94,15 @@ namespace MineDotNet.GUI.Services
                     {
                         if (shouldStop?.Invoke() == true) return runs;
 
-                        var result = PlayOneGame(snapshot, config.Solvers[solverIdx].Settings, gameIdx);
+                        // In a SolverParameter sweep we can't mutate the user's
+                        // configured settings — clone per-iteration with the
+                        // picked property overridden to the current axis value.
+                        var settings = config.SweepAxis == BenchmarkSweepAxis.SolverParameter
+                                       && !double.IsNaN(axisValue)
+                                       && !string.IsNullOrEmpty(config.SweepParameterName)
+                            ? OverrideSetting(config.Solvers[solverIdx].Settings, config.SweepParameterName, axisValue)
+                            : config.Solvers[solverIdx].Settings;
+                        var result = PlayOneGame(snapshot, settings, gameIdx);
                         var runIdxInList = axisIdx * config.Solvers.Count + solverIdx;
                         var run = runs[runIdxInList];
                         run.Games.Add(result);
@@ -137,7 +145,33 @@ namespace MineDotNet.GUI.Services
                 case BenchmarkSweepAxis.Width: clone.Width = Math.Max(1, (int)Math.Round(axisValue)); break;
                 case BenchmarkSweepAxis.Height: clone.Height = Math.Max(1, (int)Math.Round(axisValue)); break;
                 case BenchmarkSweepAxis.MineDensity: clone.MineDensity = Math.Min(0.99, Math.Max(0.01, axisValue)); break;
+                // SolverParameter sweeps leave board dims alone — the per-solver
+                // settings clone happens inside the inner loop via OverrideSetting.
             }
+            return clone;
+        }
+
+        // Shallow-copies a settings instance via reflection and writes axisValue
+        // into the named property. Only int/long/double/bool properties are
+        // supported; unknown/unsupported names fall through as a no-op clone.
+        private static BorderSeparationSolverSettings OverrideSetting(BorderSeparationSolverSettings src, string propName, double value)
+        {
+            var clone = new BorderSeparationSolverSettings();
+            foreach (var p in typeof(BorderSeparationSolverSettings).GetProperties())
+            {
+                if (!p.CanRead || !p.CanWrite) continue;
+                p.SetValue(clone, p.GetValue(src));
+            }
+            var target = typeof(BorderSeparationSolverSettings).GetProperty(propName);
+            if (target == null || !target.CanWrite) return clone;
+            var t = target.PropertyType;
+            object converted;
+            if (t == typeof(int)) converted = (int)Math.Round(value);
+            else if (t == typeof(long)) converted = (long)Math.Round(value);
+            else if (t == typeof(double)) converted = value;
+            else if (t == typeof(bool)) converted = value != 0;
+            else return clone;
+            target.SetValue(clone, converted);
             return clone;
         }
 

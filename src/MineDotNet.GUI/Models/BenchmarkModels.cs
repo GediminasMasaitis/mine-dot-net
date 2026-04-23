@@ -77,7 +77,11 @@ namespace MineDotNet.GUI.Models
         None,
         Width,
         Height,
-        MineDensity
+        MineDensity,
+        // Sweeps one numeric property of BorderSeparationSolverSettings across
+        // SweepFrom..SweepTo. Board dims stay fixed; each solver in the list
+        // plays the same boards with the picked property overridden per value.
+        SolverParameter
     }
 
     // Full benchmark configuration — everything BenchmarkRunner needs to execute
@@ -98,6 +102,10 @@ namespace MineDotNet.GUI.Models
         public double SweepFrom { get; set; }
         public double SweepTo { get; set; }
         public double SweepStep { get; set; } = 1;
+
+        // Name of the BorderSeparationSolverSettings property being swept when
+        // SweepAxis == SolverParameter. Ignored for all other axes.
+        public string SweepParameterName { get; set; }
 
         // Expand the configured sweep into the concrete list of axis values the
         // runner should iterate over. Clamps step to a sane minimum so a zero /
