@@ -27,9 +27,9 @@ namespace MineDotNet.GUI.Controls
         // bright red for certain mines (100%). Interpolated linearly in RGB
         // so a 20%-ish probability still reads as mostly-green-with-a-warning
         // and a 75% reads as mostly-red — quick visual triage at a glance.
-        private static readonly Color ProbSafeColor = Color.FromRgb(110, 230, 130);
+        private static readonly Color ProbSafeColor = Color.FromRgb(25, 110, 55);
         private static readonly Color ProbMidColor = Color.FromRgb(235, 200, 90);
-        private static readonly Color ProbMineColor = Color.FromRgb(235, 80, 80);
+        private static readonly Color ProbMineColor = Color.FromRgb(155, 40, 50);
         private static readonly Typeface ProbabilityFace = new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
 
         private static Brush Frozen(Color c)
@@ -89,7 +89,12 @@ namespace MineDotNet.GUI.Controls
             var (cellSize, origin) = ComputeLayout();
             if (cellSize <= 0) return;
 
-            var probFontSize = Math.Max(8.0, Math.Min(12.0, cellSize * 0.28));
+            // Scale with cell size so the probability stays readable when the
+            // board is maximized. The 0.8 fit-width factor keeps "100.00%"
+            // (the longest format) from spilling outside the cell — at 7
+            // chars in a bold font, roughly 0.22 × cellSize × 7 ≈ 1.5 cells
+            // wide otherwise.
+            var probFontSize = Math.Max(7.0, Math.Min(cellSize * 0.22, cellSize * 0.8 / 3.5));
             var probFace = ProbabilityFace;
 
             for (var x = 0; x < _map.Width; x++)
@@ -167,13 +172,13 @@ namespace MineDotNet.GUI.Controls
             }
         }
 
-        private static readonly Pen ProbabilityOutlinePen = FrozenPen(Color.FromRgb(18, 18, 22), 1.1);
+        private static readonly Pen ProbabilityOutlinePen = FrozenPen(Color.FromArgb(80, 0, 0, 0), 1.1);
 
         private void DrawProbability(DrawingContext dc, Coordinate coord, Rect rect, Typeface face, double fontSize)
         {
             if (_results == null) return;
             if (!_results.TryGetValue(coord, out var result)) return;
-            var text = $"{result.Probability:##0.00%}";
+            var text = $"{result.Probability:##0.0%}";
             var brush = ProbabilityColorFor(result.Probability);
             var ft = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
                 face, fontSize, brush, VisualTreeHelper.GetDpi(this).PixelsPerDip);
@@ -181,7 +186,11 @@ namespace MineDotNet.GUI.Controls
             // filled text on top. Keeps the colour legible over any cell shade
             // (pale tile, red mine mask, green safe mask) without dimming the
             // fill itself — the outline does the contrast work.
-            var origin = new Point(rect.X + 2, rect.Y + 2);
+            // Centre inside the cell so the text scales visibly with cell
+            // size instead of hugging the top-left corner.
+            var origin = new Point(
+                rect.X + (rect.Width - ft.Width) / 2,
+                rect.Y + (rect.Height - ft.Height) / 2);
             var geom = ft.BuildGeometry(origin);
             dc.DrawGeometry(brush, ProbabilityOutlinePen, geom);
         }
