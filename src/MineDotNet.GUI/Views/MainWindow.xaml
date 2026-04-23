@@ -105,13 +105,11 @@
                                 TickPlacement="None" IsSnapToTickEnabled="True" SmallChange="1" LargeChange="5" />
 
                         <TextBlock Text="Game" FontWeight="SemiBold" FontSize="13" Margin="0,18,0,10" />
-                        <UniformGrid Rows="1" Columns="3">
+                        <UniformGrid Rows="1" Columns="2">
                             <ui:Button x:Name="GenerateBtn" Content="Generate"
                                        HorizontalAlignment="Stretch" Margin="0,0,4,0" Click="GenerateBtn_Click" />
                             <ui:Button x:Name="AutoPlayBtn" Content="Auto play"
-                                       Appearance="Primary" HorizontalAlignment="Stretch" Margin="4,0,4,0" Click="AutoPlayBtn_Click" />
-                            <ui:Button x:Name="ManualPlayBtn" Content="Play"
-                                       HorizontalAlignment="Stretch" Margin="4,0,0,0" Click="ManualPlayBtn_Click" />
+                                       Appearance="Primary" HorizontalAlignment="Stretch" Margin="4,0,0,0" Click="AutoPlayBtn_Click" />
                         </UniformGrid>
                     </StackPanel>
                 </ui:Card>

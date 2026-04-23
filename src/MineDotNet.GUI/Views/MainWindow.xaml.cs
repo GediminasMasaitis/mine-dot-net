@@ -25,7 +25,6 @@ namespace MineDotNet.GUI.Views
         // when applying verdicts since the solver only sees the player-view map.
         private const int MinesMaskIndex = 0;
 
-        private GameManager _manualGame;
         private CancellationTokenSource _autoPlayCts;
         private IDictionary<Coordinate, SolverResult> _lastResults;
         private MinesweeperBoard _board;
@@ -75,31 +74,59 @@ namespace MineDotNet.GUI.Views
             _board?.SetState(map, masks, _lastResults);
         }
 
+        // Board clicks always act on the MapEditor's state. If Mask 0 (the
+        // ground-truth mines) isn't set yet, the first left-click seeds a
+        // fresh game centred on the clicked cell — classic Minesweeper
+        // safe-first-click behaviour. Once Mask 0 exists, every click
+        // rebuilds a disposable engine from (player view + Mask 0) and
+        // writes the post-action state back, exactly like Auto play does
+        // per iteration. One state path for every interaction.
         private void OnBoardCellClick(object sender, BoardCellClickEventArgs e)
         {
-            if (_manualGame == null) return;
+            var playerView = MapEditor.GetMap();
+            if (playerView == null) return;
 
+            var minesMask = MapEditor.GetMask(MinesMaskIndex);
+            var cold = minesMask == null
+                       || minesMask.Width != playerView.Width
+                       || minesMask.Height != playerView.Height;
+
+            if (cold)
+            {
+                // Right-click on an unseeded board does nothing — nothing to
+                // flag. Left-click kicks off a new game.
+                if (e.Button != MouseButton.Left) return;
+
+                var fresh = new GameManager(new GameMapGenerator(), new GameEngine());
+                fresh.StartWithMineDensity(MapWidth, MapHeight, e.Coordinate, true, MineDensity);
+                var post = fresh.CurrentMap.ToRegularMap();
+                MapEditor.SetMap(post);
+                MapEditor.SetMask(MinesMaskIndex, BuildMinesMaskMap(fresh.CurrentMap));
+                MapEditor.ClearMask(1);
+                MapEditor.ClearMask(2);
+                _lastResults = null;
+                _board.SetState(post, MapEditor.GetMasks(), null);
+                return;
+            }
+
+            var manager = BuildEngineFromState(playerView, minesMask);
             var gameOver = false;
             if (e.Button == MouseButton.Right)
             {
-                if (!_manualGame.GameStarted) return;
-                _manualGame.ToggleFlag(e.Coordinate);
+                manager.ToggleFlag(e.Coordinate);
             }
             else if (e.Button == MouseButton.Left)
             {
-                if (!_manualGame.GameStarted)
-                {
-                    _manualGame.StartWithMineDensity(MapWidth, MapHeight, e.Coordinate, true, MineDensity);
-                }
-                else
-                {
-                    gameOver = !_manualGame.OpenCell(e.Coordinate).OpenCorrect;
-                }
+                gameOver = !manager.OpenCell(e.Coordinate).OpenCorrect;
+            }
+            else
+            {
+                return;
             }
 
-            var gameMap = _manualGame.CurrentMap;
-            MapEditor.SetMap(gameMap.ToRegularMap());
-            _board.SetState(gameMap, MapEditor.GetMasks(), null);
+            var updated = manager.CurrentMap.ToRegularMap();
+            MapEditor.SetMap(updated);
+            _board.SetState(updated, MapEditor.GetMasks(), _lastResults);
 
             if (gameOver) System.Windows.MessageBox.Show(this, $"Boom {e.Coordinate}", Title);
         }
@@ -280,21 +307,8 @@ namespace MineDotNet.GUI.Views
             finally { AutoPlayBtn.IsEnabled = true; }
         }
 
-        private void ManualPlayBtn_Click(object sender, RoutedEventArgs e)
-        {
-            _manualGame = new GameManager(new GameMapGenerator(), new GameEngine());
-            // Wipe game-state masks so manual play doesn't inherit mines (mask 0) or
-            // solver verdicts (1/2) from a prior Generate/Solve. Masks 3+ stay.
-            MapEditor.ClearMask(0);
-            MapEditor.ClearMask(1);
-            MapEditor.ClearMask(2);
-            var empty = new Map(MapWidth, MapHeight, null, true, CellState.Filled);
-            SetMapAndMasks(empty, null);
-        }
-
         private void GenerateBtn_Click(object sender, RoutedEventArgs e)
         {
-            _manualGame = null;
             _lastResults = null;
             GenerateFreshGame();
         }
