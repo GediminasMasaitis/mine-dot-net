@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 using MineDotNet.AI.Guessers;
 using MineDotNet.AI.Solvers;
 using MineDotNet.Common;
@@ -29,6 +31,16 @@ namespace MineDotNet.GUI.Views
         private MinesweeperBoard _board;
         private BorderSeparationSolverSettings _solverSettings = new BorderSeparationSolverSettings();
 
+        // ExtSolver.Logged fires on whichever thread is driving the solver —
+        // that's the UI thread for buttons here, but a threadpool worker when
+        // the benchmark runs. Either way, calling Dispatcher.BeginInvoke per
+        // line (old behaviour) floods the UI queue with thousands of O(n)
+        // TextBox appends and locks the whole app. Instead, buffer under a
+        // lock and let a DispatcherTimer flush at a fixed cadence.
+        private readonly StringBuilder _extLogBuffer = new StringBuilder();
+        private readonly object _extLogBufferLock = new object();
+        private DispatcherTimer _extLogFlushTimer;
+
         private double MineDensity => DensitySlider.Value / 100.0;
         private int MapWidth => (int)WidthBox.Value;
         private int MapHeight => (int)HeightBox.Value;
@@ -48,6 +60,12 @@ namespace MineDotNet.GUI.Views
             SetMapAndMasks(defaultMap, null);
 
             ExtSolver.Logged += OnExtSolverLogged;
+            _extLogFlushTimer = new DispatcherTimer(DispatcherPriority.Background)
+            {
+                Interval = TimeSpan.FromMilliseconds(100)
+            };
+            _extLogFlushTimer.Tick += OnExtLogFlushTick;
+            _extLogFlushTimer.Start();
         }
 
         public void SetMapAndMasks(Map map, IList<Mask> masks)
@@ -88,16 +106,36 @@ namespace MineDotNet.GUI.Views
 
         private void OnExtSolverLogged(string line, bool sent)
         {
-            if (!Dispatcher.CheckAccess())
+            // Runs on whichever thread the solver is on. Must not touch WPF
+            // directly — just buffer; the flush timer copies to the TextBox.
+            lock (_extLogBufferLock)
             {
-                Dispatcher.BeginInvoke(new Action<string, bool>(OnExtSolverLogged), line, sent);
-                return;
+                _extLogBuffer.Append(sent ? "→ " : "← ").Append(line).Append(Environment.NewLine);
+                // Cap buffer growth so a chatty benchmark doesn't blow memory.
+                const int MaxBufferChars = 200_000;
+                if (_extLogBuffer.Length > MaxBufferChars * 2)
+                {
+                    var tail = _extLogBuffer.ToString(_extLogBuffer.Length - MaxBufferChars, MaxBufferChars);
+                    _extLogBuffer.Clear();
+                    _extLogBuffer.Append(tail);
+                }
             }
-            LogBox.AppendText((sent ? "→ " : "← ") + line + Environment.NewLine);
+        }
+
+        private void OnExtLogFlushTick(object sender, EventArgs e)
+        {
+            string toAppend;
+            lock (_extLogBufferLock)
+            {
+                if (_extLogBuffer.Length == 0) return;
+                toAppend = _extLogBuffer.ToString();
+                _extLogBuffer.Clear();
+            }
+            LogBox.AppendText(toAppend);
 
             // Trim the oldest quarter once we exceed the cap so a long session can't
             // run away on memory. The scroll stays pinned to the bottom.
-            const int MaxChars = 50000;
+            const int MaxChars = 50_000;
             if (LogBox.Text.Length > MaxChars)
             {
                 LogBox.Text = LogBox.Text.Substring(LogBox.Text.Length - MaxChars * 3 / 4);
