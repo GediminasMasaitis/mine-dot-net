@@ -65,13 +65,22 @@ namespace MineDotNet.GUI.Views
             };
             _extLogFlushTimer.Tick += OnExtLogFlushTick;
             _extLogFlushTimer.Start();
+
+            // Redraw when the user toggles any mask's visibility checkbox.
+            // Preserves the current solver-result overlay so probabilities
+            // stick around across visibility flips.
+            MapEditor.VisibilityChanged += (_, __) => RedrawFromEditor(_lastResults);
         }
 
         public void SetMapAndMasks(Map map, IList<Mask> masks)
         {
             if (map != null) MapEditor.SetMap(map);
             MapEditor.SetMasks(masks);
-            _board?.SetState(map, masks, _lastResults);
+            // Read back from the editor so the board honours the per-mask
+            // visibility checkboxes (SetMasks populates all of them; the
+            // checkboxes are new columns default-checked, so freshly loaded
+            // content is visible unless the user toggled off a column later).
+            _board?.SetState(map, MapEditor.GetVisibleMasks(), _lastResults);
         }
 
         // Board clicks always act on the MapEditor's state. If Mask 0 (the
@@ -105,7 +114,7 @@ namespace MineDotNet.GUI.Views
                 MapEditor.ClearMask(1);
                 MapEditor.ClearMask(2);
                 _lastResults = null;
-                _board.SetState(post, MapEditor.GetMasks(), null);
+                _board.SetState(post, MapEditor.GetVisibleMasks(), null);
                 return;
             }
 
@@ -126,7 +135,7 @@ namespace MineDotNet.GUI.Views
 
             var updated = manager.CurrentMap.ToRegularMap();
             MapEditor.SetMap(updated);
-            _board.SetState(updated, MapEditor.GetMasks(), _lastResults);
+            _board.SetState(updated, MapEditor.GetVisibleMasks(), _lastResults);
 
             if (gameOver) System.Windows.MessageBox.Show(this, $"Boom {e.Coordinate}", Title);
         }
@@ -183,7 +192,7 @@ namespace MineDotNet.GUI.Views
         private void RedrawFromEditor(IDictionary<Coordinate, SolverResult> results = null)
         {
             var map = MapEditor.GetMap();
-            var masks = MapEditor.GetMasks();
+            var masks = MapEditor.GetVisibleMasks();
             _board.SetState(map, masks, results);
         }
 
@@ -327,7 +336,7 @@ namespace MineDotNet.GUI.Views
             MapEditor.SetMask(MinesMaskIndex, mines);
             MapEditor.ClearMask(1);
             MapEditor.ClearMask(2);
-            _board.SetState(playerView, MapEditor.GetMasks(), null);
+            _board.SetState(playerView, MapEditor.GetVisibleMasks(), null);
         }
 
         private static Map BuildMinesMaskMap(GameMap gm)

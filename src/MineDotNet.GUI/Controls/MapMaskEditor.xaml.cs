@@ -21,12 +21,21 @@ namespace MineDotNet.GUI.Controls
         private IPaletteProvider _palette;
 
         private readonly List<TextBox> _maskBoxes = new List<TextBox>();
+        // Parallel to _maskBoxes. Drives whether the mask renders on the board
+        // (GetVisibleMasks filters on it). Default checked — matches old
+        // behaviour of "all masks visible". Toggling fires VisibilityChanged
+        // so MainWindow can repaint.
+        private readonly List<CheckBox> _maskVisibleChecks = new List<CheckBox>();
         private TextBox _mapBox;
         // Tracks the column index offset inside ColumnsPanel: 0 is the map column, then
         // masks. Removing a mask at index N means removing Children at N+1.
 
         private const int MinMaskCount = 7;
         private const double ColumnWidth = 128;
+
+        // Fires when any mask's visibility checkbox toggles. Listeners should
+        // re-render whatever surface consumes GetVisibleMasks().
+        public event EventHandler VisibilityChanged;
 
         public MapMaskEditor()
         {
@@ -53,15 +62,49 @@ namespace MineDotNet.GUI.Controls
 
         private (FrameworkElement panel, TextBox box) CreateColumn(string title, Brush headerColor)
         {
+            var (panel, box, _) = CreateColumnInternal(title, headerColor, includeVisibilityCheck: false);
+            return (panel, box);
+        }
+
+        private (FrameworkElement panel, TextBox box, CheckBox check) CreateMaskColumn(string title, Brush headerColor)
+            => CreateColumnInternal(title, headerColor, includeVisibilityCheck: true);
+
+        private (FrameworkElement panel, TextBox box, CheckBox check) CreateColumnInternal(string title, Brush headerColor, bool includeVisibilityCheck)
+        {
             var dock = new DockPanel { Margin = new Thickness(0, 0, 8, 0), LastChildFill = true, Width = ColumnWidth };
+
+            var headerRow = new Grid { Margin = new Thickness(0, 0, 0, 4) };
+            headerRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            headerRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
             var header = new TextBlock
             {
                 Text = title,
                 FontWeight = FontWeights.SemiBold,
                 FontSize = 11,
                 Foreground = headerColor,
-                Margin = new Thickness(2, 0, 0, 4)
+                Margin = new Thickness(2, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center
             };
+            Grid.SetColumn(header, 0);
+            headerRow.Children.Add(header);
+
+            CheckBox check = null;
+            if (includeVisibilityCheck)
+            {
+                check = new CheckBox
+                {
+                    IsChecked = true,
+                    ToolTip = "Show on board",
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(4, 0, 2, 0)
+                };
+                check.Checked += OnMaskVisibilityToggled;
+                check.Unchecked += OnMaskVisibilityToggled;
+                Grid.SetColumn(check, 1);
+                headerRow.Children.Add(check);
+            }
+
             var box = new TextBox
             {
                 FontFamily = new FontFamily("Cascadia Mono, Consolas"),
@@ -73,10 +116,15 @@ namespace MineDotNet.GUI.Controls
                 TextWrapping = TextWrapping.NoWrap,
                 Foreground = headerColor
             };
-            DockPanel.SetDock(header, Dock.Top);
-            dock.Children.Add(header);
+            DockPanel.SetDock(headerRow, Dock.Top);
+            dock.Children.Add(headerRow);
             dock.Children.Add(box);
-            return (dock, box);
+            return (dock, box, check);
+        }
+
+        private void OnMaskVisibilityToggled(object sender, RoutedEventArgs e)
+        {
+            VisibilityChanged?.Invoke(this, EventArgs.Empty);
         }
 
         private void SetMaskCount(int count)
@@ -87,15 +135,17 @@ namespace MineDotNet.GUI.Controls
                 var idx = _maskBoxes.Count;
                 var color = new SolidColorBrush(_palette.MaskColors[idx]);
                 color.Freeze();
-                var (panel, box) = CreateColumn($"MASK {idx}", color);
+                var (panel, box, check) = CreateMaskColumn($"MASK {idx}", color);
                 ColumnsPanel.Children.Add(panel);
                 _maskBoxes.Add(box);
+                _maskVisibleChecks.Add(check);
             }
             while (_maskBoxes.Count > count)
             {
                 var idx = _maskBoxes.Count - 1;
                 ColumnsPanel.Children.RemoveAt(idx + 1); // +1 for the map column
                 _maskBoxes.RemoveAt(idx);
+                _maskVisibleChecks.RemoveAt(idx);
             }
         }
 
@@ -148,6 +198,23 @@ namespace MineDotNet.GUI.Controls
             foreach (var box in _maskBoxes)
             {
                 var text = box.Text.Replace(";", Environment.NewLine);
+                if (string.IsNullOrWhiteSpace(text)) continue;
+                result.Add(_maskConverter.ConvertToMask(_parser.Parse(text)));
+            }
+            return result;
+        }
+
+        // Like GetMasks, but drops masks whose per-column visibility checkbox
+        // is unchecked. Used by the board render path so "hide" really hides.
+        // Engine/solver callers should keep using GetMasks / GetMask to see
+        // everything regardless of what the user is currently displaying.
+        public IList<Mask> GetVisibleMasks()
+        {
+            var result = new List<Mask>();
+            for (var i = 0; i < _maskBoxes.Count; i++)
+            {
+                if (_maskVisibleChecks[i].IsChecked != true) continue;
+                var text = _maskBoxes[i].Text.Replace(";", Environment.NewLine);
                 if (string.IsNullOrWhiteSpace(text)) continue;
                 result.Add(_maskConverter.ConvertToMask(_parser.Parse(text)));
             }
