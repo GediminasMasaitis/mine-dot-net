@@ -92,6 +92,11 @@ namespace MineDotNet.GUI.Models
         public int Height { get; set; } = 16;
         public double MineDensity { get; set; } = 0.20;
         public int GameCount { get; set; } = 100;
+        // Worker count. 1 = sequential (original behaviour). >1 spawns that
+        // many ExtSolver workers, each owning its own UMSI subprocess; games
+        // are distributed across workers while still sharing the same board
+        // across all configured solvers. DirectSolver stays singleton-locked.
+        public int Parallelism { get; set; } = 1;
         public List<BenchmarkSolverConfig> Solvers { get; set; } = new List<BenchmarkSolverConfig>();
 
         // Sweep settings. When SweepAxis != None, Width/Height/MineDensity on

@@ -51,7 +51,10 @@ namespace MineDotNet.AI.Solvers
         private readonly object _lock = new object();
         private bool _settingsApplied;
 
-        private ExtSolver()
+        // Public ctor so callers (e.g. BenchmarkRunner with Parallelism > 1)
+        // can spin up additional UMSI subprocesses beyond the shared Instance.
+        // Each instance owns one subprocess; Dispose to shut it down.
+        public ExtSolver()
         {
             var exeName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? "minedotcpp_umsi.exe"

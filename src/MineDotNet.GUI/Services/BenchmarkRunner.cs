@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -31,14 +32,16 @@ namespace MineDotNet.GUI.Services
         public double TotalGuesserMs { get; private set; }
         public int TotalSolveCalls { get; private set; }
 
-        // Runs the configured benchmark end-to-end on the caller's thread.
-        // Each game generates one board; every enabled solver plays the same
-        // board so win-rate deltas reflect settings, not RNG luck. Any
-        // parallelism comes from the solver's own settings — we don't layer
-        // a Task.Run on top, which would conflict with ExtSolver's own threading.
+        // Runs the configured benchmark. Every enabled solver plays the same
+        // board per game so win-rate deltas reflect settings, not RNG luck.
         //
-        // progress fires after each solver-on-board completes so the caller
-        // can pump UI updates between regenerations.
+        // Parallelism: when config.Parallelism > 1, games are distributed
+        // across that many workers — each owning its own ExtSolver subprocess.
+        // DirectSolver is a process-global singleton so with UseDirectSolver
+        // every worker shares it under lock (effectively serialized). The
+        // drain-and-onProgress loop runs on the calling thread so the dialog
+        // can touch WPF directly from the progress callback.
+        //
         // When true, benchmark calls DirectSolver (P/Invoke into the shared
         // library) instead of ExtSolver (stdio to UMSI). Set via the dialog
         // checkbox before Run(). Defaults off — ExtSolver path is the proven
@@ -68,60 +71,153 @@ namespace MineDotNet.GUI.Services
                 }
             }
 
-            // How many total "solver-games" we need — one per game per solver
-            // per axis value. Progress reports use this so a sweep of 3 axis
-            // values × 2 solvers × 100 games shows correctly as "300 of 600".
-            var totalGamesAcrossAxes = config.GameCount * axisValues.Length;
+            // Total progress granularity is one tick per solver-game across all
+            // axis values. Finer than per-board, and matches the rate at which
+            // workers enqueue completion events.
+            var totalSolverGames = config.GameCount * config.Solvers.Count * axisValues.Length;
 
-            for (var axisIdx = 0; axisIdx < axisValues.Length; axisIdx++)
+            // Worker 0 reuses ExtSolver.Instance so the common parallelism=1
+            // case doesn't spawn a second UMSI process. Extras get disposed in
+            // the finally. DirectSolver can't actually parallelize — its native
+            // state is process-global — so all workers share the singleton and
+            // its internal lock serializes them.
+            var workerCount = Math.Max(1, config.Parallelism);
+            var solvers = new ISolver[workerCount];
+            var stats = new WorkerStats[workerCount];
+            var ownedExtSolvers = new List<ExtSolver>();
+            try
             {
-                var axisValue = axisValues[axisIdx];
-                var effectiveConfig = ApplySweep(config, axisValue);
-
-                for (var gameIdx = 0; gameIdx < config.GameCount; gameIdx++)
+                for (var w = 0; w < workerCount; w++)
                 {
-                    // Cancellation is polled between games and between solvers — mid-game
-                    // cancellation would need cooperation from ExtSolver, which we don't
-                    // have. A single solve on a reasonable board finishes in hundreds of
-                    // ms so this granularity is acceptable.
-                    if (shouldStop?.Invoke() == true) return runs;
-
-                    var snapSw = Stopwatch.StartNew();
-                    var snapshot = GenerateSnapshot(effectiveConfig);
-                    TotalSnapshotMs += snapSw.Elapsed.TotalMilliseconds;
-
-                    for (var solverIdx = 0; solverIdx < config.Solvers.Count; solverIdx++)
+                    stats[w] = new WorkerStats();
+                    if (UseDirectSolver)
                     {
-                        if (shouldStop?.Invoke() == true) return runs;
-
-                        // In a SolverParameter sweep we can't mutate the user's
-                        // configured settings — clone per-iteration with the
-                        // picked property overridden to the current axis value.
-                        var settings = config.SweepAxis == BenchmarkSweepAxis.SolverParameter
-                                       && !double.IsNaN(axisValue)
-                                       && !string.IsNullOrEmpty(config.SweepParameterName)
-                            ? OverrideSetting(config.Solvers[solverIdx].Settings, config.SweepParameterName, axisValue)
-                            : config.Solvers[solverIdx].Settings;
-                        var result = PlayOneGame(snapshot, settings, gameIdx);
-                        var runIdxInList = axisIdx * config.Solvers.Count + solverIdx;
-                        var run = runs[runIdxInList];
-                        run.Games.Add(result);
-                        switch (result.Outcome)
-                        {
-                            case BenchmarkOutcome.Won: run.Won++; break;
-                            case BenchmarkOutcome.Lost: run.Lost++; break;
-                            case BenchmarkOutcome.Stuck: run.Stuck++; break;
-                        }
-                        run.TotalMs += result.ElapsedMs;
-                        run.TotalIterations += result.Iterations;
-
-                        var gamesCompletedOverall = axisIdx * config.GameCount + gameIdx + 1;
-                        onProgress?.Invoke(new BenchmarkProgressUpdate(gamesCompletedOverall, totalGamesAcrossAxes, solverIdx, result, runs));
+                        solvers[w] = DirectSolver.Instance;
                     }
+                    else if (w == 0)
+                    {
+                        solvers[w] = ExtSolver.Instance;
+                    }
+                    else
+                    {
+                        var es = new ExtSolver();
+                        solvers[w] = es;
+                        ownedExtSolvers.Add(es);
+                    }
+                }
+
+                var completed = 0;
+
+                for (var axisIdx = 0; axisIdx < axisValues.Length; axisIdx++)
+                {
+                    if (shouldStop?.Invoke() == true) break;
+
+                    var axisValue = axisValues[axisIdx];
+                    var effectiveConfig = ApplySweep(config, axisValue);
+                    var capturedAxisIdx = axisIdx;
+                    var nextGameIdx = 0;
+                    var queue = new ConcurrentQueue<ResultEvent>();
+                    var workers = new Task[workerCount];
+
+                    for (var w = 0; w < workerCount; w++)
+                    {
+                        var solver = solvers[w];
+                        var workerStats = stats[w];
+                        workers[w] = Task.Run(() =>
+                        {
+                            // Cancellation polled between games and between
+                            // solvers — mid-solve cancellation would need the
+                            // engine's cooperation.
+                            while (true)
+                            {
+                                if (shouldStop?.Invoke() == true) return;
+                                var gameIdx = Interlocked.Increment(ref nextGameIdx) - 1;
+                                if (gameIdx >= config.GameCount) return;
+
+                                var snapSw = Stopwatch.StartNew();
+                                var snapshot = GenerateSnapshot(effectiveConfig);
+                                workerStats.SnapshotMs += snapSw.Elapsed.TotalMilliseconds;
+
+                                for (var solverIdx = 0; solverIdx < config.Solvers.Count; solverIdx++)
+                                {
+                                    if (shouldStop?.Invoke() == true) return;
+
+                                    // In a SolverParameter sweep we can't mutate the user's
+                                    // configured settings — clone per-iteration with the
+                                    // picked property overridden to the current axis value.
+                                    var settings = config.SweepAxis == BenchmarkSweepAxis.SolverParameter
+                                                   && !double.IsNaN(axisValue)
+                                                   && !string.IsNullOrEmpty(config.SweepParameterName)
+                                        ? OverrideSetting(config.Solvers[solverIdx].Settings, config.SweepParameterName, axisValue)
+                                        : config.Solvers[solverIdx].Settings;
+                                    var result = PlayOneGame(snapshot, settings, gameIdx, solver, workerStats);
+                                    queue.Enqueue(new ResultEvent(capturedAxisIdx, solverIdx, result));
+                                }
+                            }
+                        });
+                    }
+
+                    // Drain on the calling thread so onProgress (which touches
+                    // WPF in the dialog) runs on the UI thread. 30ms polling
+                    // is tight enough for responsive progress without spin.
+                    while (!Task.WaitAll(workers, 30))
+                    {
+                        completed = DrainQueue(queue, runs, config, totalSolverGames, completed, onProgress);
+                    }
+                    completed = DrainQueue(queue, runs, config, totalSolverGames, completed, onProgress);
+                }
+
+                // Fold per-worker timings into the runner-level totals the
+                // dialog reads for the end-of-run breakdown. Values are sums
+                // across workers, so at parallelism > 1 the totals can exceed
+                // wall time — that's informative, not a bug.
+                foreach (var s in stats)
+                {
+                    TotalSolverMs += s.SolverMs;
+                    TotalInitMs += s.InitMs;
+                    TotalSnapshotMs += s.SnapshotMs;
+                    TotalEngineBuildMs += s.EngineBuildMs;
+                    TotalEngineOpsMs += s.EngineOpsMs;
+                    TotalGuesserMs += s.GuesserMs;
+                    TotalSolveCalls += s.SolveCalls;
+                }
+            }
+            finally
+            {
+                foreach (var es in ownedExtSolvers)
+                {
+                    try { es.Dispose(); } catch { /* best effort */ }
                 }
             }
 
             return runs;
+        }
+
+        private static int DrainQueue(
+            ConcurrentQueue<ResultEvent> queue,
+            List<BenchmarkSolverRun> runs,
+            BenchmarkConfig config,
+            int totalSolverGames,
+            int completed,
+            Action<BenchmarkProgressUpdate> onProgress)
+        {
+            while (queue.TryDequeue(out var e))
+            {
+                var runIdx = e.AxisIdx * config.Solvers.Count + e.SolverIdx;
+                var run = runs[runIdx];
+                run.Games.Add(e.Result);
+                switch (e.Result.Outcome)
+                {
+                    case BenchmarkOutcome.Won: run.Won++; break;
+                    case BenchmarkOutcome.Lost: run.Lost++; break;
+                    case BenchmarkOutcome.Stuck: run.Stuck++; break;
+                }
+                run.TotalMs += e.Result.ElapsedMs;
+                run.TotalIterations += e.Result.Iterations;
+                completed++;
+                onProgress?.Invoke(new BenchmarkProgressUpdate(completed, totalSolverGames, e.SolverIdx, e.Result, runs));
+            }
+            return completed;
         }
 
         // Clones the config with only the sweep axis's field replaced by the
@@ -202,19 +298,18 @@ namespace MineDotNet.GUI.Services
             };
         }
 
-        private BenchmarkGameResult PlayOneGame(BoardSnapshot snapshot, BorderSeparationSolverSettings settings, int gameIdx)
+        private BenchmarkGameResult PlayOneGame(BoardSnapshot snapshot, BorderSeparationSolverSettings settings, int gameIdx, ISolver solver, WorkerStats stats)
         {
             var result = new BenchmarkGameResult { GameIndex = gameIdx };
             var sw = Stopwatch.StartNew();
 
             var buildSw = Stopwatch.StartNew();
             var engine = BuildEngineFromSnapshot(snapshot);
-            TotalEngineBuildMs += buildSw.Elapsed.TotalMilliseconds;
+            stats.EngineBuildMs += buildSw.Elapsed.TotalMilliseconds;
 
             var initSw = Stopwatch.StartNew();
-            if (UseDirectSolver) DirectSolver.Instance.InitSolver(settings);
-            else ExtSolver.Instance.InitSolver(settings);
-            TotalInitMs += initSw.Elapsed.TotalMilliseconds;
+            solver.InitSolver(settings);
+            stats.InitMs += initSw.Elapsed.TotalMilliseconds;
 
             var initialOpened = CountOpened(engine.CurrentMap);
 
@@ -222,11 +317,9 @@ namespace MineDotNet.GUI.Services
             {
                 var view = engine.CurrentMap.ToRegularMap();
                 var solveSw = Stopwatch.StartNew();
-                var results = UseDirectSolver
-                    ? DirectSolver.Instance.Solve(view)
-                    : ExtSolver.Instance.Solve(view);
-                TotalSolverMs += solveSw.Elapsed.TotalMilliseconds;
-                TotalSolveCalls++;
+                var results = solver.Solve(view);
+                stats.SolverMs += solveSw.Elapsed.TotalMilliseconds;
+                stats.SolveCalls++;
 
                 // Guesser fallback mirrors AI.AI.Solve / SolveMap in MainWindow so
                 // the benchmark exercises the same play path the user sees.
@@ -234,7 +327,7 @@ namespace MineDotNet.GUI.Services
                 {
                     var guessSw = Stopwatch.StartNew();
                     var guess = new LowestProbabilityGuesser().Guess(view, results);
-                    TotalGuesserMs += guessSw.Elapsed.TotalMilliseconds;
+                    stats.GuesserMs += guessSw.Elapsed.TotalMilliseconds;
                     if (guess != null) results[guess.Coordinate] = guess;
                 }
 
@@ -264,7 +357,7 @@ namespace MineDotNet.GUI.Services
                     }
                     if (hitMine) break;
                 }
-                TotalEngineOpsMs += opsSw.Elapsed.TotalMilliseconds;
+                stats.EngineOpsMs += opsSw.Elapsed.TotalMilliseconds;
 
                 if (hitMine)
                 {
@@ -335,6 +428,36 @@ namespace MineDotNet.GUI.Services
             public int Height { get; set; }
             public Map PlayerView { get; set; }
             public bool[,] Mines { get; set; }
+        }
+
+        // Per-worker timing bucket. Only the owning worker writes to its
+        // instance, so no synchronization is needed during the run; totals
+        // are folded into the runner's fields after all workers finish.
+        private sealed class WorkerStats
+        {
+            public double SolverMs;
+            public double InitMs;
+            public double SnapshotMs;
+            public double EngineBuildMs;
+            public double EngineOpsMs;
+            public double GuesserMs;
+            public int SolveCalls;
+        }
+
+        // Carries a single solver-on-board result from a worker back to the
+        // drain loop. AxisIdx identifies the sweep slot, SolverIdx identifies
+        // which configured solver produced the result.
+        private sealed class ResultEvent
+        {
+            public ResultEvent(int axisIdx, int solverIdx, BenchmarkGameResult result)
+            {
+                AxisIdx = axisIdx;
+                SolverIdx = solverIdx;
+                Result = result;
+            }
+            public int AxisIdx { get; }
+            public int SolverIdx { get; }
+            public BenchmarkGameResult Result { get; }
         }
     }
 

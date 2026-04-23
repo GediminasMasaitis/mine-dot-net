@@ -95,6 +95,9 @@
                         <TextBlock Text="Games per solver" Opacity="0.7" FontSize="12" Margin="0,14,0,2" />
                         <ui:NumberBox x:Name="GamesBox" Value="100" Minimum="1" Maximum="100000" />
 
+                        <TextBlock Text="Parallelism" Opacity="0.7" FontSize="12" Margin="0,14,0,2" />
+                        <ui:NumberBox x:Name="ParallelismBox" Value="1" Minimum="1" Maximum="64" ClearButtonEnabled="False" />
+
                         <CheckBox x:Name="LiveLogCheck" Content="Show UMSI log (slower)" IsChecked="True" Margin="0,14,0,0" />
                         <CheckBox x:Name="DirectSolverCheck" Content="Use direct P/Invoke (skip UMSI)" IsChecked="False" Margin="0,6,0,0" />
                     </StackPanel>

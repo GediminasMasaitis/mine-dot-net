@@ -204,6 +204,7 @@ namespace MineDotNet.GUI.Views
                 Height = (int)HeightBox.Value,
                 MineDensity = DensitySlider.Value / 100.0,
                 GameCount = (int)GamesBox.Value,
+                Parallelism = (int)(ParallelismBox.Value ?? 1),
                 Solvers = _solverRows.Select(r => r.Config).ToList(),
                 SweepAxis = axis,
                 // Density is entered as percent in the UI for all axes but gets
@@ -358,9 +359,14 @@ namespace MineDotNet.GUI.Views
             {
                 _resultRows[update.SolverIndex].Apply(update.LastResult);
                 lastRuns = update.Runs;
+                // GamesCompleted / TotalGames are counted in solver-games now
+                // (one tick per solver finishing one board) — with parallelism
+                // boards complete out of order, so per-solver granularity is
+                // the finest consistent unit.
                 ProgressLabel.Text = $"Game {update.GamesCompleted} of {update.TotalGames}";
-                ProgressBar.Value = 100.0 * (update.GamesCompleted * config.Solvers.Count - (config.Solvers.Count - 1 - update.SolverIndex))
-                                         / (update.TotalGames * config.Solvers.Count);
+                ProgressBar.Value = update.TotalGames > 0
+                    ? 100.0 * update.GamesCompleted / update.TotalGames
+                    : 0;
                 PumpIfDue();
             };
 
