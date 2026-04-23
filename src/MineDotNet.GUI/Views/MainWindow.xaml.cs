@@ -322,6 +322,18 @@ namespace MineDotNet.GUI.Views
             GenerateFreshGame();
         }
 
+        // Clears the board back to the cold-start state: empty filled map at
+        // the current Width/Height, all game-state masks wiped. OnBoardCellClick
+        // treats a missing Mask 0 as "start a fresh game on click", so after
+        // Reset any left-click anywhere seeds a new game with that cell safe.
+        private void ResetBtn_Click(object sender, RoutedEventArgs e)
+        {
+            _autoPlayCts?.Cancel();
+            _lastResults = null;
+            var empty = new Map(MapWidth, MapHeight, null, true, CellState.Filled);
+            SetMapAndMasks(empty, null);
+        }
+
         // Generates a random board at the current W/H/density, seeds the main textbox
         // (player view) and Mask 0 (ground-truth mines), clears stale solver-verdict
         // masks, and re-renders. Shared between Generate and Auto play's cold start.
