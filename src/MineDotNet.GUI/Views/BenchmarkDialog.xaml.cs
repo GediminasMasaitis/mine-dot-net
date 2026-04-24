@@ -103,6 +103,7 @@ namespace MineDotNet.GUI.Views
                 var chart = desc.Factory();
                 chart.Margin = new Thickness(4);
                 if (chart is SweepLineChart sweep) sweep.AxisName = _currentAxisLabel;
+                if (chart is IterationsSurfaceChart surface) surface.AxisName = _currentAxisLabel;
                 if (_lastRuns != null && _solverColors != null)
                 {
                     chart.SetRuns(_lastRuns, _solverColors);
