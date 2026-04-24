@@ -112,6 +112,11 @@ namespace MineDotNet.GUI.Views
                     heatmap.AxisNameA = _currentAxisLabel;
                     heatmap.AxisNameB = _currentAxisLabelB;
                 }
+                if (chart is MetricSurface3DChart metricSurf)
+                {
+                    metricSurf.AxisNameA = _currentAxisLabel;
+                    metricSurf.AxisNameB = _currentAxisLabelB;
+                }
                 if (_lastRuns != null && _solverColors != null)
                 {
                     chart.SetRuns(_lastRuns, _solverColors);
