@@ -81,22 +81,29 @@ namespace MineDotNet.GUI.Controls.Charts
             return p;
         }
 
-        // Legend at the given top-left anchor, one swatch + name per solver.
-        // Returns the used vertical extent so callers can avoid overlap.
+        // Legend at the given top-left anchor. Dedupes by solver name so a
+        // sweep (which produces one run per solver × axis-value, all sharing
+        // the solver's name) shows one row per solver instead of tens of
+        // identical "Default" entries that overflow the chart bounds. Returns
+        // the used vertical extent so callers can avoid overlap.
         protected double DrawLegend(DrawingContext dc, double x, double y, double maxWidth)
         {
             const double swatch = 9;
             const double row = 14;
+            var seen = new HashSet<string>();
+            var drawn = 0;
             for (var i = 0; i < Runs.Count; i++)
             {
-                var yy = y + i * row;
+                if (!seen.Add(Runs[i].Name)) continue;
+                var yy = y + drawn * row;
                 dc.DrawRectangle(SolverBrush(i), null, new Rect(x, yy + 1, swatch, swatch));
                 var name = Label(Runs[i].Name);
                 var maxTextW = maxWidth - swatch - 4;
                 if (name.Width > maxTextW) name.MaxTextWidth = Math.Max(10, maxTextW);
                 dc.DrawText(name, new Point(x + swatch + 4, yy - 2));
+                drawn++;
             }
-            return Runs.Count * row;
+            return drawn * row;
         }
 
         private static Brush Frozen(Color c) { var b = new SolidColorBrush(c); b.Freeze(); return b; }

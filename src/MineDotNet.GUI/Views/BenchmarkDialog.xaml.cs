@@ -12,9 +12,11 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using System.Collections.Generic;
 using MineDotNet.AI.Solvers;
+using MineDotNet.GUI.Controls.Charts;
 using MineDotNet.GUI.Models;
 using MineDotNet.GUI.Services;
 using Wpf.Ui.Controls;
+using MenuItem = System.Windows.Controls.MenuItem;
 
 namespace MineDotNet.GUI.Views
 {
@@ -24,6 +26,16 @@ namespace MineDotNet.GUI.Views
         private readonly ObservableCollection<ResultRow> _resultRows = new ObservableCollection<ResultRow>();
         private bool _stopRequested;
         private bool _running;
+
+        // Dynamic chart panel state. Any time the user toggles a chart in the
+        // ChartPickerMenu (or a run starts/ends), we tear down ChartsPanel and
+        // rebuild it from _selectedCharts. The cached _lastRuns/_solverColors/
+        // _currentAxisLabel let newly-added charts paint immediately without
+        // waiting for the next progress tick.
+        private readonly HashSet<ChartDescriptor> _selectedCharts = new HashSet<ChartDescriptor>();
+        private IReadOnlyList<BenchmarkSolverRun> _lastRuns;
+        private IReadOnlyList<Color> _solverColors;
+        private string _currentAxisLabel = "";
 
         public BenchmarkDialog()
         {
@@ -39,8 +51,64 @@ namespace MineDotNet.GUI.Views
             // are meaningful to sweep (bools can be A/B'd by adding two solvers).
             foreach (var name in GetSweepableParameterNames()) ParamBox.Items.Add(name);
             if (ParamBox.Items.Count > 0) ParamBox.SelectedIndex = 0;
+            BuildChartPickerMenu();
+            ApplyChartSelection();
             UpdateButtonStates();
             Closing += OnClosing;
+        }
+
+        // Default chart selection mirrors the old hardcoded fixed-mode trio —
+        // Outcomes, Solve time CDF, Win rate vs avg time. User can add sweep
+        // charts (or anything else) via the picker menu, live.
+        private void BuildChartPickerMenu()
+        {
+            foreach (var desc in ChartRegistry.All.Take(3)) _selectedCharts.Add(desc);
+
+            foreach (var desc in ChartRegistry.All)
+            {
+                var mi = new MenuItem
+                {
+                    Header = desc.DisplayName,
+                    IsCheckable = true,
+                    IsChecked = _selectedCharts.Contains(desc),
+                    StaysOpenOnClick = true,
+                    Tag = desc
+                };
+                mi.Checked += OnChartPickerToggled;
+                mi.Unchecked += OnChartPickerToggled;
+                ChartPickerMenu.Items.Add(mi);
+            }
+        }
+
+        private void OnChartPickerToggled(object sender, RoutedEventArgs e)
+        {
+            var mi = (MenuItem)sender;
+            var desc = (ChartDescriptor)mi.Tag;
+            if (mi.IsChecked) _selectedCharts.Add(desc);
+            else _selectedCharts.Remove(desc);
+            ApplyChartSelection();
+        }
+
+        // Rebuild ChartsPanel's children from the current selection. Iterate
+        // the registry (not the set) so chart order is stable regardless of
+        // the order the user checked boxes. Paints freshly-added charts
+        // immediately from the last-seen data so the user sees context even
+        // if no progress tick has fired yet.
+        private void ApplyChartSelection()
+        {
+            ChartsPanel.Children.Clear();
+            foreach (var desc in ChartRegistry.All)
+            {
+                if (!_selectedCharts.Contains(desc)) continue;
+                var chart = desc.Factory();
+                chart.Margin = new Thickness(4);
+                if (chart is SweepLineChart sweep) sweep.AxisName = _currentAxisLabel;
+                if (_lastRuns != null && _solverColors != null)
+                {
+                    chart.SetRuns(_lastRuns, _solverColors);
+                }
+                ChartsPanel.Children.Add(chart);
+            }
         }
 
         private static IEnumerable<string> GetSweepableParameterNames()
@@ -221,25 +289,17 @@ namespace MineDotNet.GUI.Views
             _resultRows.Clear();
             foreach (var cfg in config.Solvers) _resultRows.Add(new ResultRow(cfg.Name));
 
-            // Switch which chart set is visible based on sweep mode. Sweep charts
-            // want (solver × axis-value) series; fixed charts want single-point
-            // per solver. Showing the wrong set draws nothing useful.
             var inSweep = axis != BenchmarkSweepAxis.None;
-            FixedChartsPanel.Visibility = inSweep ? Visibility.Collapsed : Visibility.Visible;
-            SweepChartsPanel.Visibility = inSweep ? Visibility.Visible : Visibility.Collapsed;
 
-            // Propagate the axis label so the sweep charts show something better
-            // than "Parameter" in their titles and x-axis ticks.
-            var axisLabel = SweepAxisLabel(axis);
-            WinRateSweepChart.AxisName = axisLabel;
-            AvgTimeSweepChart.AxisName = axisLabel;
-            AvgIterationsSweepChart.AxisName = axisLabel;
-
-            // Reset chart state too — otherwise a previous stopped run leaves its
-            // data visible until the first game of the new run finishes and fires
-            // the next progress update.
+            // Seed the chart panel with empty runs so the previous run's data
+            // doesn't linger if the user hits Run again. Sweep mode creates
+            // one (solver × axis-value) run per combination; fixed mode one
+            // per solver. Either shape works for every chart in the registry
+            // — fixed-only charts ignore axis values, sweep-only charts read
+            // them.
             var palette = IOCC.GetService<IPaletteProvider>();
-            var solverColors = palette.MaskColors;
+            _solverColors = palette.MaskColors;
+            _currentAxisLabel = SweepAxisLabel(axis);
             var emptyRuns = new List<BenchmarkSolverRun>();
             if (inSweep)
             {
@@ -252,12 +312,8 @@ namespace MineDotNet.GUI.Views
                 for (var i = 0; i < config.Solvers.Count; i++)
                     emptyRuns.Add(new BenchmarkSolverRun(i, config.Solvers[i].Name));
             }
-            OutcomeChart.SetRuns(emptyRuns, solverColors);
-            CdfChart.SetRuns(emptyRuns, solverColors);
-            ScatterChart.SetRuns(emptyRuns, solverColors);
-            WinRateSweepChart.SetRuns(emptyRuns, solverColors);
-            AvgTimeSweepChart.SetRuns(emptyRuns, solverColors);
-            AvgIterationsSweepChart.SetRuns(emptyRuns, solverColors);
+            _lastRuns = emptyRuns;
+            ApplyChartSelection();
 
             _stopRequested = false;
             _running = true;
@@ -284,7 +340,6 @@ namespace MineDotNet.GUI.Views
             // the StringBuilder.
             var logBufferLock = new object();
             var lastFlushTick = Environment.TickCount;
-            IReadOnlyList<BenchmarkSolverRun> lastRuns = null;
 
             void FlushLog()
             {
@@ -313,23 +368,16 @@ namespace MineDotNet.GUI.Views
                 LogBox.ScrollToEnd();
             }
 
-            // Push the latest runs into whichever chart set is active. Called
-            // from the same throttled window as the log flush so we don't redraw
-            // every game.
+            // Push the latest runs into every chart currently in the panel.
+            // Charts that aren't relevant to the current mode (e.g. sweep
+            // charts during a non-sweep run) render empty, which is fine —
+            // the user chose to display them.
             void UpdateCharts()
             {
-                if (lastRuns == null) return;
-                if (inSweep)
+                if (_lastRuns == null || _solverColors == null) return;
+                foreach (var child in ChartsPanel.Children)
                 {
-                    WinRateSweepChart.SetRuns(lastRuns, solverColors);
-                    AvgTimeSweepChart.SetRuns(lastRuns, solverColors);
-                    AvgIterationsSweepChart.SetRuns(lastRuns, solverColors);
-                }
-                else
-                {
-                    OutcomeChart.SetRuns(lastRuns, solverColors);
-                    CdfChart.SetRuns(lastRuns, solverColors);
-                    ScatterChart.SetRuns(lastRuns, solverColors);
+                    if (child is ChartBase chart) chart.SetRuns(_lastRuns, _solverColors);
                 }
             }
 
@@ -386,7 +434,7 @@ namespace MineDotNet.GUI.Views
             Action<BenchmarkProgressUpdate> onProgress = update =>
             {
                 _resultRows[update.SolverIndex].Apply(update.LastResult);
-                lastRuns = update.Runs;
+                _lastRuns = update.Runs;
                 // GamesCompleted / TotalGames are counted in solver-games now
                 // (one tick per solver finishing one board) — with parallelism
                 // boards complete out of order, so per-solver granularity is

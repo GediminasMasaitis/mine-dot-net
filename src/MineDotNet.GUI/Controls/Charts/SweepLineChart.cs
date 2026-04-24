@@ -13,6 +13,11 @@ namespace MineDotNet.GUI.Controls.Charts
     // look consistent — only the title, y-label, and extractor differ.
     internal abstract class SweepLineChart : ChartBase
     {
+        // Human-readable name of the swept axis (e.g. "Mine density",
+        // "GiveUpFromSize"). Used in the title/x-label. Shared here so the
+        // dialog can set it uniformly after swapping charts in/out dynamically.
+        public string AxisName { get; set; } = "Parameter";
+
         protected abstract string ChartTitle { get; }
         protected abstract string XAxisLabel { get; }
         protected abstract string YAxisFormat { get; }       // "F0", "F1", etc.
@@ -139,7 +144,6 @@ namespace MineDotNet.GUI.Controls.Charts
 
     internal sealed class WinRateSweepChart : SweepLineChart
     {
-        public string AxisName { get; set; } = "Parameter";
         protected override string ChartTitle => $"Win rate vs {AxisName.ToLowerInvariant()}";
         protected override string XAxisLabel => AxisName;
         protected override string YAxisFormat => "F0";
@@ -150,7 +154,6 @@ namespace MineDotNet.GUI.Controls.Charts
 
     internal sealed class AvgTimeSweepChart : SweepLineChart
     {
-        public string AxisName { get; set; } = "Parameter";
         protected override string ChartTitle => $"Avg time vs {AxisName.ToLowerInvariant()}";
         protected override string XAxisLabel => AxisName;
         protected override string YAxisFormat => "F0";
@@ -161,7 +164,6 @@ namespace MineDotNet.GUI.Controls.Charts
 
     internal sealed class AvgIterationsSweepChart : SweepLineChart
     {
-        public string AxisName { get; set; } = "Parameter";
         protected override string ChartTitle => $"Avg iterations vs {AxisName.ToLowerInvariant()}";
         protected override string XAxisLabel => AxisName;
         protected override string YAxisFormat => "F1";
