@@ -31,7 +31,7 @@ namespace MineDotNet.GUI.Controls.Charts
             MinHeight = 120;
         }
 
-        public void SetRuns(IReadOnlyList<BenchmarkSolverRun> runs, IReadOnlyList<Color> colors)
+        public virtual void SetRuns(IReadOnlyList<BenchmarkSolverRun> runs, IReadOnlyList<Color> colors)
         {
             Runs = runs ?? Array.Empty<BenchmarkSolverRun>();
             SolverColors = colors ?? Array.Empty<Color>();

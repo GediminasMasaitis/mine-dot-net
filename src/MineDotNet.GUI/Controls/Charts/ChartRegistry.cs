@@ -30,6 +30,7 @@ namespace MineDotNet.GUI.Controls.Charts
             new ChartDescriptor("Iterations CDF",               () => new IterationsCdfChart()),
             new ChartDescriptor("Time per iteration CDF",       () => new TimePerIterationCdfChart()),
             new ChartDescriptor("Iterations by outcome",        () => new OutcomeIterationsCdfChart()),
+            new ChartDescriptor("Iterations surface (3D)",      () => new IterationsSurfaceChart()),
             new ChartDescriptor("Win rate vs avg time",         () => new WinRateVsTimeScatter()),
             new ChartDescriptor("Win rate vs sweep axis",       () => new WinRateSweepChart()),
             new ChartDescriptor("Avg time vs sweep axis",       () => new AvgTimeSweepChart()),
