@@ -44,17 +44,22 @@ namespace MineDotNet.GUI.Models
     // provides the x-axis coordinate. Outside sweep mode AxisValue is null.
     public sealed class BenchmarkSolverRun
     {
-        public BenchmarkSolverRun(int solverIndex, string name, double? axisValue = null)
+        public BenchmarkSolverRun(int solverIndex, string name, double? axisValue = null, double? axisValueB = null)
         {
             SolverIndex = solverIndex;
             Name = name;
             AxisValue = axisValue;
+            AxisValueB = axisValueB;
             Games = new List<BenchmarkGameResult>();
         }
 
         public int SolverIndex { get; }
         public string Name { get; }
         public double? AxisValue { get; }
+        // Secondary sweep axis value. Null unless SweepAxisB is configured —
+        // charts that only understand 1D sweeps can ignore it; the heatmap
+        // and metric surface chart read both.
+        public double? AxisValueB { get; }
         public List<BenchmarkGameResult> Games { get; }
 
         // Back-compat alias for older call sites that indexed by "Index".
@@ -112,17 +117,29 @@ namespace MineDotNet.GUI.Models
         // SweepAxis == SolverParameter. Ignored for all other axes.
         public string SweepParameterName { get; set; }
 
+        // Second sweep axis — orthogonal to the first. When both are set, the
+        // runner iterates (axisA × axisB), producing one BenchmarkSolverRun
+        // per (solver, A, B) triple. Leave as None for a traditional 1D sweep.
+        public BenchmarkSweepAxis SweepAxisB { get; set; } = BenchmarkSweepAxis.None;
+        public double SweepFromB { get; set; }
+        public double SweepToB { get; set; }
+        public double SweepStepB { get; set; } = 1;
+        public string SweepParameterNameB { get; set; }
+
         // Expand the configured sweep into the concrete list of axis values the
         // runner should iterate over. Clamps step to a sane minimum so a zero /
         // negative step doesn't turn the benchmark into an infinite loop.
-        public IReadOnlyList<double> SweepValues()
+        public IReadOnlyList<double> SweepValues() => ExpandSweep(SweepAxis, SweepFrom, SweepTo, SweepStep);
+        public IReadOnlyList<double> SweepValuesB() => ExpandSweep(SweepAxisB, SweepFromB, SweepToB, SweepStepB);
+
+        private static IReadOnlyList<double> ExpandSweep(BenchmarkSweepAxis axis, double from, double to, double step)
         {
-            if (SweepAxis == BenchmarkSweepAxis.None) return Array.Empty<double>();
-            var step = Math.Max(SweepStep, SweepAxis == BenchmarkSweepAxis.MineDensity ? 0.001 : 1);
-            var from = Math.Min(SweepFrom, SweepTo);
-            var to = Math.Max(SweepFrom, SweepTo);
+            if (axis == BenchmarkSweepAxis.None) return Array.Empty<double>();
+            step = Math.Max(step, axis == BenchmarkSweepAxis.MineDensity ? 0.001 : 1);
+            var lo = Math.Min(from, to);
+            var hi = Math.Max(from, to);
             var values = new List<double>();
-            for (var v = from; v <= to + 1e-9; v += step) values.Add(v);
+            for (var v = lo; v <= hi + 1e-9; v += step) values.Add(v);
             return values;
         }
     }

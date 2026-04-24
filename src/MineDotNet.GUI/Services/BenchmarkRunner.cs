@@ -54,28 +54,35 @@ namespace MineDotNet.GUI.Services
             Func<bool> shouldStop = null,
             Action onTick = null)
         {
-            // In sweep mode we produce SolverCount × AxisValues.Count runs and
-            // iterate the outer loop over axis values, reusing each generated
-            // board across solvers at that axis value. In non-sweep mode the
-            // axis-value list degenerates to a single "virtual" entry so the
-            // same control flow handles both cases.
-            var axisValues = config.SweepAxis == BenchmarkSweepAxis.None
+            // Two independent sweep axes. Either (or both) may be None, in
+            // which case that axis collapses to a single "virtual" NaN entry
+            // so the nested loop still runs once. Runs are laid out flat as
+            // [A][B][solver] so a combined sweep index (a*Blen + b) maps into
+            // them via the usual `comboIdx * solverCount + solverIdx`.
+            var axisValuesA = config.SweepAxis == BenchmarkSweepAxis.None
                 ? new[] { double.NaN }
                 : config.SweepValues().ToArray();
+            var axisValuesB = config.SweepAxisB == BenchmarkSweepAxis.None
+                ? new[] { double.NaN }
+                : config.SweepValuesB().ToArray();
 
             var runs = new List<BenchmarkSolverRun>();
-            foreach (var v in axisValues)
+            foreach (var vA in axisValuesA)
             {
-                for (var i = 0; i < config.Solvers.Count; i++)
+                foreach (var vB in axisValuesB)
                 {
-                    runs.Add(new BenchmarkSolverRun(i, config.Solvers[i].Name, double.IsNaN(v) ? (double?)null : v));
+                    for (var i = 0; i < config.Solvers.Count; i++)
+                    {
+                        runs.Add(new BenchmarkSolverRun(
+                            i, config.Solvers[i].Name,
+                            double.IsNaN(vA) ? (double?)null : vA,
+                            double.IsNaN(vB) ? (double?)null : vB));
+                    }
                 }
             }
 
-            // Total progress granularity is one tick per solver-game across all
-            // axis values. Finer than per-board, and matches the rate at which
-            // workers enqueue completion events.
-            var totalSolverGames = config.GameCount * config.Solvers.Count * axisValues.Length;
+            var totalSolverGames = config.GameCount * config.Solvers.Count
+                                   * axisValuesA.Length * axisValuesB.Length;
 
             // ExtSolver: worker 0 reuses the shared singleton (app-wide UMSI
             // subprocess) so parallelism=1 doesn't spawn a second one;
@@ -126,72 +133,65 @@ namespace MineDotNet.GUI.Services
                 }
 
                 var completed = 0;
+                var stopFlag = false;
 
-                for (var axisIdx = 0; axisIdx < axisValues.Length; axisIdx++)
+                for (var aIdx = 0; aIdx < axisValuesA.Length && !stopFlag; aIdx++)
                 {
-                    if (shouldStop?.Invoke() == true) break;
-
-                    var axisValue = axisValues[axisIdx];
-                    var effectiveConfig = ApplySweep(config, axisValue);
-                    var capturedAxisIdx = axisIdx;
-                    var nextGameIdx = 0;
-                    var queue = new ConcurrentQueue<ResultEvent>();
-                    var workers = new Task[workerCount];
-
-                    for (var w = 0; w < workerCount; w++)
+                    var vA = axisValuesA[aIdx];
+                    for (var bIdx = 0; bIdx < axisValuesB.Length && !stopFlag; bIdx++)
                     {
-                        var solver = solvers[w];
-                        var workerStats = stats[w];
-                        workers[w] = Task.Run(() =>
+                        if (shouldStop?.Invoke() == true) { stopFlag = true; break; }
+
+                        var vB = axisValuesB[bIdx];
+                        var effectiveConfig = ApplySweep(config, vA, vB);
+                        // Flat sweep index so the runs list's [A][B][solver]
+                        // layout indexes into place via `combo * solverCount
+                        // + solverIdx` — same shape DrainQueue expects.
+                        var comboIdx = aIdx * axisValuesB.Length + bIdx;
+                        var nextGameIdx = 0;
+                        var queue = new ConcurrentQueue<ResultEvent>();
+                        var workers = new Task[workerCount];
+
+                        for (var w = 0; w < workerCount; w++)
                         {
-                            // Cancellation polled between games and between
-                            // solvers — mid-solve cancellation would need the
-                            // engine's cooperation.
-                            while (true)
+                            var solver = solvers[w];
+                            var workerStats = stats[w];
+                            workers[w] = Task.Run(() =>
                             {
-                                if (shouldStop?.Invoke() == true) return;
-                                var gameIdx = Interlocked.Increment(ref nextGameIdx) - 1;
-                                if (gameIdx >= config.GameCount) return;
-
-                                var snapSw = Stopwatch.StartNew();
-                                var snapshot = GenerateSnapshot(effectiveConfig);
-                                workerStats.SnapshotMs += snapSw.Elapsed.TotalMilliseconds;
-
-                                for (var solverIdx = 0; solverIdx < config.Solvers.Count; solverIdx++)
+                                while (true)
                                 {
                                     if (shouldStop?.Invoke() == true) return;
+                                    var gameIdx = Interlocked.Increment(ref nextGameIdx) - 1;
+                                    if (gameIdx >= config.GameCount) return;
 
-                                    // Per-worker settings: start from the
-                                    // user's config, then clone+override when
-                                    // either a SolverParameter sweep is active
-                                    // or we need to cap the work-splitting
-                                    // thread count to the reduced pool size.
-                                    var settings = BuildWorkerSettings(
-                                        config.Solvers[solverIdx].Settings,
-                                        config.SweepAxis,
-                                        config.SweepParameterName,
-                                        axisValue,
-                                        threadsPerWorker);
-                                    var result = PlayOneGame(snapshot, settings, gameIdx, solver, workerStats);
-                                    queue.Enqueue(new ResultEvent(capturedAxisIdx, solverIdx, result));
+                                    var snapSw = Stopwatch.StartNew();
+                                    var snapshot = GenerateSnapshot(effectiveConfig);
+                                    workerStats.SnapshotMs += snapSw.Elapsed.TotalMilliseconds;
+
+                                    for (var solverIdx = 0; solverIdx < config.Solvers.Count; solverIdx++)
+                                    {
+                                        if (shouldStop?.Invoke() == true) return;
+
+                                        var settings = BuildWorkerSettings(
+                                            config.Solvers[solverIdx].Settings,
+                                            config.SweepAxis, config.SweepParameterName, vA,
+                                            config.SweepAxisB, config.SweepParameterNameB, vB,
+                                            threadsPerWorker);
+                                        var result = PlayOneGame(snapshot, settings, gameIdx, solver, workerStats);
+                                        queue.Enqueue(new ResultEvent(comboIdx, solverIdx, result));
+                                    }
                                 }
-                            }
-                        });
-                    }
+                            });
+                        }
 
-                    // Drain on the calling thread so onProgress (which touches
-                    // WPF in the dialog) runs on the UI thread. 30ms polling
-                    // is tight enough for responsive progress without spin.
-                    // onTick fires every iteration — even when the queue is
-                    // empty — so the caller can keep its UI alive during long
-                    // solves that don't enqueue frequently.
-                    while (!Task.WaitAll(workers, 30))
-                    {
+                        while (!Task.WaitAll(workers, 30))
+                        {
+                            completed = DrainQueue(queue, runs, config, totalSolverGames, completed, onProgress);
+                            onTick?.Invoke();
+                        }
                         completed = DrainQueue(queue, runs, config, totalSolverGames, completed, onProgress);
                         onTick?.Invoke();
                     }
-                    completed = DrainQueue(queue, runs, config, totalSolverGames, completed, onProgress);
-                    onTick?.Invoke();
                 }
 
                 // Fold per-worker timings into the runner-level totals the
@@ -247,13 +247,15 @@ namespace MineDotNet.GUI.Services
             return completed;
         }
 
-        // Clones the config with only the sweep axis's field replaced by the
-        // current axis value. Non-sweep case (NaN) just passes the original
-        // settings through. Density values are clamped to (0, 1) so a bad
-        // sweep input can't crash the map generator.
-        private static BenchmarkConfig ApplySweep(BenchmarkConfig config, double axisValue)
+        // Clones the config with board-dim fields replaced by the current
+        // sweep values. Both axes are processed; NaN on either means that
+        // axis isn't being swept this run. Density values are clamped so a
+        // bad sweep input can't crash the map generator. SolverParameter
+        // sweeps don't touch the config — they go through the per-worker
+        // settings override in BuildWorkerSettings.
+        private static BenchmarkConfig ApplySweep(BenchmarkConfig config, double valueA, double valueB)
         {
-            if (double.IsNaN(axisValue)) return config;
+            if (double.IsNaN(valueA) && double.IsNaN(valueB)) return config;
             var clone = new BenchmarkConfig
             {
                 Width = config.Width,
@@ -263,40 +265,47 @@ namespace MineDotNet.GUI.Services
                 Solvers = config.Solvers,
                 SweepAxis = BenchmarkSweepAxis.None
             };
-            switch (config.SweepAxis)
-            {
-                case BenchmarkSweepAxis.Width: clone.Width = Math.Max(1, (int)Math.Round(axisValue)); break;
-                case BenchmarkSweepAxis.Height: clone.Height = Math.Max(1, (int)Math.Round(axisValue)); break;
-                case BenchmarkSweepAxis.MineDensity: clone.MineDensity = Math.Min(0.99, Math.Max(0.01, axisValue)); break;
-                // SolverParameter sweeps leave board dims alone — the per-solver
-                // settings clone happens inside the inner loop via OverrideSetting.
-            }
+            ApplySweepAxis(clone, config.SweepAxis, valueA);
+            ApplySweepAxis(clone, config.SweepAxisB, valueB);
             return clone;
+        }
+
+        private static void ApplySweepAxis(BenchmarkConfig clone, BenchmarkSweepAxis axis, double value)
+        {
+            if (double.IsNaN(value)) return;
+            switch (axis)
+            {
+                case BenchmarkSweepAxis.Width: clone.Width = Math.Max(1, (int)Math.Round(value)); break;
+                case BenchmarkSweepAxis.Height: clone.Height = Math.Max(1, (int)Math.Round(value)); break;
+                case BenchmarkSweepAxis.MineDensity: clone.MineDensity = Math.Min(0.99, Math.Max(0.01, value)); break;
+                // SolverParameter → per-worker, handled in BuildWorkerSettings.
+            }
         }
 
         // Builds the per-worker settings: returns the user's instance directly
         // when no overrides are needed (hot path), otherwise clones once and
         // applies all overrides to the clone. Overrides currently applied:
-        //   - SolverParameter sweep: override the swept property
+        //   - Up to two SolverParameter sweeps (axis A and/or axis B)
         //   - Oversubscription cap: shrink the work-splitting thread count to
         //     the per-worker pool size so we don't submit 16 parallel tasks to
         //     a 2-thread pool.
         private static BorderSeparationSolverSettings BuildWorkerSettings(
             BorderSeparationSolverSettings src,
-            BenchmarkSweepAxis sweepAxis,
-            string sweepParameterName,
-            double axisValue,
+            BenchmarkSweepAxis sweepAxisA, string paramNameA, double valueA,
+            BenchmarkSweepAxis sweepAxisB, string paramNameB, double valueB,
             int threadsPerWorker)
         {
-            var sweepOverride = sweepAxis == BenchmarkSweepAxis.SolverParameter
-                                && !double.IsNaN(axisValue)
-                                && !string.IsNullOrEmpty(sweepParameterName);
+            var overrideA = sweepAxisA == BenchmarkSweepAxis.SolverParameter
+                            && !double.IsNaN(valueA) && !string.IsNullOrEmpty(paramNameA);
+            var overrideB = sweepAxisB == BenchmarkSweepAxis.SolverParameter
+                            && !double.IsNaN(valueB) && !string.IsNullOrEmpty(paramNameB);
             var capOverride = threadsPerWorker > 0
                               && src.ValidCombinationSearchMultithreadThreadCount > threadsPerWorker;
-            if (!sweepOverride && !capOverride) return src;
+            if (!overrideA && !overrideB && !capOverride) return src;
 
             var clone = CloneSettings(src);
-            if (sweepOverride) SetProperty(clone, sweepParameterName, axisValue);
+            if (overrideA) SetProperty(clone, paramNameA, valueA);
+            if (overrideB) SetProperty(clone, paramNameB, valueB);
             if (capOverride) clone.ValidCombinationSearchMultithreadThreadCount = threadsPerWorker;
             return clone;
         }

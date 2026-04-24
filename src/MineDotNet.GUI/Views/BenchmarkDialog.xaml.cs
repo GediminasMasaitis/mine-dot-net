@@ -36,6 +36,7 @@ namespace MineDotNet.GUI.Views
         private IReadOnlyList<BenchmarkSolverRun> _lastRuns;
         private IReadOnlyList<Color> _solverColors;
         private string _currentAxisLabel = "";
+        private string _currentAxisLabelB = "";
 
         public BenchmarkDialog()
         {
@@ -51,6 +52,8 @@ namespace MineDotNet.GUI.Views
             // are meaningful to sweep (bools can be A/B'd by adding two solvers).
             foreach (var name in GetSweepableParameterNames()) ParamBox.Items.Add(name);
             if (ParamBox.Items.Count > 0) ParamBox.SelectedIndex = 0;
+            foreach (var name in GetSweepableParameterNames()) ParamBoxB.Items.Add(name);
+            if (ParamBoxB.Items.Count > 0) ParamBoxB.SelectedIndex = 0;
             BuildChartPickerMenu();
             ApplyChartSelection();
             UpdateButtonStates();
@@ -104,6 +107,11 @@ namespace MineDotNet.GUI.Views
                 chart.Margin = new Thickness(4);
                 if (chart is SweepLineChart sweep) sweep.AxisName = _currentAxisLabel;
                 if (chart is IterationsSurfaceChart surface) surface.AxisName = _currentAxisLabel;
+                if (chart is HeatmapChart heatmap)
+                {
+                    heatmap.AxisNameA = _currentAxisLabel;
+                    heatmap.AxisNameB = _currentAxisLabelB;
+                }
                 if (_lastRuns != null && _solverColors != null)
                 {
                     chart.SetRuns(_lastRuns, _solverColors);
@@ -199,6 +207,66 @@ namespace MineDotNet.GUI.Views
             SweepStepBox.Value = 1;
         }
 
+        // Sweep B mirror — same panel show/hide logic, same preset values,
+        // but targets the secondary axis boxes. Could be deduped into a
+        // shared method taking ComboBox/Panel args but the inline version
+        // is easier to read given there are only two.
+        private void SweepBoxB_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (SweepPanelB == null || SweepFromBoxB == null) return;
+
+            var axis = CurrentSweepAxisB();
+            SweepPanelB.Visibility = axis == BenchmarkSweepAxis.None ? Visibility.Collapsed : Visibility.Visible;
+            ParamPanelB.Visibility = axis == BenchmarkSweepAxis.SolverParameter ? Visibility.Visible : Visibility.Collapsed;
+
+            switch (axis)
+            {
+                case BenchmarkSweepAxis.Width:
+                case BenchmarkSweepAxis.Height:
+                    SweepFromBoxB.Value = 10; SweepToBoxB.Value = 30; SweepStepBoxB.Value = 1;
+                    break;
+                case BenchmarkSweepAxis.MineDensity:
+                    SweepFromBoxB.Value = 10; SweepToBoxB.Value = 30; SweepStepBoxB.Value = 1;
+                    break;
+                case BenchmarkSweepAxis.SolverParameter:
+                    ApplyParamPresetsB();
+                    break;
+            }
+        }
+
+        private void ParamBoxB_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (SweepFromBoxB == null) return;
+            if (CurrentSweepAxisB() == BenchmarkSweepAxis.SolverParameter) ApplyParamPresetsB();
+        }
+
+        private void ApplyParamPresetsB()
+        {
+            var name = ParamBoxB.SelectedItem as string;
+            if (string.IsNullOrEmpty(name)) return;
+            var prop = typeof(BorderSeparationSolverSettings).GetProperty(name);
+            if (prop == null || _solverRows.Count == 0) return;
+            var current = prop.GetValue(_solverRows[0].Config.Settings);
+            double v;
+            try { v = Convert.ToDouble(current); } catch { v = 0; }
+            SweepFromBoxB.Value = Math.Max(0, v - 5);
+            SweepToBoxB.Value = v + 5;
+            SweepStepBoxB.Value = 1;
+        }
+
+        private BenchmarkSweepAxis CurrentSweepAxisB()
+        {
+            if (SweepBoxB == null || SweepBoxB.SelectedIndex <= 0) return BenchmarkSweepAxis.None;
+            return SweepBoxB.SelectedIndex switch
+            {
+                1 => BenchmarkSweepAxis.Width,
+                2 => BenchmarkSweepAxis.Height,
+                3 => BenchmarkSweepAxis.MineDensity,
+                4 => BenchmarkSweepAxis.SolverParameter,
+                _ => BenchmarkSweepAxis.None
+            };
+        }
+
         private BenchmarkSweepAxis CurrentSweepAxis()
         {
             if (SweepBox == null || SweepBox.SelectedIndex <= 0) return BenchmarkSweepAxis.None;
@@ -218,6 +286,15 @@ namespace MineDotNet.GUI.Views
             BenchmarkSweepAxis.Height => "Height",
             BenchmarkSweepAxis.MineDensity => "Mine density",
             BenchmarkSweepAxis.SolverParameter => (ParamBox?.SelectedItem as string) ?? "Parameter",
+            _ => ""
+        };
+
+        private string SweepAxisLabelB(BenchmarkSweepAxis a) => a switch
+        {
+            BenchmarkSweepAxis.Width => "Width",
+            BenchmarkSweepAxis.Height => "Height",
+            BenchmarkSweepAxis.MineDensity => "Mine density",
+            BenchmarkSweepAxis.SolverParameter => (ParamBoxB?.SelectedItem as string) ?? "Parameter",
             _ => ""
         };
 
@@ -270,6 +347,7 @@ namespace MineDotNet.GUI.Views
             if (_solverRows.Count == 0) return;
 
             var axis = CurrentSweepAxis();
+            var axisB = CurrentSweepAxisB();
             var config = new BenchmarkConfig
             {
                 Width = (int)WidthBox.Value,
@@ -284,7 +362,12 @@ namespace MineDotNet.GUI.Views
                 SweepFrom = axis == BenchmarkSweepAxis.MineDensity ? (SweepFromBox.Value ?? 0) / 100.0 : (SweepFromBox.Value ?? 0),
                 SweepTo = axis == BenchmarkSweepAxis.MineDensity ? (SweepToBox.Value ?? 0) / 100.0 : (SweepToBox.Value ?? 0),
                 SweepStep = axis == BenchmarkSweepAxis.MineDensity ? (SweepStepBox.Value ?? 1) / 100.0 : (SweepStepBox.Value ?? 1),
-                SweepParameterName = axis == BenchmarkSweepAxis.SolverParameter ? ParamBox.SelectedItem as string : null
+                SweepParameterName = axis == BenchmarkSweepAxis.SolverParameter ? ParamBox.SelectedItem as string : null,
+                SweepAxisB = axisB,
+                SweepFromB = axisB == BenchmarkSweepAxis.MineDensity ? (SweepFromBoxB.Value ?? 0) / 100.0 : (SweepFromBoxB.Value ?? 0),
+                SweepToB = axisB == BenchmarkSweepAxis.MineDensity ? (SweepToBoxB.Value ?? 0) / 100.0 : (SweepToBoxB.Value ?? 0),
+                SweepStepB = axisB == BenchmarkSweepAxis.MineDensity ? (SweepStepBoxB.Value ?? 1) / 100.0 : (SweepStepBoxB.Value ?? 1),
+                SweepParameterNameB = axisB == BenchmarkSweepAxis.SolverParameter ? ParamBoxB.SelectedItem as string : null
             };
 
             _resultRows.Clear();
@@ -301,18 +384,23 @@ namespace MineDotNet.GUI.Views
             var palette = IOCC.GetService<IPaletteProvider>();
             _solverColors = palette.MaskColors;
             _currentAxisLabel = SweepAxisLabel(axis);
+            _currentAxisLabelB = SweepAxisLabelB(axisB);
+
+            // Build empty runs that mirror the flat [A][B][solver] layout the
+            // runner will populate, so charts have the right number of
+            // placeholder slots from the first frame. Either axis can be None
+            // (single virtual NaN entry) — matches the runner exactly.
             var emptyRuns = new List<BenchmarkSolverRun>();
-            if (inSweep)
-            {
-                foreach (var v in config.SweepValues())
+            var aValues = axis == BenchmarkSweepAxis.None
+                ? new List<double?> { null }
+                : config.SweepValues().Select(v => (double?)v).ToList();
+            var bValues = axisB == BenchmarkSweepAxis.None
+                ? new List<double?> { null }
+                : config.SweepValuesB().Select(v => (double?)v).ToList();
+            foreach (var vA in aValues)
+                foreach (var vB in bValues)
                     for (var i = 0; i < config.Solvers.Count; i++)
-                        emptyRuns.Add(new BenchmarkSolverRun(i, config.Solvers[i].Name, v));
-            }
-            else
-            {
-                for (var i = 0; i < config.Solvers.Count; i++)
-                    emptyRuns.Add(new BenchmarkSolverRun(i, config.Solvers[i].Name));
-            }
+                        emptyRuns.Add(new BenchmarkSolverRun(i, config.Solvers[i].Name, vA, vB));
             _lastRuns = emptyRuns;
             ApplyChartSelection();
 
