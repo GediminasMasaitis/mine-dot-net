@@ -100,6 +100,7 @@ namespace MineDotNet.GUI.Views
         private void ApplyChartSelection()
         {
             ChartsPanel.Children.Clear();
+            var aggregated = MaybeAggregate();
             foreach (var desc in ChartRegistry.All)
             {
                 if (!_selectedCharts.Contains(desc)) continue;
@@ -119,9 +120,58 @@ namespace MineDotNet.GUI.Views
                 }
                 if (_lastRuns != null && _solverColors != null)
                 {
-                    chart.SetRuns(_lastRuns, _solverColors);
+                    var data = chart.BenefitsFromSweepAggregation && aggregated != null ? aggregated : _lastRuns;
+                    chart.SetRuns(data, _solverColors);
                 }
                 ChartsPanel.Children.Add(chart);
+            }
+        }
+
+        // Returns _lastRuns merged-by-solver-name when the toggle is on, else
+        // null (signalling "use raw runs"). Done lazily so we don't pay the
+        // merge cost during the run when the user has never expanded any
+        // 1D chart. Performed once per ApplyChartSelection / UpdateCharts so
+        // every aggregating chart in the panel shares the same combined list.
+        private IReadOnlyList<BenchmarkSolverRun> MaybeAggregate()
+        {
+            if (_lastRuns == null) return null;
+            if (AggregateChartsCheck?.IsChecked != true) return null;
+            var byName = new Dictionary<string, BenchmarkSolverRun>();
+            var ordered = new List<BenchmarkSolverRun>();
+            foreach (var r in _lastRuns)
+            {
+                if (!byName.TryGetValue(r.Name, out var agg))
+                {
+                    agg = new BenchmarkSolverRun(r.SolverIndex, r.Name);
+                    byName[r.Name] = agg;
+                    ordered.Add(agg);
+                }
+                agg.Games.AddRange(r.Games);
+                agg.Won += r.Won;
+                agg.Lost += r.Lost;
+                agg.Stuck += r.Stuck;
+                agg.TotalMs += r.TotalMs;
+                agg.TotalIterations += r.TotalIterations;
+            }
+            return ordered;
+        }
+
+        private void AggregateChartsCheck_Changed(object sender, RoutedEventArgs e)
+        {
+            // Toggle mid-run is fine; charts that benefit pick up the new
+            // mode on the next tick. Repaint immediately so the change is
+            // visible without waiting for a progress event.
+            if (_lastRuns != null && _solverColors != null)
+            {
+                var aggregated = MaybeAggregate();
+                foreach (var child in ChartsPanel.Children)
+                {
+                    if (child is ChartBase chart)
+                    {
+                        var data = chart.BenefitsFromSweepAggregation && aggregated != null ? aggregated : _lastRuns;
+                        chart.SetRuns(data, _solverColors);
+                    }
+                }
             }
         }
 
@@ -465,13 +515,19 @@ namespace MineDotNet.GUI.Views
             // Push the latest runs into every chart currently in the panel.
             // Charts that aren't relevant to the current mode (e.g. sweep
             // charts during a non-sweep run) render empty, which is fine —
-            // the user chose to display them.
+            // the user chose to display them. Aggregated runs are computed
+            // once per call and reused across every chart that wants them.
             void UpdateCharts()
             {
                 if (_lastRuns == null || _solverColors == null) return;
+                var aggregated = MaybeAggregate();
                 foreach (var child in ChartsPanel.Children)
                 {
-                    if (child is ChartBase chart) chart.SetRuns(_lastRuns, _solverColors);
+                    if (child is ChartBase chart)
+                    {
+                        var data = chart.BenefitsFromSweepAggregation && aggregated != null ? aggregated : _lastRuns;
+                        chart.SetRuns(data, _solverColors);
+                    }
                 }
             }
 

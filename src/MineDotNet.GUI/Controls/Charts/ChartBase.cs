@@ -38,6 +38,16 @@ namespace MineDotNet.GUI.Controls.Charts
             InvalidateVisual();
         }
 
+        // True for charts that don't care about per-axis-value granularity
+        // (CDFs, outcome bars, scatter). When the dialog's "Aggregate sweep
+        // series" toggle is on, the dialog merges all runs sharing a solver
+        // name into a single run before handing data to these charts —
+        // collapses N×M curves into one per solver, fixes the unreadable
+        // tangle and the perf cost of drawing thousands of step lines.
+        // Sweep-axis-aware charts (heatmaps, surfaces, axis-line charts)
+        // leave this false because they NEED the per-(axis-value) split.
+        public virtual bool BenefitsFromSweepAggregation => false;
+
         protected override Size MeasureOverride(Size availableSize)
         {
             var w = double.IsInfinity(availableSize.Width) ? MinWidth : availableSize.Width;

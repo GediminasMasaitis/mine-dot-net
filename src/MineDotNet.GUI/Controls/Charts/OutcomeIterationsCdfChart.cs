@@ -19,6 +19,8 @@ namespace MineDotNet.GUI.Controls.Charts
     // by outcome across the whole dataset.
     internal sealed class OutcomeIterationsCdfChart : ChartBase
     {
+        public override bool BenefitsFromSweepAggregation => true;
+
         private static readonly Brush WonBrush = Frozen(Color.FromRgb(110, 205, 130));
         private static readonly Brush LostBrush = Frozen(Color.FromRgb(230, 100, 100));
         private static readonly Pen WonPen = FrozenPen(Color.FromRgb(110, 205, 130), 1.8);

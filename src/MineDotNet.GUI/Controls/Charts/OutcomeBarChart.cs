@@ -9,6 +9,8 @@ namespace MineDotNet.GUI.Controls.Charts
     // Answers "which config is most reliable?" at a glance.
     internal sealed class OutcomeBarChart : ChartBase
     {
+        public override bool BenefitsFromSweepAggregation => true;
+
         private static readonly Brush WonBrush = Frozen(Color.FromRgb(110, 205, 130));
         private static readonly Brush StuckBrush = Frozen(Color.FromRgb(225, 205, 110));
         private static readonly Brush LostBrush = Frozen(Color.FromRgb(230, 100, 100));

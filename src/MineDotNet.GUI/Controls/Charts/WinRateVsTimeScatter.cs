@@ -9,6 +9,8 @@ namespace MineDotNet.GUI.Controls.Charts
     // another is Pareto-dominated and should be considered for removal.
     internal sealed class WinRateVsTimeScatter : ChartBase
     {
+        public override bool BenefitsFromSweepAggregation => true;
+
         protected override void OnRender(DrawingContext dc)
         {
             var w = ActualWidth;

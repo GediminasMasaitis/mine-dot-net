@@ -19,6 +19,8 @@ namespace MineDotNet.GUI.Controls.Charts
         // this to whatever's sensible for their unit (0.01 ms, 1 iteration).
         protected abstract double MinValue { get; }
 
+        public override bool BenefitsFromSweepAggregation => true;
+
         protected override void OnRender(DrawingContext dc)
         {
             var w = ActualWidth;

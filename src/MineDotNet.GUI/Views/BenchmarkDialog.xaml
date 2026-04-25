@@ -255,6 +255,10 @@
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
                         <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,6">
+                            <CheckBox x:Name="AggregateChartsCheck" Content="Aggregate sweep series" IsChecked="True"
+                                      VerticalAlignment="Center" Margin="0,0,12,0"
+                                      ToolTip="Collapse all sweep slots into one curve per solver for 1D charts (CDFs, outcomes, scatter). Sweep-axis charts ignore this."
+                                      Checked="AggregateChartsCheck_Changed" Unchecked="AggregateChartsCheck_Changed" />
                             <ui:DropDownButton x:Name="ChartPickerBtn" Content="Charts" Icon="{ui:SymbolIcon DataBarVertical24}">
                                 <ui:DropDownButton.Flyout>
                                     <ContextMenu x:Name="ChartPickerMenu" />
