@@ -32,6 +32,12 @@ namespace MineDotNet.GUI.Controls.Charts
         private double _pitchDeg = -30;
         private double _distance = 3.2;
         private Point? _dragAnchor;
+        // Drag throttle: mouse move fires 120+ times a second, and each full
+        // Viewport3D repaint is CPU-software-rendered. Skip camera updates
+        // that land inside a ~16ms window (≈60 FPS) so we don't build a
+        // backlog of render work and introduce perceptible input lag.
+        private int _lastUpdateTick;
+        private const int MinUpdateMs = 16;
 
         protected const double TitleStrip = 22;
 
@@ -115,13 +121,21 @@ namespace MineDotNet.GUI.Controls.Charts
             _yawDeg += dx * 0.4;
             _pitchDeg = Math.Max(-85, Math.Min(-5, _pitchDeg + dy * 0.4));
             _dragAnchor = p;
-            UpdateCamera();
+            var now = Environment.TickCount;
+            if (now - _lastUpdateTick >= MinUpdateMs)
+            {
+                UpdateCamera();
+                _lastUpdateTick = now;
+            }
         }
 
         private void OnDragEnd(object sender, MouseButtonEventArgs e)
         {
             _dragAnchor = null;
             ReleaseMouseCapture();
+            // Flush a final render so the displayed angle matches the last
+            // mouse position even if the previous move was throttle-dropped.
+            UpdateCamera();
         }
 
         private void OnWheel(object sender, MouseWheelEventArgs e)
