@@ -255,10 +255,15 @@
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
                         <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,6">
-                            <CheckBox x:Name="AggregateChartsCheck" Content="Aggregate sweep series" IsChecked="True"
+                            <TextBlock Text="Aggregate:" Opacity="0.7" VerticalAlignment="Center" Margin="0,0,6,0" />
+                            <CheckBox x:Name="AggregateACheck" Content="A" IsChecked="True"
+                                      VerticalAlignment="Center" Margin="0,0,8,0"
+                                      ToolTip="Collapse axis A (combine runs across A) — fewer series for 1D charts. Only affects charts that don't already use a sweep axis."
+                                      Checked="AggregateChecks_Changed" Unchecked="AggregateChecks_Changed" />
+                            <CheckBox x:Name="AggregateBCheck" Content="B" IsChecked="True"
                                       VerticalAlignment="Center" Margin="0,0,12,0"
-                                      ToolTip="Collapse all sweep slots into one curve per solver for 1D charts (CDFs, outcomes, scatter). Sweep-axis charts ignore this."
-                                      Checked="AggregateChartsCheck_Changed" Unchecked="AggregateChartsCheck_Changed" />
+                                      ToolTip="Collapse axis B (combine runs across B) — fewer series for 1D charts. Only affects charts that don't already use a sweep axis."
+                                      Checked="AggregateChecks_Changed" Unchecked="AggregateChecks_Changed" />
                             <ui:DropDownButton x:Name="ChartPickerBtn" Content="Charts" Icon="{ui:SymbolIcon DataBarVertical24}">
                                 <ui:DropDownButton.Flyout>
                                     <ContextMenu x:Name="ChartPickerMenu" />

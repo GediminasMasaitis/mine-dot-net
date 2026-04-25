@@ -127,23 +127,31 @@ namespace MineDotNet.GUI.Views
             }
         }
 
-        // Returns _lastRuns merged-by-solver-name when the toggle is on, else
-        // null (signalling "use raw runs"). Done lazily so we don't pay the
-        // merge cost during the run when the user has never expanded any
-        // 1D chart. Performed once per ApplyChartSelection / UpdateCharts so
-        // every aggregating chart in the panel shares the same combined list.
+        // Returns _lastRuns merged across the requested axes, or null when
+        // both checkboxes are off (charts use raw _lastRuns then). The
+        // group key keeps whichever axis is *not* being aggregated; the
+        // resulting run carries the preserved axis values so sweep-axis
+        // charts can still read them. Performed once per
+        // ApplyChartSelection / UpdateCharts so every aggregating chart in
+        // the panel shares the same combined list.
         private IReadOnlyList<BenchmarkSolverRun> MaybeAggregate()
         {
             if (_lastRuns == null) return null;
-            if (AggregateChartsCheck?.IsChecked != true) return null;
-            var byName = new Dictionary<string, BenchmarkSolverRun>();
+            var aggA = AggregateACheck?.IsChecked == true;
+            var aggB = AggregateBCheck?.IsChecked == true;
+            if (!aggA && !aggB) return null;
+
+            var byKey = new Dictionary<(string name, double? a, double? b), BenchmarkSolverRun>();
             var ordered = new List<BenchmarkSolverRun>();
             foreach (var r in _lastRuns)
             {
-                if (!byName.TryGetValue(r.Name, out var agg))
+                var keyA = aggA ? (double?)null : r.AxisValue;
+                var keyB = aggB ? (double?)null : r.AxisValueB;
+                var key = (r.Name, keyA, keyB);
+                if (!byKey.TryGetValue(key, out var agg))
                 {
-                    agg = new BenchmarkSolverRun(r.SolverIndex, r.Name);
-                    byName[r.Name] = agg;
+                    agg = new BenchmarkSolverRun(r.SolverIndex, r.Name, keyA, keyB);
+                    byKey[key] = agg;
                     ordered.Add(agg);
                 }
                 agg.Games.AddRange(r.Games);
@@ -156,7 +164,7 @@ namespace MineDotNet.GUI.Views
             return ordered;
         }
 
-        private void AggregateChartsCheck_Changed(object sender, RoutedEventArgs e)
+        private void AggregateChecks_Changed(object sender, RoutedEventArgs e)
         {
             // Toggle mid-run is fine; charts that benefit pick up the new
             // mode on the next tick. Repaint immediately so the change is
